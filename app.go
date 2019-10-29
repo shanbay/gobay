@@ -111,7 +111,7 @@ func (d *Application) initConfig() error {
 	configfile := filepath.Join(d.RootPath, "config/config.yaml")
 	config := viper.New()
 	config.SetConfigFile(configfile)
-	if err := d.config.ReadInConfig(); err != nil {
+	if err := config.ReadInConfig(); err != nil {
 		return err
 	}
 	config = config.Sub(d.Env)
