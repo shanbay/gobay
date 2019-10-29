@@ -2,7 +2,7 @@ package gormext
 
 import (
 	"github.com/jinzhu/gorm"
-	"github.com/yandy/gobay"
+	"github.com/shanbay/gobay"
 )
 
 // GormExt gorm extention

@@ -2,12 +2,10 @@ package gobay
 
 import (
 	"fmt"
-	"io/ioutil"
 	"path/filepath"
 	"sync"
 
 	"github.com/spf13/viper"
-	"gopkg.in/yaml.v2"
 )
 
 // A Key represents a key for a Extention.
@@ -110,35 +108,23 @@ func (d *Application) Init() error {
 }
 
 func (d *Application) initConfig() error {
-	d.config = viper.New()
-
-	// add default config
-	d.config.SetDefault("DEBUG", false)
-	d.config.SetDefault("TESTING", false)
-	d.config.SetDefault("TIMEZONE", "UTC")
-
-	originyaml := filepath.Join(d.RootPath, "config/config.yaml")
-	configfile := filepath.Join(d.RootPath, ".config.yaml")
-
-	var configmap map[string]interface{}
-	instream, err := ioutil.ReadFile(originyaml)
-	if err != nil {
-		return err
-	}
-	yaml.Unmarshal(instream, &configmap)
-	outstream, err := yaml.Marshal(configmap[d.Env])
-	if err != nil {
-		return err
-	}
-	if err := ioutil.WriteFile(configfile, outstream, 0644); err != nil {
-		return err
-	}
-
-	d.config.SetConfigFile(configfile)
+	configfile := filepath.Join(d.RootPath, "config/config.yaml")
+	config := viper.New()
+	config.SetConfigFile(configfile)
 	if err := d.config.ReadInConfig(); err != nil {
 		return err
 	}
-	d.config.AutomaticEnv()
+	config = config.Sub(d.Env)
+
+	// add default config
+	config.SetDefault("DEBUG", false)
+	config.SetDefault("TESTING", false)
+	config.SetDefault("TIMEZONE", "UTC")
+
+	// read env
+	config.AutomaticEnv()
+
+	d.config = config
 
 	return nil
 }
