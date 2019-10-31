@@ -122,6 +122,8 @@ func (d *Application) initConfig() error {
 	config.SetDefault("timezone", "UTC")
 	config.SetDefault("grpc_host", "localhost")
 	config.SetDefault("grpc_port", 6000)
+	config.SetDefault("openapi_host", "localhost")
+	config.SetDefault("openapi_port", 6000)
 
 	// read env
 	config.AutomaticEnv()
