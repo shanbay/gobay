@@ -108,7 +108,7 @@ func (d *Application) Init() error {
 }
 
 func (d *Application) initConfig() error {
-	configfile := filepath.Join(d.RootPath, "config/config.yaml")
+	configfile := filepath.Join(d.RootPath, "config.yaml")
 	config := viper.New()
 	config.SetConfigFile(configfile)
 	if err := config.ReadInConfig(); err != nil {
@@ -117,9 +117,11 @@ func (d *Application) initConfig() error {
 	config = config.Sub(d.Env)
 
 	// add default config
-	config.SetDefault("DEBUG", false)
-	config.SetDefault("TESTING", false)
-	config.SetDefault("TIMEZONE", "UTC")
+	config.SetDefault("debug", false)
+	config.SetDefault("testing", false)
+	config.SetDefault("timezone", "UTC")
+	config.SetDefault("grpc_host", "localhost")
+	config.SetDefault("grpc_host", 6000)
 
 	// read env
 	config.AutomaticEnv()
