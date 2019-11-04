@@ -7,7 +7,7 @@ package testapp
 import (
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/shanbay/gobay"
-	"github.com/shanbay/gobay/extentions/gormext"
+	"github.com/shanbay/gobay/gormext"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"testing"
@@ -50,4 +50,9 @@ func TestCreateApp(t *testing.T) {
 	newApp, err := gobay.CreateApp(".", "testing", provider)
 	assert.Equal(app, newApp)
 	provider.AssertNumberOfCalls(t, "ProvideExtensions", 2)
+	// Create using another loader
+	var loader gobay.ApplicationLoader
+	newApp, err = loader.CreateApp(".", "testing", provider)
+	assert.NotEqual(app, newApp)
+	provider.AssertNumberOfCalls(t, "ProvideExtensions", 3)
 }

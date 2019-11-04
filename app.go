@@ -57,42 +57,6 @@ func (d *Application) GetOK(key Key) (Extension, bool) {
 	return ext, ok
 }
 
-// Set the extension at the specified key
-func (d *Application) Set(key Key, ext Extension) error {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-
-	if d.initialized {
-		return fmt.Errorf("can't be called after app initialized")
-	}
-
-	if d.extensions == nil {
-		d.extensions = make(map[Key]Extension)
-	}
-
-	d.extensions[key] = ext
-	return nil
-}
-
-// SetMany set many extensions once. values will be override if same key occurred
-func (d *Application) SetMany(exts map[Key]Extension) error {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-
-	if d.initialized {
-		return fmt.Errorf("can't be called after app initialized")
-	}
-
-	if d.extensions == nil {
-		d.extensions = make(map[Key]Extension, len(exts))
-	}
-
-	for k, v := range exts {
-		d.extensions[k] = v
-	}
-	return nil
-}
-
 // Config returns the viper config for this application
 func (d *Application) Config() *viper.Viper {
 	return d.config
@@ -181,36 +145,46 @@ type ApplicationProvider interface {
 	ProvideExtensions() map[Key]Extension
 }
 
-var (
+type ApplicationLoader struct {
 	app *Application
 	mu sync.Mutex
-)
+}
 
-// CreateApp create an gobay Application.
-func CreateApp(rootPath, env string, provider ApplicationProvider) (*Application, error) {
-	mu.Lock()
-	defer mu.Unlock()
+func (l *ApplicationLoader) CreateApp(rootPath, env string, provider ApplicationProvider) (*Application, error) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
 
-	if app != nil && app.initialized {
-		return app, nil
+	if l.app != nil && l.app.initialized {
+		return l.app, nil
 	}
 
-	app = newApplication(rootPath, env, provider.ProvideExtensions())
-	if err := app.Init(); err != nil {
+	l.app = newApplication(rootPath, env, provider.ProvideExtensions())
+	if err := l.app.Init(); err != nil {
 		return nil, err
 	}
 
-	return app, nil
+	return l.app, nil
+}
+
+func (l *ApplicationLoader) GetApp() (*Application, error) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	if l.app == nil || !l.app.initialized{
+		return nil, fmt.Errorf("app not created")
+	}
+
+	return l.app, nil
+}
+
+
+var l ApplicationLoader
+// CreateApp create an gobay Application.
+func CreateApp(rootPath, env string, provider ApplicationProvider) (*Application, error) {
+	return l.CreateApp(rootPath, env, provider)
 }
 
 // GetApp return current app
 func GetApp() (*Application, error) {
-	mu.Lock()
-	defer mu.Unlock()
-
-	if app == nil || !app.initialized{
-		return nil, fmt.Errorf("app not created")
-	}
-
-	return app, nil
+	return l.GetApp()
 }
