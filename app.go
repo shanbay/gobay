@@ -26,6 +26,7 @@ type Application struct {
 	config      *viper.Viper
 	extentions  map[Key]Extention
 	initialized bool
+	closed      bool
 	mu          sync.Mutex
 }
 
@@ -108,7 +109,7 @@ func (d *Application) Init() error {
 }
 
 func (d *Application) initConfig() error {
-	configfile := filepath.Join(d.RootPath, "config/config.yaml")
+	configfile := filepath.Join(d.RootPath, "config.yaml")
 	config := viper.New()
 	config.SetConfigFile(configfile)
 	if err := config.ReadInConfig(); err != nil {
@@ -117,9 +118,13 @@ func (d *Application) initConfig() error {
 	config = config.Sub(d.Env)
 
 	// add default config
-	config.SetDefault("DEBUG", false)
-	config.SetDefault("TESTING", false)
-	config.SetDefault("TIMEZONE", "UTC")
+	config.SetDefault("debug", false)
+	config.SetDefault("testing", false)
+	config.SetDefault("timezone", "UTC")
+	config.SetDefault("grpc_host", "localhost")
+	config.SetDefault("grpc_port", 6000)
+	config.SetDefault("openapi_host", "localhost")
+	config.SetDefault("openapi_port", 3000)
 
 	// read env
 	config.AutomaticEnv()
@@ -132,6 +137,31 @@ func (d *Application) initConfig() error {
 func (d *Application) initExtentions() error {
 	for _, ext := range d.extentions {
 		if err := ext.Init(d); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// Close close app when exit
+func (d *Application) Close() error {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	if d.closed {
+		return nil
+	}
+
+	if err := d.closeExtentions(); err != nil {
+		return err
+	}
+	d.closed = true
+	return nil
+}
+
+func (d *Application) closeExtentions() error {
+	for _, ext := range d.extentions {
+		if err := ext.Close(); err != nil {
 			return err
 		}
 	}
