@@ -25,6 +25,16 @@ func (d *GormExt) Init(app *gobay.Application) error {
 	if err != nil {
 		return err
 	}
+	sqldb := db.DB()
+	if config.IsSet("conn_max_lifetime") {
+		sqldb.SetConnMaxLifetime(config.GetDuration("conn_max_lifetime"))
+	}
+	if config.IsSet("max_open_conns") {
+		sqldb.SetMaxOpenConns(config.GetInt("max_open_conns"))
+	}
+	if config.IsSet("max_idle_conns") {
+		sqldb.SetMaxIdleConns(config.GetInt("max_idle_conns"))
+	}
 	d.db = db
 	return nil
 }
