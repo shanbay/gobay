@@ -21,8 +21,8 @@ type Extention interface {
 
 // Application struct
 type Application struct {
-	RootPath    string
-	Env         string
+	rootPath    string
+	env         string
 	config      *viper.Viper
 	extentions  map[Key]Extention
 	initialized bool
@@ -46,42 +46,6 @@ func (d *Application) GetOK(key Key) (Extention, bool) {
 		return nil, ok
 	}
 	return ext, ok
-}
-
-// Set the extention at the specified key
-func (d *Application) Set(key Key, ext Extention) error {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-
-	if d.initialized {
-		return fmt.Errorf("can't be called after app initialized")
-	}
-
-	if d.extentions == nil {
-		d.extentions = make(map[Key]Extention)
-	}
-
-	d.extentions[key] = ext
-	return nil
-}
-
-// SetMany set many extentions once. values will be override if same key occurred
-func (d *Application) SetMany(exts map[Key]Extention) error {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-
-	if d.initialized {
-		return fmt.Errorf("can't be called after app initialized")
-	}
-
-	if d.extentions == nil {
-		d.extentions = make(map[Key]Extention, len(exts))
-	}
-
-	for k, v := range exts {
-		d.extentions[k] = v
-	}
-	return nil
 }
 
 // Config returns the viper config for this application
@@ -109,13 +73,13 @@ func (d *Application) Init() error {
 }
 
 func (d *Application) initConfig() error {
-	configfile := filepath.Join(d.RootPath, "config.yaml")
+	configfile := filepath.Join(d.rootPath, "config.yaml")
 	config := viper.New()
 	config.SetConfigFile(configfile)
 	if err := config.ReadInConfig(); err != nil {
 		return err
 	}
-	config = config.Sub(d.Env)
+	config = config.Sub(d.env)
 
 	// add default config
 	config.SetDefault("debug", false)
@@ -166,4 +130,18 @@ func (d *Application) closeExtentions() error {
 		}
 	}
 	return nil
+}
+
+// CreateApp create an gobay Application
+func CreateApp(rootPath string, env string, exts map[Key]Extention) (*Application, error) {
+	if rootPath == "" || env == "" {
+		return nil, fmt.Errorf("lack of rootPath or env")
+	}
+
+	app := &Application{rootPath: rootPath, env: env, extentions: exts}
+
+	if err := app.Init(); err != nil {
+		return nil, err
+	}
+	return app, nil
 }
