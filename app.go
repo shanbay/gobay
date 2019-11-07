@@ -30,15 +30,6 @@ type Application struct {
 	mu          sync.Mutex
 }
 
-// newApplication returns a new application.
-func newApplication(rootPath, env string, extensions map[Key]Extension) *Application {
-	return &Application{
-		rootPath:   rootPath,
-		env:        env,
-		extensions: extensions,
-	}
-}
-
 // Get the extension at the specified key, return nil when the component doesn't exist
 func (d *Application) Get(key Key) Extension {
 	ext, _ := d.GetOK(key)
@@ -141,50 +132,16 @@ func (d *Application) closeExtensions() error {
 	return nil
 }
 
-type ApplicationProvider interface {
-	ProvideExtensions() map[Key]Extension
-}
-
-type ApplicationLoader struct {
-	app *Application
-	mu sync.Mutex
-}
-
-func (l *ApplicationLoader) CreateApp(rootPath, env string, provider ApplicationProvider) (*Application, error) {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-
-	if l.app != nil && l.app.initialized {
-		return l.app, nil
+// CreateApp create an gobay Application
+func CreateApp(rootPath string, env string, exts map[Key]Extension) (*Application, error) {
+	if rootPath == "" || env == "" {
+		return nil, fmt.Errorf("lack of rootPath or env")
 	}
 
-	l.app = newApplication(rootPath, env, provider.ProvideExtensions())
-	if err := l.app.Init(); err != nil {
+	app := &Application{rootPath: rootPath, env: env, extensions: exts}
+
+	if err := app.Init(); err != nil {
 		return nil, err
 	}
-
-	return l.app, nil
-}
-
-func (l *ApplicationLoader) GetApp() (*Application, error) {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-
-	if l.app == nil || !l.app.initialized{
-		return nil, fmt.Errorf("app not created")
-	}
-
-	return l.app, nil
-}
-
-
-var l ApplicationLoader
-// CreateApp create an gobay Application.
-func CreateApp(rootPath, env string, provider ApplicationProvider) (*Application, error) {
-	return l.CreateApp(rootPath, env, provider)
-}
-
-// GetApp return current app
-func GetApp() (*Application, error) {
-	return l.GetApp()
+	return app, nil
 }
