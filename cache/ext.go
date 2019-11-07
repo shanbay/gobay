@@ -2,7 +2,7 @@ package cache
 
 import (
 	"github.com/go-redis/redis"
-	"github.com/shanbay/gobay"
+	"github.com/gukz/gobay"
 	"time"
 )
 
