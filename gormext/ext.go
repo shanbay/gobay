@@ -1,8 +1,8 @@
 package gormext
 
 import (
-	"github.com/gukz/gobay"
 	"github.com/jinzhu/gorm"
+	"github.com/shanbay/gobay"
 )
 
 // GormExt gorm extention

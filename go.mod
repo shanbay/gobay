@@ -1,4 +1,4 @@
-module github.com/gukz/gobay
+module github.com/shanbay/gobay
 
 go 1.13
 
