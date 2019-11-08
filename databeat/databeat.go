@@ -9,6 +9,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -25,20 +26,20 @@ const (
 	MAXFIELDLEN = 10240
 )
 
-var indexByChoices = []indexByTime{
-	Daily,
-	Weekly,
-	Monthly,
-	Yearly,
+var indexByChoices = map[indexByTime]struct{}{
+	Daily:   struct{}{},
+	Weekly:  struct{}{},
+	Monthly: struct{}{},
+	Yearly:  struct{}{},
 }
-var reservedWords = []string{
-	"beat",
-	"input_type",
-	"offset",
-	"type",
-	"id",
-	"source",
-	"_ts",
+var reservedWords = map[string]struct{}{
+	"beat":       struct{}{},
+	"input_type": struct{}{},
+	"offset":     struct{}{},
+	"type":       struct{}{},
+	"id":         struct{}{},
+	"source":     struct{}{},
+	"_ts":        struct{}{},
 }
 
 // Model struct
@@ -51,16 +52,17 @@ type DataModel struct {
 }
 
 var beatLogger *log.Logger
+var once sync.Once
 
 // Singleton beat logger
 func GetBeatLogger() *log.Logger {
-	if beatLogger == nil {
-		beatLogger = log.New(os.Stdout, PREFIX, 0)
-	}
+	once.Do(func() {
+		beatLogger = log.New(os.Stderr, PREFIX, 0)
+	})
 	return beatLogger
 }
 
-// Log to stdout
+// Log to stderr
 func (d *DataModel) Beat(content map[string]interface{}) (string, error) {
 	err := d.validate(content)
 	if err != nil {
@@ -93,10 +95,8 @@ func (d *DataModel) validate(content map[string]interface{}) error {
 		if field[0] == '@' {
 			log.Fatal("不能以@开始")
 		}
-		for _, reservedWord := range reservedWords {
-			if reservedWord == field {
-				log.Fatal("包含保留词", reservedWords)
-			}
+		if _, ok := reservedWords[field]; ok {
+			log.Fatal("包含保留词", reservedWords)
 		}
 	}
 	var flag bool
@@ -112,14 +112,7 @@ func (d *DataModel) validate(content map[string]interface{}) error {
 			log.Fatal("aggs_field不存在", aggs_field)
 		}
 	}
-	flag = false
-	for _, choice := range indexByChoices {
-		if d.index_by == choice {
-			flag = true
-			break
-		}
-	}
-	if !flag {
+	if _, ok := indexByChoices[d.index_by]; !ok {
 		log.Fatal("index_by不合法")
 	}
 

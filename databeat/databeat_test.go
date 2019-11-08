@@ -38,7 +38,7 @@ func TestDatabeat(t *testing.T) {
 
 	var buf bytes.Buffer
 	GetBeatLogger().SetOutput(&buf)
-	defer GetBeatLogger().SetOutput(os.Stdout)
+	defer GetBeatLogger().SetOutput(os.Stderr)
 
 	beatTests := []struct {
 		in     map[string]interface{}
