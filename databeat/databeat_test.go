@@ -83,6 +83,7 @@ func TestDatabeat(t *testing.T) {
 		} else if tt.errStr != "" && err != nil && err.Error() != tt.errStr {
 			t.Errorf("Expected %s, got %s", tt.errStr, err.Error())
 		} else if actual != "" {
+			t.Log(buf.String())
 			output := strings.Replace(buf.String(), "[DATABEAT] ", "", 1)
 			mapOutput := make(map[string]interface{})
 			json.Unmarshal([]byte(output), &mapOutput)

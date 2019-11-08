@@ -154,8 +154,10 @@ func (d *DataModel) updateContent(content map[string]interface{}) {
 			continue
 		}
 	}
-	aggStr := strings.Join(agg, "||")
-	content["aggs_field"] = aggStr
+	if agg != nil {
+		aggStr := strings.Join(agg, "||")
+		content["aggs_field"] = aggStr
+	}
 
 	// add index_by, @name, @group, _ts, @id
 	indexByKey := fmt.Sprintf("@%s", d.index_by)
