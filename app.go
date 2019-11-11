@@ -8,11 +8,11 @@ import (
 	"github.com/spf13/viper"
 )
 
-// A Key represents a key for a Extention.
+// A Key represents a key for a Extension.
 type Key string
 
-// Extention like db, cache
-type Extention interface {
+// Extension like db, cache
+type Extension interface {
 	Object() interface{}
 	Application() *Application
 	Init(app *Application) error
@@ -21,67 +21,31 @@ type Extention interface {
 
 // Application struct
 type Application struct {
-	RootPath    string
-	Env         string
+	rootPath    string
+	env         string
 	config      *viper.Viper
-	extentions  map[Key]Extention
+	extensions  map[Key]Extension
 	initialized bool
 	closed      bool
 	mu          sync.Mutex
 }
 
-// Get the extention at the specified key, return nil when the component doesn't exist
-func (d *Application) Get(key Key) Extention {
+// Get the extension at the specified key, return nil when the component doesn't exist
+func (d *Application) Get(key Key) Extension {
 	ext, _ := d.GetOK(key)
 	return ext
 }
 
-// GetOK the extention at the specified key, return false when the component doesn't exist
-func (d *Application) GetOK(key Key) (Extention, bool) {
+// GetOK the extension at the specified key, return false when the component doesn't exist
+func (d *Application) GetOK(key Key) (Extension, bool) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	ext, ok := d.extentions[key]
+	ext, ok := d.extensions[key]
 	if !ok {
 		return nil, ok
 	}
 	return ext, ok
-}
-
-// Set the extention at the specified key
-func (d *Application) Set(key Key, ext Extention) error {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-
-	if d.initialized {
-		return fmt.Errorf("can't be called after app initialized")
-	}
-
-	if d.extentions == nil {
-		d.extentions = make(map[Key]Extention)
-	}
-
-	d.extentions[key] = ext
-	return nil
-}
-
-// SetMany set many extentions once. values will be override if same key occurred
-func (d *Application) SetMany(exts map[Key]Extention) error {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-
-	if d.initialized {
-		return fmt.Errorf("can't be called after app initialized")
-	}
-
-	if d.extentions == nil {
-		d.extentions = make(map[Key]Extention, len(exts))
-	}
-
-	for k, v := range exts {
-		d.extentions[k] = v
-	}
-	return nil
 }
 
 // Config returns the viper config for this application
@@ -89,7 +53,7 @@ func (d *Application) Config() *viper.Viper {
 	return d.config
 }
 
-// Init the application and its extentions with the config.
+// Init the application and its extensions with the config.
 func (d *Application) Init() error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -101,7 +65,7 @@ func (d *Application) Init() error {
 	if err := d.initConfig(); err != nil {
 		return err
 	}
-	if err := d.initExtentions(); err != nil {
+	if err := d.initExtensions(); err != nil {
 		return err
 	}
 	d.initialized = true
@@ -109,13 +73,13 @@ func (d *Application) Init() error {
 }
 
 func (d *Application) initConfig() error {
-	configfile := filepath.Join(d.RootPath, "config.yaml")
+	configfile := filepath.Join(d.rootPath, "config.yaml")
 	config := viper.New()
 	config.SetConfigFile(configfile)
 	if err := config.ReadInConfig(); err != nil {
 		return err
 	}
-	config = config.Sub(d.Env)
+	config = config.Sub(d.env)
 
 	// add default config
 	config.SetDefault("debug", false)
@@ -134,8 +98,8 @@ func (d *Application) initConfig() error {
 	return nil
 }
 
-func (d *Application) initExtentions() error {
-	for _, ext := range d.extentions {
+func (d *Application) initExtensions() error {
+	for _, ext := range d.extensions {
 		if err := ext.Init(d); err != nil {
 			return err
 		}
@@ -152,18 +116,32 @@ func (d *Application) Close() error {
 		return nil
 	}
 
-	if err := d.closeExtentions(); err != nil {
+	if err := d.closeExtensions(); err != nil {
 		return err
 	}
 	d.closed = true
 	return nil
 }
 
-func (d *Application) closeExtentions() error {
-	for _, ext := range d.extentions {
+func (d *Application) closeExtensions() error {
+	for _, ext := range d.extensions {
 		if err := ext.Close(); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+// CreateApp create an gobay Application
+func CreateApp(rootPath string, env string, exts map[Key]Extension) (*Application, error) {
+	if rootPath == "" || env == "" {
+		return nil, fmt.Errorf("lack of rootPath or env")
+	}
+
+	app := &Application{rootPath: rootPath, env: env, extensions: exts}
+
+	if err := app.Init(); err != nil {
+		return nil, err
+	}
+	return app, nil
 }
