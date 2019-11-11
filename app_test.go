@@ -2,10 +2,11 @@ package gobay
 
 import (
 	"errors"
+	"testing"
+
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	"testing"
 )
 
 type testExtension struct {
@@ -39,12 +40,12 @@ func TestCreateApp(t *testing.T) {
 	// config file not found
 	call := testExt.On("Init", mock.Anything)
 	call.Return(nil)
-	app, err := CreateApp("..", "testing", exts)
+	app, err := CreateApp(".", "testing", exts)
 	assert.Nil(app)
 	assert.NotNil(err)
 	testExt.AssertNotCalled(t, "Init")
 	// success
-	app, err = CreateApp(".", "testing", exts)
+	app, err = CreateApp("./testdata", "testing", exts)
 	assert.NotNil(app)
 	assert.Nil(err)
 	assert.NotNil(app.Get("test"))
@@ -53,7 +54,7 @@ func TestCreateApp(t *testing.T) {
 	// call extension.Init failed
 	initErr := errors.New("init failed")
 	call.Return(initErr)
-	app, err = CreateApp(".", "testing", exts)
+	app, err = CreateApp("./testdata", "testing", exts)
 	assert.Nil(app)
 	assert.Equal(initErr, err)
 }
@@ -65,7 +66,7 @@ func TestApplicationClose(t *testing.T) {
 		"test": testExt,
 	}
 	testExt.On("Init", mock.Anything).Return(nil)
-	app, _ := CreateApp(".", "testing", exts)
+	app, _ := CreateApp("./testdata", "testing", exts)
 	// call extension.Close failed
 	closeErr := errors.New("close failed")
 	call := testExt.On("Close", mock.Anything)

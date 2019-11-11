@@ -8,5 +8,4 @@ require (
 	github.com/mattn/go-sqlite3 v1.11.0
 	github.com/spf13/viper v1.4.0
 	github.com/stretchr/testify v1.4.0
-	golang.org/x/crypto v0.0.0-20190617133340-57b3e21c3d56 // indirect
 )
