@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"errors"
 	"path/filepath"
+	"../encoderext"
 	"github.com/shanbay/gobay"
 	sdk "github.com/sensorsdata/sa-sdk-go"
 )
@@ -23,7 +24,7 @@ const (
 type SensorsData struct {
 	NS 			string
 	app 		*gobay.Application
-	encoder 	*UrlEncoder
+	encoder 	*encoderext.Encoder
 	trackNs 	string
 	sa			sdk.SensorsAnalytics
 }
@@ -51,10 +52,7 @@ func (s *SensorsData) Init(app *gobay.Application) error {
 		fmt.Println(err)
 		return err
 	}
-	s.sa = sdk.InitSensorsAnalytics(consumer, "", false)
-
-	s.encoder = NewURLEncoder(&Options{Alphabet: config.GetString(alphabet)})
-	
+	s.sa = sdk.InitSensorsAnalytics(consumer, "", false)	
 	return nil
 }
 

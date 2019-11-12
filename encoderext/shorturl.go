@@ -1,4 +1,4 @@
-package sensorext
+package encoderext
 
 import (
 	"strings"

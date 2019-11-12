@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"../encoderext"
 	"github.com/shanbay/gobay"
 	"github.com/stretchr/testify/assert"
 )
@@ -18,14 +19,17 @@ func TestSensorsData(t *testing.T) {
 
 	assert := assert.New(t)
 	sensorsData := &SensorsData{}
+	encoder := &encoderext.Encoder{}
+
 	exts := map[gobay.Key]gobay.Extension{
-		"test": sensorsData,
+		"sensors": sensorsData,
+		"encoder": encoder,
 	}
 	app, err := gobay.CreateApp("../testdata", "testing", exts)
 	assert.NotNil(app)
 	assert.Nil(err)
 
-	encoder := sensorsData.encoder
+	sensorsData.encoder = encoder
 
 	// test log when Track
 	dataModel := &DataModel{
@@ -33,7 +37,7 @@ func TestSensorsData(t *testing.T) {
 		fields: []string{"age", "gender", "service_id", "tags"},
 	}
 	userID := uint64(123)
-	userIDStr := encoder.Pk2str(userID)
+	userIDStr := sensorsData.encoder.Pk2str(userID)
 	properties := map[string]interface{}{
 		"age":        18,
 		"gender":     "male",
@@ -96,7 +100,7 @@ func TestSensorsData(t *testing.T) {
 		switch m["type"] {
 		case "track":
 			assert.Equal(m["event"], dataModel.name)
-			assert.Equal(propertiesRes["service_id"], encoder.Pk2str(properties["service_id"].(uint64)))
+			assert.Equal(propertiesRes["service_id"], sensorsData.encoder.Pk2str(properties["service_id"].(uint64)))
 		case "profile_set", "profile_set_once", "profile_append", "profile_unset":
 			for k, v := range profile {
 				assert.Equal(v, propertiesRes[k])

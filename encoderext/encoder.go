@@ -1,21 +1,58 @@
-package	sensorext
+package	encoderext
 
 
 import (
 	"strings"
 	"reflect"
+	"github.com/shanbay/gobay"
 )
 
 const (
 	idStr     	= "id"
+	alphabet	= "short_url_alphabet"
 )
 
-func (encoder *UrlEncoder) Pk2str(value uint64) string {
-	return encoder.EncodeURL(value)
+// Encoder extension
+type Encoder struct {
+	NS			string
+	app 		*gobay.Application
+	encoder		*UrlEncoder
 }
 
-func (encoder *UrlEncoder) Str2pk(value string) uint64 {
-	return encoder.DecodeURL(value)
+
+// Init extension interface
+func (e *Encoder) Init(app *gobay.Application) error {
+	e.app = app
+	config := app.Config()
+	if e.NS != "" {
+		config = config.Sub(e.NS)
+	}
+	e.encoder = NewURLEncoder(&Options{Alphabet: config.GetString(alphabet)})
+	
+	return nil
+}
+
+// Close implements Extension interface
+func (e *Encoder) Close() error {
+	return nil
+}
+
+// Object implements Extension interface
+func (e *Encoder) Object() interface{} {
+	return e
+}
+
+// Application implements Extension interface
+func (e *Encoder) Application() *gobay.Application {
+	return e.app
+}
+
+func (e *Encoder) Pk2str(value uint64) string {
+	return e.encoder.EncodeURL(value)
+}
+
+func (e *Encoder) Str2pk(value string) uint64 {
+	return e.encoder.DecodeURL(value)
 }
 
 func getFieldsMap(fields []string) map[string]bool {
@@ -51,7 +88,7 @@ func deepCopy(value interface{}) interface{} {
 	return value
 }
 
-func (encoder *UrlEncoder) EncodeMap(data map[string]interface{}, excludedFields []string) map[string]interface{}{
+func (e *Encoder) EncodeMap(data map[string]interface{}, excludedFields []string) map[string]interface{}{
 	resData := mapDeepCopy(data)
 	fieldsMap := getFieldsMap(excludedFields)
 	for key, value := range(resData){
@@ -62,26 +99,26 @@ func (encoder *UrlEncoder) EncodeMap(data map[string]interface{}, excludedFields
 		switch kind {
 			case reflect.Array, reflect.Slice:
 				if v, ok:= value.([]uint64); ok{
-					resData[key] = encoder.EncodeSlice(v)
+					resData[key] = e.EncodeSlice(v)
 				}
 			case reflect.Uint64:
 				if key == idStr || strings.HasSuffix(key, idStr){
-					resData[key] = encoder.Pk2str(value.(uint64))
+					resData[key] = e.Pk2str(value.(uint64))
 				}
 		}
 	}
 	return resData
 }
 
-func (encoder *UrlEncoder) EncodeSlice(arr []uint64) []string {
+func (e *Encoder) EncodeSlice(arr []uint64) []string {
 	res := []string{}
 	for _, value := range(arr){
-		res = append(res, encoder.Pk2str(value))
+		res = append(res, e.Pk2str(value))
 	}
 	return res
 }
 
-func (encoder *UrlEncoder) DecodeMap(data map[string]interface{}) map[string]interface{}{
+func (e *Encoder) DecodeMap(data map[string]interface{}) map[string]interface{}{
 	resData := mapDeepCopy(data)
 	for key, value := range(resData){
 		if value == nil {
@@ -91,21 +128,21 @@ func (encoder *UrlEncoder) DecodeMap(data map[string]interface{}) map[string]int
 		switch kind {
 			case reflect.Array, reflect.Slice:
 				if v, ok:= value.([]string); ok{
-					resData[key] = encoder.DecodeSlice(v)
+					resData[key] = e.DecodeSlice(v)
 				}
 			case reflect.String:
 				if key == idStr || strings.HasSuffix(key, idStr){
-					resData[key] = encoder.Str2pk(value.(string))
+					resData[key] = e.Str2pk(value.(string))
 				}
 		}
 	}
 	return resData
 }
 
-func (encoder *UrlEncoder) DecodeSlice(arr []string) []uint64 {
+func (e *Encoder) DecodeSlice(arr []string) []uint64 {
 	res := []uint64{}
 	for _, value := range(arr){
-		res = append(res, encoder.Str2pk(value))
+		res = append(res, e.Str2pk(value))
 	}
 	return res
 }

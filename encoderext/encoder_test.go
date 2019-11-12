@@ -1,12 +1,22 @@
-package sensorext
+package encoderext
 
 import (
 	"testing"
 	"reflect"
+	"github.com/shanbay/gobay"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestEncoder(t *testing.T) {
-	encoder := NewURLEncoder(&Options{Alphabet: "mn6j2c4rv8bpygw95z7hsdaetxuk3fq"})
+	assert := assert.New(t)
+	
+	encoder := &Encoder{}
+	exts := map[gobay.Key]gobay.Extension{
+		"test": encoder,
+	}
+	app, err := gobay.CreateApp("../testdata", "testing", exts)
+	assert.NotNil(app)
+	assert.Nil(err)
 
 	testSingleElem := map[string]int{
 		"mmmmm": 0,
