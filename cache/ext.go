@@ -18,7 +18,7 @@ type CacheExt struct {
 	// gobay.Extension
 	NS      string
 	app     *gobay.Application
-	backend cacheBackend
+	backend CacheBackend
 	prefix  string
 }
 
@@ -30,9 +30,7 @@ func (c *CacheExt) Init(app *gobay.Application) error {
 		config = config.Sub(c.NS)
 	}
 	backend := config.GetString("cache_backend")
-	if backend == "memory" {
-		// TODO
-	} else {
+	if backend == "redis" {
 		// redis backend
 		c.prefix = config.GetString("cache_prefix")
 		host := config.GetString("cache_host")
@@ -50,8 +48,17 @@ func (c *CacheExt) Init(app *gobay.Application) error {
 		redisBack := new(redisBackend)
 		redisBack.SetClient(redisClient)
 		c.backend = redisBack
+
+	} else {
+		c.backend = new(memBackend)
+		c.backend.SetClient(new(map[string]interface{}))
 	}
 	return nil
+}
+
+// SetBackend 如果调用方想要自己定义backend，可以由这个方法设置进来
+func (c *CacheExt) SetBackend(backend CacheBackend) {
+	c.backend = backend
 }
 
 // MakeCacheKey 用于生成函数的缓存key，带版本控制。只允许数字、布尔、字符串这几种类似的参数。
@@ -149,8 +156,6 @@ func (d *CacheExt) Get(key string) interface{} {
 	transed_key := d.trans_key(key)
 	return d.backend.Get(transed_key)
 }
-
-const _TTL_UNIT = 1000000 // time.Duration的单位是ns，这里转换成秒
 
 // Set 设置某个缓存值，设置时必须要填写一个ttl，如果想要使用nx=True这样
 // 的参数，可以使用redis实例。

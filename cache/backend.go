@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-type cacheBackend interface {
+type CacheBackend interface {
 	SetClient(client interface{})
 	Get(key string) interface{}
 	Set(key string, value interface{}, ttl time.Duration) error
@@ -25,7 +25,8 @@ type redisBackend struct {
 }
 
 type memBackend struct {
-	client *map[string]interface{}
+	client map[string]interface{}
+	ttl    map[string]time.Duration
 }
 
 func (b *redisBackend) SetClient(client interface{}) {
@@ -84,17 +85,70 @@ func (b *redisBackend) Close() error {
 	return b.client.Close()
 }
 
-/*
-func (m *memBackend) SetClient(client interface{})
-func (m *memBackend) Get(key string) interface{}
-func (m *memBackend) Set(key string, value interface{}, ttl time.Duration) error
-func (m *memBackend) SetMany(keys []string, values []interface{}, ttl time.Duration) error
-func (m *memBackend) GetMany(keys []string) []interface{}
-func (m *memBackend) Delete(key string) int64
-func (m *memBackend) DeleteMany(keys []string) int64
-func (m *memBackend) Expire(key string, ttl int64) bool
-func (m *memBackend) TTL(key string) int64
-func (m *memBackend) Exists(key string) bool
-func (m *memBackend) Clear() string
-func (m *memBackend) Close() error
-*/
+func (m *memBackend) SetClient(client interface{}) {
+	m.client = client.(map[string]interface{})
+	m.ttl = *new(map[string]time.Duration)
+}
+func (m *memBackend) Get(key string) interface{} {
+	res, exists := m.client[key]
+	if exists {
+		return res
+	} else {
+		return nil
+	}
+}
+
+func (m *memBackend) Set(key string, value interface{}, ttl time.Duration) error {
+	m.client[key] = value
+	m.ttl[key] = ttl
+	return nil
+}
+func (m *memBackend) SetMany(keys []string, values []interface{}, ttl time.Duration) error {
+	for i, _ := range keys {
+		m.client[keys[i]] = values[i]
+		m.ttl[keys[i]] = ttl
+	}
+	return nil
+}
+func (m *memBackend) GetMany(keys []string) []interface{} {
+	res := make([]interface{}, len(keys))
+	for i, key := range keys {
+		res[i] = m.Get(key)
+	}
+	return res
+}
+func (m *memBackend) Delete(key string) int64 {
+	delete(m.client, key)
+	delete(m.ttl, key)
+	return 0
+}
+func (m *memBackend) DeleteMany(keys []string) int64 {
+	for _, key := range keys {
+		m.Delete(key)
+	}
+	return 0
+}
+func (m *memBackend) Expire(key string, ttl time.Duration) bool {
+	m.ttl[key] = ttl
+	return true
+}
+func (m *memBackend) TTL(key string) int64 {
+	ttl := m.ttl[key]
+	return int64(ttl.Seconds())
+}
+func (m *memBackend) Exists(key string) bool {
+	val := m.Get(key)
+	if val == nil {
+		return false
+	} else {
+		return true
+	}
+}
+func (m *memBackend) Clear() string {
+	m.client = *new(map[string]interface{})
+	m.ttl = *new(map[string]time.Duration)
+	return ""
+}
+func (m *memBackend) Close() error {
+	return nil
+}
