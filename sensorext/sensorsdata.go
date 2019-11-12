@@ -19,7 +19,7 @@ const (
 )
 
 
-// SensorsData extention
+// SensorsData extension
 type SensorsData struct {
 	NS 			string
 	app 		*gobay.Application
@@ -29,7 +29,7 @@ type SensorsData struct {
 }
 
 
-// Init implements Extention interface
+// Init extension interface
 func (s *SensorsData) Init(app *gobay.Application) error {
 	s.app = app
 	config := app.Config()

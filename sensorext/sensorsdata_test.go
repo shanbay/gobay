@@ -1,12 +1,13 @@
 package sensorext
 
 import (
-	"os"
-	"fmt"
-	"time"
-    "bufio"
-	"testing"
+	"bufio"
 	"encoding/json"
+	"fmt"
+	"os"
+	"testing"
+	"time"
+
 	"github.com/shanbay/gobay"
 	"github.com/stretchr/testify/assert"
 )
@@ -16,8 +17,6 @@ func TestSensorsData(t *testing.T) {
 	filePath := fmt.Sprintf("../testdata/beat.log-%s.%s", os.Getenv("HOSTNAME"), time.Now().Format("2006-02-01"))
 
 	assert := assert.New(t)
-	encoder := NewURLEncoder(&Options{Alphabet: "mn6j2c4rv8bpygw95z7hsdaetxuk3fq"})
-
 	sensorsData := &SensorsData{}
 	exts := map[gobay.Key]gobay.Extension{
 		"test": sensorsData,
@@ -25,19 +24,21 @@ func TestSensorsData(t *testing.T) {
 	app, err := gobay.CreateApp("../testdata", "testing", exts)
 	assert.NotNil(app)
 	assert.Nil(err)
+	
+	encoder := sensorsData.encoder
 
 	// test log when Track
 	dataModel := &DataModel{
-		name: "xxxUserSomeEvent",
+		name:   "xxxUserSomeEvent",
 		fields: []string{"age", "gender", "service_id", "tags"},
 	}
 	userID := uint64(123)
 	userIDStr := encoder.Pk2str(userID)
 	properties := map[string]interface{}{
-		"age": 18,
-		"gender": "male",
+		"age":        18,
+		"gender":     "male",
 		"service_id": uint64(9),
-		"tags": []uint64{1, 2, 3},
+		"tags":       []uint64{1, 2, 3},
 	}
 	err = dataModel.Track(*sensorsData, userID, properties)
 	assert.Nil(err)
@@ -46,7 +47,7 @@ func TestSensorsData(t *testing.T) {
 	profile := map[string]interface{}{"profile1": "test"}
 	err = sensorsData.ProfileSet(userID, profile)
 	assert.Nil(err)
-	
+
 	// test log when ProfileSetOnce
 	err = sensorsData.ProfileSetOnce(userID, profile)
 	assert.Nil(err)
@@ -68,20 +69,19 @@ func TestSensorsData(t *testing.T) {
 	err = sensorsData.ProfileDelete(userID)
 	assert.Nil(err)
 
-
 	fileN, err := os.Open(filePath)
 	if err != nil {
-        t.Errorf("Open file error")
-    }
+		t.Errorf("Open file error")
+	}
 	defer fileN.Close()
 
 	lines := [][]byte{}
 	scanner := bufio.NewScanner(fileN)
-    for scanner.Scan() {
+	for scanner.Scan() {
 		lines = append(lines, []byte(scanner.Text()))
 	}
 
-	for _, line := range lines{
+	for _, line := range lines {
 		m := make(map[string]interface{})
 		err = json.Unmarshal(line, &m)
 		if err != nil {
@@ -98,11 +98,11 @@ func TestSensorsData(t *testing.T) {
 			assert.Equal(m["event"], dataModel.name)
 			assert.Equal(propertiesRes["service_id"], encoder.Pk2str(properties["service_id"].(uint64)))
 		case "profile_set", "profile_set_once", "profile_append", "profile_unset":
-			for k, v:= range profile{
+			for k, v := range profile {
 				assert.Equal(v, propertiesRes[k])
 			}
 		case "profile_increment":
-			for k:= range profileIncre{
+			for k := range profileIncre {
 				assert.NotNil(propertiesRes[k])
 			}
 		case "profile_delete":
