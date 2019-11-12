@@ -12,7 +12,7 @@ type GormExt struct {
 	db  *gorm.DB
 }
 
-// Init implements Extention interface
+// Init implements Extension interface
 func (d *GormExt) Init(app *gobay.Application) error {
 	d.app = app
 	config := app.Config()
@@ -25,21 +25,31 @@ func (d *GormExt) Init(app *gobay.Application) error {
 	if err != nil {
 		return err
 	}
+	sqldb := db.DB()
+	if config.IsSet("conn_max_lifetime") {
+		sqldb.SetConnMaxLifetime(config.GetDuration("conn_max_lifetime"))
+	}
+	if config.IsSet("max_open_conns") {
+		sqldb.SetMaxOpenConns(config.GetInt("max_open_conns"))
+	}
+	if config.IsSet("max_idle_conns") {
+		sqldb.SetMaxIdleConns(config.GetInt("max_idle_conns"))
+	}
 	d.db = db
 	return nil
 }
 
-// Close implements Extention interface
+// Close implements Extension interface
 func (d *GormExt) Close() error {
 	return d.db.Close()
 }
 
-// Object implements Extention interface
+// Object implements Extension interface
 func (d *GormExt) Object() interface{} {
 	return d.db
 }
 
-// Application implements Extention interface
+// Application implements Extension interface
 func (d *GormExt) Application() *gobay.Application {
 	return d.app
 }
