@@ -20,6 +20,7 @@ defaults: &defaults
   short_url_alphabet: 'mn6j2c4rv8bpygw95z7hsdaetxuk3fq'
   bus:
     <<: *bus
+  cache_backend: ":memory:"
 testing:
   <<: *defaults
   bus:

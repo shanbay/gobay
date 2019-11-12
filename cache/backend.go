@@ -8,8 +8,8 @@ import (
 type CacheBackend interface {
 	SetClient(client interface{})
 	Get(key string) interface{}
-	Set(key string, value interface{}, ttl time.Duration) error
-	SetMany(keys []string, values []interface{}, ttl time.Duration) error
+	Set(key string, value string, ttl time.Duration) error
+	SetMany(keys []string, values []string, ttl time.Duration) error
 	GetMany(keys []string) []interface{}
 	Delete(key string) int64
 	DeleteMany(keys []string) int64
@@ -40,10 +40,10 @@ func (b *redisBackend) Get(key string) interface{} {
 	return val
 }
 
-func (b *redisBackend) Set(key string, value interface{}, ttl time.Duration) error {
+func (b *redisBackend) Set(key string, value string, ttl time.Duration) error {
 	return b.client.Set(key, value, ttl).Err()
 }
-func (b *redisBackend) SetMany(keys []string, values []interface{}, ttl time.Duration) error {
+func (b *redisBackend) SetMany(keys []string, values []string, ttl time.Duration) error {
 	pairs := make([]interface{}, 2*len(keys))
 	for i, _ := range values {
 		pairs = append(pairs, keys[i], values[i])
@@ -87,7 +87,7 @@ func (b *redisBackend) Close() error {
 
 func (m *memBackend) SetClient(client interface{}) {
 	m.client = client.(map[string]interface{})
-	m.ttl = *new(map[string]time.Duration)
+	m.ttl = make(map[string]time.Duration)
 }
 func (m *memBackend) Get(key string) interface{} {
 	res, exists := m.client[key]
@@ -98,12 +98,12 @@ func (m *memBackend) Get(key string) interface{} {
 	}
 }
 
-func (m *memBackend) Set(key string, value interface{}, ttl time.Duration) error {
+func (m *memBackend) Set(key string, value string, ttl time.Duration) error {
 	m.client[key] = value
 	m.ttl[key] = ttl
 	return nil
 }
-func (m *memBackend) SetMany(keys []string, values []interface{}, ttl time.Duration) error {
+func (m *memBackend) SetMany(keys []string, values []string, ttl time.Duration) error {
 	for i, _ := range keys {
 		m.client[keys[i]] = values[i]
 		m.ttl[keys[i]] = ttl

@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"encoding/json"
 	"errors"
 	"github.com/go-redis/redis"
 	"github.com/shanbay/gobay"
@@ -51,7 +52,8 @@ func (c *CacheExt) Init(app *gobay.Application) error {
 
 	} else {
 		c.backend = new(memBackend)
-		c.backend.SetClient(new(map[string]interface{}))
+		client := make(map[string]interface{})
+		c.backend.SetClient(client)
 	}
 	return nil
 }
@@ -92,41 +94,57 @@ type cacheResNone struct{}
 
 // CachedFunc 把一个正常函数变成一个缓存函数，类似python里的装饰器
 // 缓存的key就是MakeCacheKey生成的key
-func (c *CacheExt) CachedFunc(cache_none bool, ttl int64, version int, f interface{}) func(args ...interface{}) (interface{}, error) {
+func (c *CacheExt) CachedFunc(f interface{}, cache_none bool, ttl int64, version int) func(args ...interface{}) (interface{}, error) {
+	real_func := reflect.TypeOf(f)
 
 	return func(args ...interface{}) (interface{}, error) {
 		cache_key, err := c.MakeCacheKey(f, version, args...)
 		if err != nil {
 			return nil, err
 		}
-		cache_res := c.Get(cache_key)
-		if cache_res == nil {
+		serialize, err := c.get(cache_key)
+		if err != nil {
+			return nil, err
+		}
+		// 决策是否调用函数
+		reCall := false
+		if serialize == nil {
+			reCall = true
+		} else if cache_none == false && serialize.Data == nil {
+			// 缓存里保存了一个空值，但是本次调用不允许缓存空值
+			reCall = true
+		}
+		if reCall == true {
 			inputs := make([]reflect.Value, len(args))
 			for i, _ := range args {
 				inputs[i] = reflect.ValueOf(args[i])
 			}
-			cache_res = reflect.ValueOf(f).Call(inputs)
+			var cache_res interface{} = reflect.ValueOf(f).Call(inputs)
 			call_res := cache_res.([]reflect.Value)[0].Interface()
 			call_err, is_error := cache_res.([]reflect.Value)[1].Interface().(error)
-			if call_err != nil && is_error {
-				return nil, call_err
+			if is_error {
+				return call_res, call_err
 			}
-			if call_res == nil && cache_none == true {
-				err := c.Set(cache_key, new(cacheResNone), ttl)
-				if err != nil {
+			if call_res == nil {
+				if cache_none == true {
+					err := c.set(cache_key, nil, ttl)
+					if err != nil {
+						return nil, err
+					}
 				}
 				return nil, nil
 			} else {
-				err := c.Set(cache_key, call_res, ttl)
+				err := c.set(cache_key, call_res, ttl)
 				if err != nil {
+					return call_res, err
 				}
 				return call_res, nil
 			}
 		} else {
-			if cache_none == true && cache_res == *new(cacheResNone) {
+			if cache_none == true && serialize.Data == nil {
 				return nil, nil
 			} else {
-				return cache_res, nil
+				return serialize.Data, nil
 			}
 		}
 	}
@@ -151,26 +169,87 @@ func (c *CacheExt) trans_key(key string) string {
 	return c.prefix + key
 }
 
+type serializeData struct {
+	Data interface{}
+}
+
+func (c *CacheExt) toGob64(data interface{}) (string, error) {
+	serialize := new(serializeData)
+	serialize.Data = data
+	json_str, err := json.Marshal(serialize)
+	if err != nil {
+		return "", err
+	}
+	return string(json_str), nil
+}
+
+func (c *CacheExt) fromGob64(data string) (interface{}, error) {
+	m := new(serializeData)
+	err := json.Unmarshal([]byte(data), m)
+	if err != nil {
+		return nil, err
+	}
+	return m.Data, nil
+}
+
 // Get 获取某个缓存key是否存在
-func (d *CacheExt) Get(key string) interface{} {
-	transed_key := d.trans_key(key)
-	return d.backend.Get(transed_key)
+func (c *CacheExt) Get(key string) (interface{}, error) {
+	serialize, err := c.get(key)
+	if err != nil {
+		return nil, err
+	}
+	return serialize.Data, nil
+}
+
+func (c *CacheExt) get(key string) (*serializeData, error) {
+	transed_key := c.trans_key(key)
+	data := c.backend.Get(transed_key)
+	if data == nil {
+		return nil, nil
+	}
+	str_data, ok := data.(string)
+	if ok == false {
+		return nil, errors.New("trans to string failed:" + str_data)
+	}
+	m := new(serializeData)
+	err := json.Unmarshal([]byte(str_data), m)
+	if err != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 // Set 设置某个缓存值，设置时必须要填写一个ttl，如果想要使用nx=True这样
 // 的参数，可以使用redis实例。
-func (d *CacheExt) Set(key string, value interface{}, ttl int64) error {
-	transed_key := d.trans_key(key)
-	return d.backend.Set(transed_key, value, time.Duration(ttl)*time.Second)
+func (c *CacheExt) Set(key string, value interface{}, ttl int64) error {
+	if value == nil {
+		return errors.New("Not allowed to set nil")
+	}
+	return c.set(key, value, ttl)
+}
+
+func (c *CacheExt) set(key string, value interface{}, ttl int64) error {
+	transed_key := c.trans_key(key)
+	data, err := c.toGob64(value)
+	if err != nil {
+		return err
+	}
+	return c.backend.Set(transed_key, data, time.Duration(ttl)*time.Second)
 }
 
 // SetMany MSet命令，会重置所有key的过期时间.
 func (d *CacheExt) SetMany(keys []string, values []interface{}, ttl int64) error {
 	transed_keys := make([]string, len(keys))
+	transed_values := make([]string, len(values))
 	for i, key := range keys {
 		transed_keys[i] = d.trans_key(key)
+		data, err := d.toGob64(values[i])
+		if err != nil {
+			return err
+		}
+		transed_values[i] = data
 	}
-	return d.backend.SetMany(transed_keys, values, time.Duration(ttl)*time.Second)
+	return d.backend.SetMany(transed_keys, transed_values, time.Duration(ttl)*time.Second)
 }
 
 // GetMany
@@ -179,7 +258,16 @@ func (d *CacheExt) GetMany(keys []string) []interface{} {
 	for i, key := range keys {
 		transed_keys[i] = d.trans_key(key)
 	}
-	return d.backend.GetMany(transed_keys)
+	res := make([]interface{}, len(keys))
+	for i, val := range d.backend.GetMany(transed_keys) {
+		if val == nil {
+			res[i] = nil
+		} else {
+			data, _ := d.fromGob64(val.(string))
+			res[i] = data
+		}
+	}
+	return res
 }
 
 // Delete
