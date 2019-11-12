@@ -8,6 +8,8 @@ import (
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/grpc-ecosystem/go-grpc-middleware/recovery"
 	"github.com/spf13/viper"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"log"
 )
 
@@ -45,7 +47,7 @@ func GetGRPCHandler(config *viper.Viper) (grpc_recovery.Option, error) {
 			if eventID := hub.RecoverWithContext(ctx, err); eventID == nil {
 				return errors.New("发送到sentry失败")
 			}
-			return nil
+			return grpc.Errorf(codes.Internal, "msg: %s", err)
 		},
 	), nil
 }

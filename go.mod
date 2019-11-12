@@ -8,4 +8,6 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware v1.1.0
 	github.com/jinzhu/gorm v1.9.11
 	github.com/spf13/viper v1.4.0
+	github.com/stretchr/testify v1.4.0
+	google.golang.org/grpc v1.21.0
 )
