@@ -14,7 +14,7 @@ import (
 
 func TestSensorsData(t *testing.T) {
 
-	filePath := fmt.Sprintf("../testdata/beat.log-%s.%s", os.Getenv("HOSTNAME"), time.Now().Format("2006-02-01"))
+	filePath := fmt.Sprintf("../testdata/beat.log-%s.%s", os.Getenv("HOSTNAME"), time.Now().Format("2006-01-02"))
 
 	assert := assert.New(t)
 	sensorsData := &SensorsData{}
@@ -24,7 +24,7 @@ func TestSensorsData(t *testing.T) {
 	app, err := gobay.CreateApp("../testdata", "testing", exts)
 	assert.NotNil(app)
 	assert.Nil(err)
-	
+
 	encoder := sensorsData.encoder
 
 	// test log when Track
