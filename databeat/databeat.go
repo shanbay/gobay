@@ -81,22 +81,22 @@ func (d *DataModel) Beat(content map[string]interface{}) (string, error) {
 
 // Validate DataModel and content
 func (d *DataModel) validate(content map[string]interface{}) error {
-	// validate DataModel, fatal exit
+	// validate DataModel, panic
 	if d.name == "" {
-		log.Fatal("缺少name")
+		panic("缺少name")
 	}
 	if d.fields == nil {
-		log.Fatal("缺少fields")
+		panic("缺少fields")
 	}
 	if d.group == "" {
-		log.Fatal("缺少group")
+		panic("缺少group")
 	}
 	for _, field := range d.fields {
 		if field[0] == '@' {
-			log.Fatal("不能以@开始")
+			panic("不能以@开始")
 		}
 		if _, ok := reservedWords[field]; ok {
-			log.Fatal("包含保留词", reservedWords)
+			panic("包含保留词" + field)
 		}
 	}
 	var flag bool
@@ -109,11 +109,11 @@ func (d *DataModel) validate(content map[string]interface{}) error {
 			}
 		}
 		if !flag {
-			log.Fatal("aggs_field不存在", aggs_field)
+			panic("aggs_field不存在" + aggs_field)
 		}
 	}
 	if _, ok := indexByChoices[d.index_by]; !ok {
-		log.Fatal("index_by不合法")
+		panic("index_by不合法")
 	}
 
 	// validate content, return err
