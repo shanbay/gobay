@@ -1,9 +1,30 @@
+bus: &bus
+  broker_url: "amqp://celery:celery@192.168.33.10:5672/shanbay"
+  reconnect_delay: 2
+  reInitDelay: 2
+  exhanges:
+    - sbay-exchange
+  queues:
+    - test
+  resend_delay: 2
+  publish_retry: 3
+  prefetch: 10
+  quit_consumer_on_empty_queue: false
+  bindings:
+    - exchange: sbay-exchange
+      queue: test
+      binding_key: buses.oc.post_order_paid
 defaults: &defaults
   db_driver: sqlite3
   db_url: ':memory:'
   short_url_alphabet: 'mn6j2c4rv8bpygw95z7hsdaetxuk3fq'
+  bus:
+    <<: *bus
 testing:
   <<: *defaults
+  bus:
+    <<: *bus
+#    broker_url: "amqp://guest:guest@localhost:5672/shanbay"
 development:
   <<: *defaults
 production:
