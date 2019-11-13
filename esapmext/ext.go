@@ -10,8 +10,9 @@ import (
 	"github.com/shanbay/gobay"
 )
 
+const configPrefix  = "elastic_apm"
+
 type EsApmExt struct {
-	NS     string
 	app    *gobay.Application
 	tracer *apm.Tracer
 }
@@ -29,18 +30,15 @@ func (e *EsApmExt) Init(app *gobay.Application) error {
 	tracer := apm.DefaultTracer
 
 	config := app.Config()
-	if e.NS == "" {
-		e.NS = "elastic_apm"
-	}
-	apmConfig := config.Sub(e.NS)
+	apmConfig := config.Sub(configPrefix)
 	// elastic apm load config from env by default, load env from "elastic_apm" prefix
 	// make compatible with default agent behavior
-	apmConfig.SetEnvPrefix(e.NS)
+	apmConfig.SetEnvPrefix(configPrefix)
 	apmConfig.AutomaticEnv()
 
 	env := apmConfig.GetString("environment")
 	if env == "" {
-		env = config.GetString("env")
+		env = app.GetEnv()
 	}
 	tracer.Service.Environment = env
 	tracer.Service.Name = apmConfig.GetString("service_name")
