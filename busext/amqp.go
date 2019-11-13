@@ -179,7 +179,7 @@ func (b *BusExt) Consume() error {
 			nil,
 		)
 		if err != nil {
-			log.Errorf("Consume queue: %v failed: %v", queue, err)
+			log.Errorf("StartWorker queue: %v failed: %v", queue, err)
 			return err
 		}
 		b.consumeChannels[queue] = ch
