@@ -15,7 +15,8 @@ func Example() {
 
 	var key = "cache_key"
 	cache.Set(key, "hello", 10)
-	cache.Get(key)
+	res, _ := cache.Get(key)
+	fmt.Println(res)
 	// Output: hello
 	f := func(key string, name string) ([]string, error) {
 		// write your code here
@@ -24,7 +25,7 @@ func Example() {
 		res[1] = name
 		return res, nil
 	}
-	cachedFunc := cache.CachedFunc(f, false, 10, 1)
+	cachedFunc, _ := cache.CachedFunc(f, 10, 1)
 	if _, err := cachedFunc("hello", "world"); err != nil {
 		// Output: ["hello", "world"], nil
 	}
@@ -48,7 +49,7 @@ func TestCacheExt_Get_Set(t *testing.T) {
 		t.Errorf("Cache Set Key failed")
 	}
 	if val, err := cache.Get("cache_key_1"); err != nil || val.(string) != "100" {
-		t.Log("err", err)
+		t.Log("err", val, err)
 		t.Errorf("cache get set error")
 	}
 }
@@ -69,7 +70,7 @@ func TestCacheExt_CachedFunc(t *testing.T) {
 		call_times += 1
 		return key1 + "*" + key2, nil
 	}
-	cached_func := cache.CachedFunc(f, false, 10, 1)
+	cached_func, _ := cache.CachedFunc(f, 10, 1)
 	if val, err := cached_func("hello", "world", int64(12)); err != nil || val.(string) != "hello*world" {
 		t.Error(err)
 		t.Error("result error")
@@ -79,7 +80,7 @@ func TestCacheExt_CachedFunc(t *testing.T) {
 	cached_func("hello", "world", int64(12))
 	cached_func("hello", "world", int64(12))
 	if call_times != 1 {
-		t.Error("Cached func not work")
+		t.Error("Cached func not work", call_times)
 	}
 	// 这里删除缓存key
 	if cache_key, err := cache.MakeCacheKey(f, 1, "hello", "world", int64(12)); err != nil {
@@ -90,7 +91,7 @@ func TestCacheExt_CachedFunc(t *testing.T) {
 	// 再次调用，不命中缓存
 	cached_func("hello", "world", int64(12))
 	if call_times != 2 {
-		t.Error("Cached func not work")
+		t.Error("Cached func not work", call_times)
 	}
 	// 测试函数返回值为nil的情况
 	call_times = 0
@@ -98,24 +99,24 @@ func TestCacheExt_CachedFunc(t *testing.T) {
 		call_times += 1
 		return nil, nil
 	}
-	cached_ff := cache.CachedFunc(ff, true, 10, 1)
-	if val, err := cached_ff("hello", "world", int64(12)); err != nil || val != nil {
-		t.Error("cached none failed")
-		t.Error(err)
-	}
-	if call_times != 1 {
-		t.Error("cached none failed")
-	}
-	if val, err := cached_ff("hello", "world", int64(12)); val != nil || err != nil {
-		t.Error("cached none failed")
-	}
-	cached_ff("hello", "world", int64(12))
-	cached_ff("hello", "world", int64(12))
-	if call_times != 1 {
-		t.Error("cached none failed")
-	}
+	//  cached_ff, _ := cache.CachedFunc(ff, 10, 1)
+	//  if val, err := cached_ff("hello", "world", int64(12)); err != nil || val != nil {
+	//  	t.Error("cached none failed")
+	//  	t.Error(err, val)
+	//  }
+	//  if call_times != 1 {
+	//  	t.Error("cached none failed")
+	//  }
+	//  if val, err := cached_ff("hello", "world", int64(12)); val != nil || err != nil {
+	//  	t.Log("cached none failed", val, err)
+	//  }
+	//  cached_ff("hello", "world", int64(12))
+	//  cached_ff("hello", "world", int64(12))
+	//  if call_times != 1 {
+	//  	t.Error("cached none failed", call_times)
+	//  }
 	// 没有配置cache_none参数，每次都会调用
-	not_cached_ff := cache.CachedFunc(ff, false, 10, 1)
+	not_cached_ff, _ := cache.CachedFunc(ff, 10, 1)
 	call_times = 0
 	val, err := not_cached_ff("hello", "world", int64(12))
 	if val != nil || err != nil {
@@ -137,25 +138,24 @@ func TestCacheExt_CachedFunc(t *testing.T) {
 		Value2 string
 		Value3 []node
 	}
-	complex_ff := func() (*myData, error) {
+	complex_ff := func() (node, error) {
 		call_times += 1
 		mydata := &myData{}
 		mydata.Value1 = 100
 		mydata.Value2 = "thre si a verty conplex data {}{}"
 		mydata.Value3 = []node{node{"这是第一个node", []string{"id1", "id2", "id3"}}, node{"这是第二个node", []string{"id4", "id5", "id6"}}}
-		return mydata, nil
+		return mydata.Value3[0], nil
 	}
-	cached_complex_ff := cache.CachedFunc(complex_ff, false, 10, 1)
+	cached_complex_ff, _ := cache.CachedFunc(complex_ff, 10, 1)
 	call_times = 0
 	cached_complex_ff()
 	cached_complex_ff()
-	complex_val, _ := cached_complex_ff()
 	cached_complex_ff()
+	complex_val, err := cached_complex_ff()
 	if call_times != 1 {
-		t.Error("Error happened in cache complex")
+		t.Error("Error happened in cache complex", call_times)
 	}
-	fmt.Println(complex_val.(myData))
-	if complex_val.(myData).Value1 != 100 || complex_val.(myData).Value2 != "thre si a verty conplex data {}{}" || len(complex_val.(myData).Value3) != 2 {
+	if complex_val.(map[string]interface{})["Name"] != "这是第一个node" {
 		t.Error("Data is wrong in cache complex")
 	}
 }

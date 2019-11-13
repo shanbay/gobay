@@ -90,64 +90,77 @@ func (c *CacheExt) MakeCacheKey(f interface{}, version int, args ...interface{})
 	return strings.Join(inputs, "#"), nil
 }
 
-type cacheResNone struct{}
-
 // CachedFunc 把一个正常函数变成一个缓存函数，类似python里的装饰器
 // 缓存的key就是MakeCacheKey生成的key
-func (c *CacheExt) CachedFunc(f interface{}, cache_none bool, ttl int64, version int) func(args ...interface{}) (interface{}, error) {
-	real_func := reflect.TypeOf(f)
-
+// 对函数的要求：返回值有两个，第二个返回值是error 返回值不可以是nil
+// 如果希望cache_none， 函数不返回nil即可
+func (c *CacheExt) CachedFunc(function interface{}, ttl int64, version int) (func(args ...interface{}) (interface{}, error), error) {
+	f_value := reflect.ValueOf(function)
+	if f_value.Kind() != reflect.Func {
+		return func(args ...interface{}) (interface{}, error) {
+			return nil, nil
+		}, errors.New("Generate func failed, the first param must be a function!")
+	}
+	if f_value.Type().NumOut() != 2 || !f_value.Type().Out(1).Implements(reflect.TypeOf((*error)(nil)).Elem()) {
+		return func(args ...interface{}) (interface{}, error) {
+			return nil, nil
+		}, errors.New("Generate func failed, the response of function is invalid, should return (SomeStruct, error)")
+	}
 	return func(args ...interface{}) (interface{}, error) {
-		cache_key, err := c.MakeCacheKey(f, version, args...)
+		cache_key, err := c.MakeCacheKey(function, version, args...)
 		if err != nil {
 			return nil, err
 		}
-		serialize, err := c.get(cache_key)
-		if err != nil {
-			return nil, err
+		var isStruct bool = (f_value.Type().Out(0).Kind() == reflect.Struct || f_value.Type().Out(0).Kind() == reflect.Ptr)
+		var cache_res interface{}
+		var reCall bool
+		if isStruct {
+			cache_res = reflect.New(f_value.Type().Out(0))
+			var exist bool
+			exist, err = c.GetStruct(cache_key, &cache_res)
+			if err != nil {
+				return nil, err
+			}
+			if exist == false {
+				reCall = true
+			}
+		} else {
+			cache_res, err = c.Get(cache_key)
+			if err != nil {
+				return nil, err
+			}
+			if cache_res == nil {
+				reCall = true
+			}
 		}
-		// 决策是否调用函数
-		reCall := false
-		if serialize == nil {
-			reCall = true
-		} else if cache_none == false && serialize.Data == nil {
-			// 缓存里保存了一个空值，但是本次调用不允许缓存空值
-			reCall = true
-		}
-		if reCall == true {
+		if reCall { // 重新构建缓存
 			inputs := make([]reflect.Value, len(args))
 			for i, _ := range args {
 				inputs[i] = reflect.ValueOf(args[i])
 			}
-			var cache_res interface{} = reflect.ValueOf(f).Call(inputs)
-			call_res := cache_res.([]reflect.Value)[0].Interface()
-			call_err, is_error := cache_res.([]reflect.Value)[1].Interface().(error)
-			if is_error {
+			var outputs interface{} = f_value.Call(inputs)
+			var call_res interface{} = outputs.([]reflect.Value)[0].Interface()
+			if call_err, is_error := outputs.([]reflect.Value)[1].Interface().(error); is_error {
 				return call_res, call_err
 			}
-			if call_res == nil {
-				if cache_none == true {
-					err := c.set(cache_key, nil, ttl)
+			if call_res != nil {
+				// 重置缓存
+				cache_res = call_res
+				if isStruct {
+					err = c.SetStruct(cache_key, call_res, ttl)
 					if err != nil {
-						return nil, err
+						return call_res, err
+					}
+				} else {
+					err = c.Set(cache_key, call_res, ttl)
+					if err != nil {
+						return call_res, err
 					}
 				}
-				return nil, nil
-			} else {
-				err := c.set(cache_key, call_res, ttl)
-				if err != nil {
-					return call_res, err
-				}
-				return call_res, nil
-			}
-		} else {
-			if cache_none == true && serialize.Data == nil {
-				return nil, nil
-			} else {
-				return serialize.Data, nil
 			}
 		}
-	}
+		return cache_res, nil
+	}, nil
 }
 
 // Close
@@ -169,87 +182,84 @@ func (c *CacheExt) trans_key(key string) string {
 	return c.prefix + key
 }
 
-type serializeData struct {
-	Data interface{}
-}
-
-func (c *CacheExt) toGob64(data interface{}) (string, error) {
-	serialize := new(serializeData)
-	serialize.Data = data
-	json_str, err := json.Marshal(serialize)
-	if err != nil {
-		return "", err
-	}
-	return string(json_str), nil
-}
-
-func (c *CacheExt) fromGob64(data string) (interface{}, error) {
-	m := new(serializeData)
-	err := json.Unmarshal([]byte(data), m)
-	if err != nil {
-		return nil, err
-	}
-	return m.Data, nil
-}
-
-// Get 获取某个缓存key是否存在
+// Get 获取某个缓存key是对应的值，cache只能处理基本类型，
+// 对于结构体需要调用方自行序列化、反序列化
 func (c *CacheExt) Get(key string) (interface{}, error) {
-	serialize, err := c.get(key)
-	if err != nil {
-		return nil, err
-	}
-	return serialize.Data, nil
+	transed_key := c.trans_key(key)
+	return c.backend.Get(transed_key)
 }
 
-func (c *CacheExt) get(key string) (*serializeData, error) {
+// GetStruct  GetStruct("hello", &someStruce)
+func (c *CacheExt) GetStruct(key string, m interface{}) (bool, error) {
+	if reflect.ValueOf(m).Kind() != reflect.Ptr {
+		return false, errors.New("Invalid param: m, want a struct's ptr")
+	}
 	transed_key := c.trans_key(key)
-	data := c.backend.Get(transed_key)
+	data, err := c.backend.Get(transed_key)
 	if data == nil {
-		return nil, nil
+		return false, err
 	}
-	str_data, ok := data.(string)
-	if ok == false {
-		return nil, errors.New("trans to string failed:" + str_data)
-	}
-	m := new(serializeData)
-	err := json.Unmarshal([]byte(str_data), m)
+	err = json.Unmarshal([]byte(data.(string)), m)
 	if err != nil {
-		return nil, err
+		return true, err
 	}
-	return m, nil
+	return true, nil
+}
+
+func (c *CacheExt) validValue(value interface{}, isStruct bool) error {
+	valueKind := reflect.ValueOf(value).Kind()
+	if isStruct {
+		switch valueKind {
+		case reflect.Struct, reflect.Ptr:
+		default:
+			return errors.New("Struct value not supported type: " + valueKind.String())
+		}
+	} else {
+		switch valueKind {
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		case reflect.Bool:
+		case reflect.String:
+		default:
+			return errors.New("Basic value not supported type: " + valueKind.String())
+		}
+	}
+	return nil
 }
 
 // Set 设置某个缓存值，设置时必须要填写一个ttl，如果想要使用nx=True这样
 // 的参数，可以使用redis实例。
 func (c *CacheExt) Set(key string, value interface{}, ttl int64) error {
-	if value == nil {
-		return errors.New("Not allowed to set nil")
+	if err := c.validValue(value, false); err != nil {
+		return err
 	}
-	return c.set(key, value, ttl)
+	transed_key := c.trans_key(key)
+	return c.backend.Set(transed_key, value, time.Duration(ttl)*time.Second)
 }
 
-func (c *CacheExt) set(key string, value interface{}, ttl int64) error {
+// SetStruct
+func (c *CacheExt) SetStruct(key string, value interface{}, ttl int64) error {
+	if err := c.validValue(value, true); err != nil {
+		return err
+	}
 	transed_key := c.trans_key(key)
-	data, err := c.toGob64(value)
+	json_bytes, err := json.Marshal(value)
 	if err != nil {
 		return err
 	}
-	return c.backend.Set(transed_key, data, time.Duration(ttl)*time.Second)
+	return c.backend.Set(transed_key, string(json_bytes), time.Duration(ttl)*time.Second)
 }
 
 // SetMany MSet命令，会重置所有key的过期时间.
 func (d *CacheExt) SetMany(keys []string, values []interface{}, ttl int64) error {
 	transed_keys := make([]string, len(keys))
-	transed_values := make([]string, len(values))
 	for i, key := range keys {
-		transed_keys[i] = d.trans_key(key)
-		data, err := d.toGob64(values[i])
-		if err != nil {
+		if err := d.validValue(values[i], false); err != nil {
 			return err
 		}
-		transed_values[i] = data
+		transed_keys[i] = d.trans_key(key)
 	}
-	return d.backend.SetMany(transed_keys, transed_values, time.Duration(ttl)*time.Second)
+	return d.backend.SetMany(transed_keys, values, time.Duration(ttl)*time.Second)
 }
 
 // GetMany
@@ -258,17 +268,11 @@ func (d *CacheExt) GetMany(keys []string) []interface{} {
 	for i, key := range keys {
 		transed_keys[i] = d.trans_key(key)
 	}
-	res := make([]interface{}, len(keys))
-	for i, val := range d.backend.GetMany(transed_keys) {
-		if val == nil {
-			res[i] = nil
-		} else {
-			data, _ := d.fromGob64(val.(string))
-			res[i] = data
-		}
-	}
-	return res
+	return d.backend.GetMany(transed_keys)
 }
+
+// GetManyStruct
+// SetManyStruct
 
 // Delete
 func (d *CacheExt) Delete(key string) int64 {
