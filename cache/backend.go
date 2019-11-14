@@ -121,15 +121,23 @@ func (m *memBackend) GetMany(keys []string) []interface{} {
 	return res
 }
 func (m *memBackend) Delete(key string) int64 {
+	exists := m.Exists(key)
 	delete(m.client, key)
 	delete(m.ttl, key)
-	return 0
+	if exists {
+		return 1
+	} else {
+		return 0
+	}
 }
 func (m *memBackend) DeleteMany(keys []string) int64 {
+	var res int64
 	for _, key := range keys {
-		m.Delete(key)
+		if m.Delete(key) == 1 && res == 0 {
+			res = 1
+		}
 	}
-	return 0
+	return res
 }
 func (m *memBackend) Expire(key string, ttl time.Duration) bool {
 	m.ttl[key] = ttl

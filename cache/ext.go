@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/go-redis/redis"
 	"github.com/shanbay/gobay"
+	"net/url"
 	"reflect"
 	"runtime"
 	"strconv"
@@ -64,7 +65,6 @@ func (c *CacheExt) SetBackend(backend CacheBackend) {
 }
 
 // MakeCacheKey 用于生成函数的缓存key，带版本控制。只允许数字、布尔、字符串这几种类似的参数。
-// 使用#号拼接各个参数，尽量不要在字符串中出现#以避免碰撞
 func (c *CacheExt) MakeCacheKey(f interface{}, version int, args ...interface{}) (string, error) {
 	inputs := make([]string, len(args)+2)
 	inputs[0] = runtime.FuncForPC(reflect.ValueOf(f).Pointer()).Name()
@@ -87,49 +87,57 @@ func (c *CacheExt) MakeCacheKey(f interface{}, version int, args ...interface{})
 			return "", errors.New("Unsupported args type: " + v.Type().String())
 		}
 	}
-	return strings.Join(inputs, "#"), nil
+	for i, input := range inputs {
+		inputs[i] = url.QueryEscape(input)
+	}
+	return strings.Join(inputs, "&"), nil
 }
 
 // CachedFunc 把一个正常函数变成一个缓存函数，类似python里的装饰器
 // 缓存的key就是MakeCacheKey生成的key
-// 对函数的要求：返回值有两个，第二个返回值是error 返回值不可以是nil
-// 如果希望cache_none， 函数不返回nil即可
+// 对函数的要求：返回值有两个，第二个返回值是error 第一个返回值是interface{}且返回值是nil会导致无法缓存，
+// 如果想要cache_none请返回零值 函数参数中不可以出现 ...参数
+// 第一个返回值可以是基本类型：数字，字符串，布尔，也可以是结构体。不支持指针作为返回值, 不推荐使用interface{}作为返回值
 func (c *CacheExt) CachedFunc(function interface{}, ttl int64, version int) (func(args ...interface{}) (interface{}, error), error) {
-	f_value := reflect.ValueOf(function)
-	if f_value.Kind() != reflect.Func {
+	fValue := reflect.ValueOf(function)
+	if fValue.Kind() != reflect.Func {
 		return func(args ...interface{}) (interface{}, error) {
 			return nil, nil
 		}, errors.New("Generate func failed, the first param must be a function!")
 	}
-	if f_value.Type().NumOut() != 2 || !f_value.Type().Out(1).Implements(reflect.TypeOf((*error)(nil)).Elem()) {
+	if fValue.Type().NumOut() != 2 || !fValue.Type().Out(1).Implements(reflect.TypeOf((*error)(nil)).Elem()) {
 		return func(args ...interface{}) (interface{}, error) {
 			return nil, nil
 		}, errors.New("Generate func failed, the response of function is invalid, should return (SomeStruct, error)")
 	}
 	return func(args ...interface{}) (interface{}, error) {
-		cache_key, err := c.MakeCacheKey(function, version, args...)
+		cacheKey, err := c.MakeCacheKey(function, version, args...)
 		if err != nil {
 			return nil, err
 		}
-		var isStruct bool = (f_value.Type().Out(0).Kind() == reflect.Struct || f_value.Type().Out(0).Kind() == reflect.Ptr)
-		var cache_res interface{}
+		fOut := fValue.Type().Out(0)
+		isStruct := (fOut.Kind() == reflect.Struct)
+		var cacheRes interface{}
 		var reCall bool
 		if isStruct {
-			cache_res = reflect.New(f_value.Type().Out(0))
+			cacheRes = reflect.New(fOut).Interface()
 			var exist bool
-			exist, err = c.GetStruct(cache_key, &cache_res)
+			exist, err = c.GetStruct(cacheKey, cacheRes)
 			if err != nil {
 				return nil, err
 			}
 			if exist == false {
 				reCall = true
+			} else {
+				// 命中缓存，把返回值指针转换成返回值结构体
+				cacheRes = reflect.ValueOf(cacheRes).Elem().Interface()
 			}
 		} else {
-			cache_res, err = c.Get(cache_key)
+			cacheRes, err = c.Get(cacheKey)
 			if err != nil {
 				return nil, err
 			}
-			if cache_res == nil {
+			if cacheRes == nil {
 				reCall = true
 			}
 		}
@@ -138,28 +146,28 @@ func (c *CacheExt) CachedFunc(function interface{}, ttl int64, version int) (fun
 			for i, _ := range args {
 				inputs[i] = reflect.ValueOf(args[i])
 			}
-			var outputs interface{} = f_value.Call(inputs)
-			var call_res interface{} = outputs.([]reflect.Value)[0].Interface()
-			if call_err, is_error := outputs.([]reflect.Value)[1].Interface().(error); is_error {
-				return call_res, call_err
+			var outputs interface{} = fValue.Call(inputs)
+			var callRes interface{} = outputs.([]reflect.Value)[0].Interface()
+			if callErr, isError := outputs.([]reflect.Value)[1].Interface().(error); isError {
+				return callRes, callErr
 			}
-			if call_res != nil {
+			if callRes != nil {
 				// 重置缓存
-				cache_res = call_res
+				cacheRes = callRes
 				if isStruct {
-					err = c.SetStruct(cache_key, call_res, ttl)
+					err = c.SetStruct(cacheKey, callRes, ttl)
 					if err != nil {
-						return call_res, err
+						return callRes, err
 					}
 				} else {
-					err = c.Set(cache_key, call_res, ttl)
+					err = c.Set(cacheKey, callRes, ttl)
 					if err != nil {
-						return call_res, err
+						return callRes, err
 					}
 				}
 			}
 		}
-		return cache_res, nil
+		return cacheRes, nil
 	}, nil
 }
 
@@ -207,21 +215,31 @@ func (c *CacheExt) GetStruct(key string, m interface{}) (bool, error) {
 }
 
 func (c *CacheExt) validValue(value interface{}, isStruct bool) error {
-	valueKind := reflect.ValueOf(value).Kind()
+	reflectValue := reflect.ValueOf(value)
 	if isStruct {
-		switch valueKind {
+		switch reflectValue.Kind() {
 		case reflect.Struct, reflect.Ptr:
 		default:
-			return errors.New("Struct value not supported type: " + valueKind.String())
+			return errors.New("Struct value not supported type: " + reflectValue.Kind().String())
 		}
 	} else {
-		switch valueKind {
+		switch reflectValue.Kind() {
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 		case reflect.Bool:
 		case reflect.String:
+		case reflect.Slice, reflect.Array:
+			switch reflect.TypeOf(value).Elem().Kind() {
+			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+			case reflect.Bool:
+			case reflect.String:
+			default:
+				return errors.New("Basic value not supported type: " + reflect.TypeOf(value).Elem().Kind().String())
+			}
+		case reflect.Map:
 		default:
-			return errors.New("Basic value not supported type: " + valueKind.String())
+			return errors.New("Basic value not supported type: " + reflectValue.Kind().String())
 		}
 	}
 	return nil
