@@ -15,9 +15,10 @@ func ExampleGet() {
 
 	var key = "cache_key"
 	cache.Set(key, "hello", 10)
-	res, _ := cache.Get(key)
-	fmt.Println(res)
-	// Output: hello
+	var res string
+	exists, err := cache.Get(key, &res)
+	fmt.Println(exists, res, err)
+	// Output: true hello <nil>
 }
 func ExampleCachedFunc() {
 	cache := &CacheExt{}
@@ -84,11 +85,12 @@ func TestCacheExt_Operation(t *testing.T) {
 	if err := cache.Set("cache_key_1", "100", 10); err != nil {
 		t.Errorf("Cache Set Key Failed")
 	}
-	if val, err := cache.Get("cache_key_1"); err != nil || val.(string) != "100" {
-		t.Log(val, err)
+	var cache_val string
+	if exists, err := cache.Get("cache_key_1", &cache_val); exists == false || err != nil || cache_val != "100" {
+		t.Log(exists, cache_val, err)
 		t.Errorf("Cache Get Key Failed")
 	}
-	// SetStruct GetStruct
+	// Set Get
 	type node struct {
 		Name string
 		Ids  []string
@@ -102,25 +104,27 @@ func TestCacheExt_Operation(t *testing.T) {
 	mydata.Value1 = 100
 	mydata.Value2 = "thre si a verty conplex data {}{}"
 	mydata.Value3 = []node{node{"这是第一个node", []string{"id1", "id2", "id3"}}, node{"这是第二个node", []string{"id4", "id5", "id6"}}}
-	if err := cache.SetStruct("cache_key_2", mydata, 10); err != nil {
+	if err := cache.Set("cache_key_2", mydata, 10); err != nil {
 		t.Log(err)
-		t.Errorf("Cache SetStruct Failed")
+		t.Errorf("Cache Set Failed")
 	}
 	val := &myData{}
-	if exist, err := cache.GetStruct("cache_key_2", val); (*val).Value2 != mydata.Value2 || err != nil || exist == false {
+	if exist, err := cache.Get("cache_key_2", val); (*val).Value2 != mydata.Value2 || err != nil || exist == false {
 		t.Log(exist, err, *val)
-		t.Errorf("Cache GetStruct Failed")
+		t.Errorf("Cache Get Failed")
 	}
 	// SetMany GetMany
-	many_key := []string{"m1", "m2", "m3", "m4"}
-	many_value := []interface{}{"hello", "world", "hello", "go"}
-	if err := cache.SetMany(many_key, many_value, 10); err != nil {
+	many_key := []string{"m1", "m2", "m3"}
+	many_map := make(map[string]interface{})
+	many_map["m1"] = "hello"
+	many_map["m2"] = "world"
+	many_map["m3"] = "hello"
+	if err := cache.SetMany(many_map, 10); err != nil {
 		t.Log(err)
 		t.Errorf("Cache SetMany Failed")
 	}
 	many_res := cache.GetMany(many_key)
 	if many_res[0].(string) != "hello" {
-		t.Log(many_value)
 		t.Log(many_res)
 		t.Errorf("Cache GetMany Failed")
 	}
