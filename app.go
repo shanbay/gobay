@@ -48,7 +48,7 @@ func (d *Application) GetOK(key Key) (Extension, bool) {
 	return ext, ok
 }
 
-func (d *Application) GetEnv() string {
+func (d *Application) Env() string {
 	return d.env
 }
 

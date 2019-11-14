@@ -10,7 +10,6 @@ import (
 	"github.com/shanbay/gobay"
 )
 
-const configPrefix  = "elastic_apm"
 
 type EsApmExt struct {
 	app    *gobay.Application
@@ -30,35 +29,31 @@ func (e *EsApmExt) Init(app *gobay.Application) error {
 	tracer := apm.DefaultTracer
 
 	config := app.Config()
-	apmConfig := config.Sub(configPrefix)
-	// elastic apm load config from env by default, load env from "elastic_apm" prefix
-	// make compatible with default agent behavior
-	apmConfig.SetEnvPrefix(configPrefix)
-	apmConfig.AutomaticEnv()
-
-	env := apmConfig.GetString("environment")
+	// elastic apm load config from env by default
+	// use `elastic_apm` as config prefix so we can make compatible with default agent behavior
+	env := config.GetString("elastic_apm_environment")
 	if env == "" {
-		env = app.GetEnv()
+		env = app.Env()
 	}
 	tracer.Service.Environment = env
-	tracer.Service.Name = apmConfig.GetString("service_name")
-	tracer.Service.Version = apmConfig.GetString("service_version")
+	tracer.Service.Name = config.GetString("elastic_apm_service_name")
+	tracer.Service.Version = config.GetString("elastic_apm_service_version")
 
 	ts, err := transport.NewHTTPTransport()
 	if err != nil {
 		return err
 	}
-	serverUrl, err := url.Parse(apmConfig.GetString("server_url"))
+	serverUrl, err := url.Parse(config.GetString("elastic_apm_server_url"))
 	if err != nil {
 		return err
 	}
 	ts.SetServerURL(serverUrl)
 	// we can type assert this just because the apm agent uses `http.Transport` as default
-	ts.Client.Transport.(*http.Transport).TLSClientConfig.InsecureSkipVerify = !apmConfig.GetBool("verify_server_cert")
+	ts.Client.Transport.(*http.Transport).TLSClientConfig.InsecureSkipVerify = !config.GetBool("elastic_apm_verify_server_cert")
 	tracer.Transport = ts
 
 	tracer.SetCaptureBody(apm.CaptureBodyErrors)
-	sampleRate := apmConfig.GetFloat64("transaction_sample_rate")
+	sampleRate := config.GetFloat64("elastic_apm_transaction_sample_rate")
 	if sampleRate <= 0 {
 		sampleRate = 0.01
 	}
