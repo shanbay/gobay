@@ -48,6 +48,10 @@ func (d *Application) GetOK(key Key) (Extension, bool) {
 	return ext, ok
 }
 
+func (d *Application) Env() string {
+	return d.env
+}
+
 // Config returns the viper config for this application
 func (d *Application) Config() *viper.Viper {
 	return d.config
