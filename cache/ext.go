@@ -17,12 +17,13 @@ import (
 // 目前支持的backend有内存、redis。可以配置前缀，避免多个项目
 // 共用一个redis实例时发生冲突。
 type CacheExt struct {
-	// gobay.Extension
 	NS      string
 	app     *gobay.Application
 	backend CacheBackend
 	prefix  string
 }
+
+var _ gobay.Extension = &CacheExt{}
 
 // Init init a cache extension
 func (c *CacheExt) Init(app *gobay.Application) error {
@@ -43,16 +44,13 @@ func (c *CacheExt) Init(app *gobay.Application) error {
 			Password: password,
 			DB:       db_num,
 		})
-		_, err := redisClient.Ping().Result()
-		if err != nil {
-			return err
-		}
 		c.backend = &redisBackend{client: redisClient}
-
+		_, err := redisClient.Ping().Result()
+		return err
 	} else {
-		c.backend = &memBackend{client: make(map[string]interface{}), ttl: make(map[string]time.Duration)}
+		c.backend = &memBackend{client: make(map[string]*memBackendNode)}
+		return nil
 	}
-	return nil
 }
 
 // SetBackend 如果调用方想要自己定义backend，可以由这个方法设置进来
@@ -60,7 +58,7 @@ func (c *CacheExt) SetBackend(backend CacheBackend) {
 	c.backend = backend
 }
 
-// MakeCacheKey 用于生成函数的缓存key，带版本控制。只允许数字、布尔、字符串这几种类似的参数。
+// MakeCacheKey 用于生成函数的缓存key，带版本控制。只允许数字、布尔、字符串这几种类型的参数。
 func (c *CacheExt) MakeCacheKey(f interface{}, version int, args ...interface{}) (string, error) {
 	inputs := make([]string, len(args)+2)
 	inputs[0] = runtime.FuncForPC(reflect.ValueOf(f).Pointer()).Name()
@@ -94,24 +92,24 @@ func (c *CacheExt) MakeCacheKey(f interface{}, version int, args ...interface{})
 // 对函数的要求：返回值有两个，第二个返回值是error 第一个返回值是interface{}且返回值是nil会导致无法缓存，
 // 如果想要cache_none请返回零值 函数参数中不可以出现 ...参数
 // 第一个返回值可以是基本类型：数字，字符串，布尔，也可以是结构体。不支持指针作为返回值, 不推荐使用interface{}作为返回值
-func (c *CacheExt) CachedFunc(function interface{}, ttl int64, version int) (func(args ...interface{}) (interface{}, error), error) {
-	fValue := reflect.ValueOf(function)
-	if fValue.Kind() != reflect.Func {
+func (c *CacheExt) CachedFunc(f interface{}, ttl int64, version int) (func(args ...interface{}) (interface{}, error), error) {
+	function := reflect.ValueOf(f)
+	if function.Kind() != reflect.Func {
 		return func(args ...interface{}) (interface{}, error) {
-			return nil, nil
+			return nil, errors.New("Generate CachedFunc failed")
 		}, errors.New("Generate func failed, the first param must be a function!")
 	}
-	if fValue.Type().NumOut() != 2 || !fValue.Type().Out(1).Implements(reflect.TypeOf((*error)(nil)).Elem()) {
+	if function.Type().NumOut() != 2 || !function.Type().Out(1).Implements(reflect.TypeOf((*error)(nil)).Elem()) {
 		return func(args ...interface{}) (interface{}, error) {
-			return nil, nil
+			return nil, errors.New("Generate CachedFunc failed")
 		}, errors.New("Generate func failed, the response of function is invalid, should return (SomeStruct, error)")
 	}
 	return func(args ...interface{}) (interface{}, error) {
-		cacheKey, err := c.MakeCacheKey(function, version, args...)
+		cacheKey, err := c.MakeCacheKey(f, version, args...)
 		if err != nil {
 			return nil, err
 		}
-		fOut := fValue.Type().Out(0)
+		fOut := function.Type().Out(0)
 		var cacheRes interface{}
 		var reCall bool
 		cacheRes = reflect.New(fOut).Interface()
@@ -126,12 +124,13 @@ func (c *CacheExt) CachedFunc(function interface{}, ttl int64, version int) (fun
 			// 命中缓存，把返回值指针转换成返回值结构体
 			cacheRes = reflect.ValueOf(cacheRes).Elem().Interface()
 		}
-		if reCall { // 重新构建缓存
+		if reCall {
+			// 重新构建缓存
 			inputs := make([]reflect.Value, len(args))
 			for i, _ := range args {
 				inputs[i] = reflect.ValueOf(args[i])
 			}
-			var outputs interface{} = fValue.Call(inputs)
+			var outputs interface{} = function.Call(inputs)
 			var callRes interface{} = outputs.([]reflect.Value)[0].Interface()
 			if callErr, isError := outputs.([]reflect.Value)[1].Interface().(error); isError {
 				return callRes, callErr
@@ -178,20 +177,13 @@ func (c *CacheExt) Get(key string, m interface{}) (bool, error) {
 	if data == nil {
 		return false, err
 	}
-	if _, ok := data.([]byte); ok == true {
-		err = json.Unmarshal(data.([]byte), m)
-		return true, err
-	} else {
-		mValue := reflect.ValueOf(m).Elem()
-		if mValue.CanSet() == false {
-			return true, errors.New("Invalid param: m, can not set to it")
-		}
-		mValue.Set(reflect.ValueOf(data))
-		return true, nil
-	}
+	return true, c.decode(data, m)
 }
 
 func (c *CacheExt) validType(t reflect.Type) error {
+	if t == nil {
+		return errors.New("Not Support Nil Value")
+	}
 	isSlice, err := c.validKind(t.Kind())
 	if isSlice {
 		return c.validType(t.Elem())
@@ -214,17 +206,38 @@ func (c *CacheExt) validKind(kind reflect.Kind) (bool, error) {
 	return false, nil
 }
 
+func (c *CacheExt) encode(value interface{}) (string, error) {
+	json_bytes, err := json.Marshal(value)
+	if err != nil {
+		return "", err
+	}
+	return string(json_bytes), nil
+}
+
+func (c *CacheExt) decode(data interface{}, out interface{}) error {
+	if strData, ok := data.(string); ok == true {
+		return json.Unmarshal([]byte(strData), out)
+	} else {
+		outValue := reflect.ValueOf(out).Elem()
+		if outValue.CanSet() == false {
+			return errors.New("Invalid param: out, can not set to it")
+		}
+		outValue.Set(reflect.ValueOf(data))
+		return nil
+	}
+}
+
 // Set
 func (c *CacheExt) Set(key string, value interface{}, ttl int64) error {
 	if err := c.validType(reflect.TypeOf(value)); err != nil {
 		return err
 	}
 	transed_key := c.trans_key(key)
-	json_bytes, err := json.Marshal(value)
+	encoded_value, err := c.encode(value)
 	if err != nil {
 		return err
 	}
-	return c.backend.Set(transed_key, json_bytes, time.Duration(ttl)*time.Second)
+	return c.backend.Set(transed_key, encoded_value, time.Duration(ttl)*time.Second)
 }
 
 // SetMany MSet命令，会重置所有key的过期时间.
@@ -234,26 +247,48 @@ func (d *CacheExt) SetMany(keyValues map[string]interface{}, ttl int64) error {
 		if err := d.validType(reflect.TypeOf(value)); err != nil {
 			return err
 		}
-		transed_map[d.trans_key(key)] = value
+		if encodedValue, err := d.encode(value); err != nil {
+			return err
+		} else {
+			transed_map[d.trans_key(key)] = encodedValue
+		}
 	}
-	return d.backend.SetMany(keyValues, time.Duration(ttl)*time.Second)
+	return d.backend.SetMany(transed_map, time.Duration(ttl)*time.Second)
 }
 
-// GetMany
-func (d *CacheExt) GetMany(keys []string) []interface{} {
-	transed_keys := make([]string, len(keys))
-	for i, key := range keys {
-		transed_keys[i] = d.trans_key(key)
+// GetMany out是一个map，其中key保存的是redis的key,value保存的是值。
+// value 需要预先设置好相应类型的零值。具体用法请参考使用示例
+func (d *CacheExt) GetMany(out map[string]interface{}) error {
+	transed_keys := []string{}
+	transed_key_key := make(map[string]string)
+	for key, value := range out {
+		if reflect.TypeOf(value).Kind() == reflect.Ptr {
+			return errors.New("Param out's value should not be ptr")
+		}
+		transed_key := d.trans_key(key)
+		transed_keys = append(transed_keys, transed_key)
+		transed_key_key[transed_key] = key
 	}
-	return d.backend.GetMany(transed_keys)
+	for i, value := range d.backend.GetMany(transed_keys) {
+		key := transed_key_key[transed_keys[i]]
+		if value != nil {
+			cacheRes := reflect.New(reflect.TypeOf(out[key])).Interface()
+			if err := d.decode(value, cacheRes); err != nil {
+				return err
+			}
+			out[key] = reflect.ValueOf(cacheRes).Elem().Interface()
+		}
+	}
+	return nil
 }
 
-// Delete
-func (d *CacheExt) Delete(key string) int64 {
+// Delete 删除一个key，返回删除成功与否
+func (d *CacheExt) Delete(key string) bool {
 	return d.backend.Delete(d.trans_key(key))
 }
 
-func (d *CacheExt) DeleteMany(keys []string) int64 {
+// DeleteMany 批量删除key，任意key成功删除返回true，否则false
+func (d *CacheExt) DeleteMany(keys ...string) bool {
 	transed_keys := make([]string, len(keys))
 	for i, key := range keys {
 		transed_keys[i] = d.trans_key(key)
@@ -261,12 +296,12 @@ func (d *CacheExt) DeleteMany(keys []string) int64 {
 	return d.backend.DeleteMany(transed_keys)
 }
 
-// Expire
+// Expire 设定过期时间，单位是秒
 func (d *CacheExt) Expire(key string, ttl int) bool {
 	return d.backend.Expire(d.trans_key(key), time.Duration(ttl)*time.Second)
 }
 
-// TTL
+// TTL 返回值单位是秒
 func (d *CacheExt) TTL(key string) int64 {
 	return d.backend.TTL(d.trans_key(key))
 }

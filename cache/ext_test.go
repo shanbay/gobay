@@ -6,12 +6,15 @@ import (
 	"testing"
 )
 
-func ExampleGet() {
+func Example_Get_Set() {
 	cache := &CacheExt{}
 	exts := map[gobay.Key]gobay.Extension{
 		"cache": cache,
 	}
-	gobay.CreateApp("../testdata/", "testing", exts)
+	if _, err := gobay.CreateApp("../testdata/", "testing", exts); err != nil {
+		fmt.Println(err)
+		return
+	}
 
 	var key = "cache_key"
 	cache.Set(key, "hello", 10)
@@ -20,12 +23,15 @@ func ExampleGet() {
 	fmt.Println(exists, res, err)
 	// Output: true hello <nil>
 }
-func ExampleCachedFunc() {
+func Example_CachedFunc() {
 	cache := &CacheExt{}
 	exts := map[gobay.Key]gobay.Extension{
 		"cache": cache,
 	}
-	gobay.CreateApp("../testdata/", "testing", exts)
+	if _, err := gobay.CreateApp("../testdata/", "testing", exts); err != nil {
+		fmt.Println(err)
+		return
+	}
 
 	var call_times = 0
 
@@ -46,12 +52,16 @@ func ExampleCachedFunc() {
 	// Output: [hello world] 1 <nil>
 }
 
-func ExampleCachedFunc2() {
+func Example_CachedFunc2() {
 	cache := &CacheExt{}
 	exts := map[gobay.Key]gobay.Extension{
 		"cache": cache,
 	}
-	gobay.CreateApp("../testdata/", "testing", exts)
+	if _, err := gobay.CreateApp("../testdata/", "testing", exts); err != nil {
+		fmt.Println(err)
+		return
+	}
+
 	var call_times = 0
 
 	f := func(names ...string) ([]string, error) {
@@ -75,12 +85,55 @@ func ExampleCachedFunc2() {
 	// Output: [hello world] 1 <nil>
 }
 
+func Example_GetMany_SetMany() {
+	cache := &CacheExt{}
+	exts := map[gobay.Key]gobay.Extension{
+		"cache": cache,
+	}
+	if _, err := gobay.CreateApp("../testdata/", "testing", exts); err != nil {
+		fmt.Println(err)
+		return
+	}
+	// SetMany GetMany
+	many_map := make(map[string]interface{})
+	many_map["1"] = "hello"
+	many_map["2"] = nil
+	many_map["3"] = true
+	many_map["4"] = make(map[string]int)
+	many_map["4"].(map[string]int)["5"] = 200
+	// many_map["m4"].(map[string]interface{})["m6"] = "world"
+	err := cache.SetMany(many_map, 10)
+	fmt.Println(err)
+	many_map["2"] = 100
+	err = cache.SetMany(many_map, 10)
+	fmt.Println(err)
+
+	many_res := make(map[string]interface{})
+	// 填上零值
+	many_res["1"] = ""
+	many_res["2"] = 0
+	many_res["3"] = false
+	many_res["4"] = make(map[string]interface{})
+	many_res["4"].(map[string]interface{})["5"] = 0
+	many_res["4"].(map[string]interface{})["6"] = 0
+	// 这里many_res["m4"]["m5"]解析后由于类型丢失变成float64类型需要特别注意一下
+	err = cache.GetMany(many_res)
+	fmt.Println(err, many_res)
+	// Output: Not Support Nil Value
+	// <nil>
+	// <nil> map[1:hello 2:100 3:true 4:map[5:200]]
+}
+
 func TestCacheExt_Operation(t *testing.T) {
 	cache := &CacheExt{}
 	exts := map[gobay.Key]gobay.Extension{
 		"cache": cache,
 	}
-	gobay.CreateApp("../testdata/", "testing", exts)
+	if _, err := gobay.CreateApp("../testdata/", "testing", exts); err != nil {
+		fmt.Println(err)
+		return
+	}
+
 	// Get Set
 	if err := cache.Set("cache_key_1", "100", 10); err != nil {
 		t.Errorf("Cache Set Key Failed")
@@ -114,27 +167,54 @@ func TestCacheExt_Operation(t *testing.T) {
 		t.Errorf("Cache Get Failed")
 	}
 	// SetMany GetMany
-	many_key := []string{"m1", "m2", "m3"}
 	many_map := make(map[string]interface{})
 	many_map["m1"] = "hello"
-	many_map["m2"] = "world"
-	many_map["m3"] = "hello"
+	many_map["m2"] = nil
+	many_map["m3"] = true
+	many_map["m5"] = []int{1, 2, 3}
+	many_map["m4"] = make(map[string]int)
+	many_map["m4"].(map[string]int)["m5"] = 200
+	// many_map["m4"].(map[string]interface{})["m6"] = "world"
+	if err := cache.SetMany(many_map, 10); err == nil {
+		t.Log("Cache Set Nil Value Succeed!")
+		t.Errorf("Cache SetMany Failed")
+	}
+	many_map["m2"] = 100
 	if err := cache.SetMany(many_map, 10); err != nil {
 		t.Log(err)
 		t.Errorf("Cache SetMany Failed")
 	}
-	many_res := cache.GetMany(many_key)
-	if many_res[0].(string) != "hello" {
-		t.Log(many_res)
+
+	many_res := make(map[string]interface{})
+	// 填上零值
+	many_res["m1"] = ""
+	many_res["m2"] = 0
+	many_res["m3"] = false
+	many_res["m5"] = []int{}
+	many_res["m4"] = make(map[string]interface{})
+	many_res["m4"].(map[string]interface{})["m5"] = 0
+	many_res["m4"].(map[string]interface{})["m6"] = 0
+	// 这里many_res["m4"]["m5"]解析后由于类型丢失变成float64类型需要特别注意一下
+	if err := cache.GetMany(many_res); err != nil ||
+		many_res["m1"].(string) != "hello" ||
+		many_res["m2"].(int) != 100 ||
+		many_res["m3"].(bool) != true ||
+		many_res["m4"].(map[string]interface{})["m5"].(float64) != 200 ||
+		many_res["m4"].(map[string]interface{})["m6"] != nil ||
+		many_res["m5"].([]int)[0] != 1 ||
+		many_res["m5"].([]int)[1] != 2 ||
+		many_res["m5"].([]int)[2] != 3 {
+		t.Log(err, "many_res value:", many_res)
 		t.Errorf("Cache GetMany Failed")
 	}
 	// Delete Exists
 	cache.Set("cache_key_3", "golang", 10)
+	cache.Set("cache_key_4", "gobay", 10)
 	if res := cache.Exists("cache_key_3"); res != true {
 		t.Log(res)
 		t.Errorf("Cache Exists Failed")
 	}
-	if res := cache.Delete("cache_key_3"); res != 1 {
+	if res := cache.Delete("cache_key_3"); res != true {
 		t.Log(res)
 		t.Errorf("Cache Delete Failed")
 	}
@@ -142,9 +222,27 @@ func TestCacheExt_Operation(t *testing.T) {
 		t.Log(res)
 		t.Errorf("Cache Exists Failed")
 	}
-	if res := cache.Delete("cache_key_3"); res != 0 {
+	if res := cache.Delete("cache_key_3"); res != false {
 		t.Log(res)
 		t.Errorf("Cache Delete Failed")
+	}
+	// DeleteMany
+	keys := []string{"cache_key_3", "cache_key_4"}
+	if res := cache.Exists("cache_key_4"); res != true {
+		t.Log(res)
+		t.Errorf("Cache Exists Failed")
+	}
+	if res := cache.DeleteMany(keys...); res != true {
+		t.Log(res)
+		t.Errorf("Cache DeleteMany Failed")
+	}
+	if res := cache.Exists("cache_key_4"); res != false {
+		t.Log(res)
+		t.Errorf("Cache Exists Failed")
+	}
+	if res := cache.DeleteMany(keys...); res != false {
+		t.Log(res)
+		t.Errorf("Cache DeleteMany Failed")
 	}
 	// Expire TTL
 	cache.Set("cache_key_4", "hello", 10)
@@ -168,7 +266,11 @@ func TestCacheExt_CachedFunc_Common(t *testing.T) {
 	exts := map[gobay.Key]gobay.Extension{
 		"cache": cache,
 	}
-	gobay.CreateApp("../testdata/", "testing", exts)
+	if _, err := gobay.CreateApp("../testdata/", "testing", exts); err != nil {
+		fmt.Println(err)
+		return
+	}
+
 	call_times := 0
 	// common 主要测试返回值为：int []int string []string bool []bool
 	// []string
@@ -180,9 +282,11 @@ func TestCacheExt_CachedFunc_Common(t *testing.T) {
 		return res, nil
 	}
 	cached_func, _ := cache.CachedFunc(f, 10, 1)
+	cache_key, _ := cache.MakeCacheKey(f, 1, "hello", "world", int64(12))
+	cache.Delete(cache_key)
 	cached_func("hello", "world", int64(12))
-	if val, err := cached_func("hello", "world", int64(12)); err != nil || val.([]string)[0] != "hello" {
-		t.Log(err)
+	if val, err := cached_func("hello", "world", int64(12)); err != nil || val == nil || val.([]string)[0] != "hello" {
+		t.Log(val, err)
 		t.Errorf("result error")
 	}
 	cached_func("hello", "world", int64(12))
@@ -287,7 +391,6 @@ func TestCacheExt_CachedFunc_Common(t *testing.T) {
 		t.Log(cache_nil_res, err, call_times)
 		t.Errorf("cache nil func return nil succeed")
 	}
-
 }
 
 func TestCacheExt_CachedFunc_Struct(t *testing.T) {
@@ -296,7 +399,11 @@ func TestCacheExt_CachedFunc_Struct(t *testing.T) {
 	exts := map[gobay.Key]gobay.Extension{
 		"cache": cache,
 	}
-	gobay.CreateApp("../testdata/", "testing", exts)
+	if _, err := gobay.CreateApp("../testdata/", "testing", exts); err != nil {
+		fmt.Println(err)
+		return
+	}
+
 	call_times := 0
 	// 函数返回值是struct
 	type node struct {
@@ -328,5 +435,104 @@ func TestCacheExt_CachedFunc_Struct(t *testing.T) {
 	}
 	if complex_val.(myData).Value3[0].Name != "这是第一个node" {
 		t.Errorf("Data is wrong in cache complex")
+	}
+}
+
+func Benchmark_SetMany(b *testing.B) {
+	cache := &CacheExt{}
+	exts := map[gobay.Key]gobay.Extension{
+		"cache": cache,
+	}
+	if _, err := gobay.CreateApp("../testdata/", "testing", exts); err != nil {
+		fmt.Println(err)
+		return
+	}
+	// SetMany GetMany
+	many_map := make(map[string]interface{})
+	many_map["1"] = []string{"hello", "world", "golang", "cache"}
+	many_map["2"] = []int{100, 200, 300, 400, 500}
+	many_map["3"] = true
+	many_map["4"] = make(map[string]int)
+	many_map["4"].(map[string]int)["1"] = 200
+	many_map["4"].(map[string]int)["2"] = 900
+	many_map["4"].(map[string]int)["3"] = 1200
+	for i := 0; i < b.N; i++ {
+		err := cache.SetMany(many_map, 10)
+		if err != nil {
+			fmt.Println(err)
+		}
+	}
+}
+
+func Benchmark_GetMany(b *testing.B) {
+	cache := &CacheExt{}
+	exts := map[gobay.Key]gobay.Extension{
+		"cache": cache,
+	}
+	if _, err := gobay.CreateApp("../testdata/", "testing", exts); err != nil {
+		fmt.Println(err)
+		return
+	}
+	many_map := make(map[string]interface{})
+	many_map["1"] = []string{"hello", "world", "golang", "cache"}
+	many_map["2"] = []int{100, 200, 300, 400, 500}
+	many_map["3"] = true
+	many_map["5"] = "wewe"
+	many_map["6"] = 100
+	many_map["4"] = make(map[string]int)
+	many_map["4"].(map[string]int)["1"] = 200
+	many_map["4"].(map[string]int)["2"] = 900
+	many_map["4"].(map[string]int)["3"] = 1200
+	if err := cache.SetMany(many_map, 10); err != nil {
+		fmt.Println(err)
+	}
+	for i := 0; i < b.N; i++ {
+		many_res := make(map[string]interface{})
+		// 填上零值
+		many_res["1"] = []string{}
+		many_res["2"] = []int{}
+		many_res["3"] = false
+		many_res["5"] = ""
+		many_res["6"] = 0
+		many_res["4"] = make(map[string]interface{})
+		if err := cache.GetMany(many_res); err != nil {
+			fmt.Println(err)
+		}
+	}
+}
+
+func Benchmark_CachedFunc(b *testing.B) {
+	f := func(name string) (map[string]string, error) {
+		many_map := make(map[string]string)
+		many_map["1"] = "hello"
+		many_map["2"] = "wewe"
+		many_map["3"] = "true"
+		many_map["4"] = "100"
+		many_map["5"] = "wewe"
+		return many_map, nil
+	}
+	cache := &CacheExt{}
+	exts := map[gobay.Key]gobay.Extension{
+		"cache": cache,
+	}
+	if _, err := gobay.CreateApp("../testdata/", "testing", exts); err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	cached_f, e := cache.CachedFunc(f, 10, 1)
+	if e != nil {
+		fmt.Println(e)
+		return
+	}
+	for i := 0; i < b.N; i++ {
+		if many_res, err := cached_f("hello"); err != nil ||
+			many_res.(map[string]string)["1"] != "hello" ||
+			many_res.(map[string]string)["2"] != "wewe" ||
+			many_res.(map[string]string)["3"] != "true" ||
+			many_res.(map[string]string)["4"] != "100" ||
+			many_res.(map[string]string)["5"] != "wewe" {
+			fmt.Println(err)
+		}
 	}
 }

@@ -1,18 +1,18 @@
 package cache
 
 import (
-	"fmt"
 	"github.com/go-redis/redis"
 	"github.com/shanbay/gobay"
 )
 
 // RedisExt redis扩展，处理client的初始化工作
 type RedisExt struct {
-	// gobay.Extension
 	NS     string
 	app    *gobay.Application
 	client *redis.Client
 }
+
+var _ gobay.Extension = &RedisExt{}
 
 // Init
 func (d *RedisExt) Init(app *gobay.Application) error {
@@ -26,15 +26,12 @@ func (d *RedisExt) Init(app *gobay.Application) error {
 		Password: password,
 		DB:       dbNum,
 	})
-	pong, err := d.client.Ping().Result()
-	if err != nil {
-		fmt.Println(pong, err)
-	}
+	_, err := d.client.Ping().Result()
 	return err
 }
 
 // Object return redis client
-func (d *RedisExt) Object() *redis.Client {
+func (d *RedisExt) Object() interface{} {
 	return d.client
 }
 
