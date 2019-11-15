@@ -194,12 +194,11 @@ func TestCacheExt_Operation(t *testing.T) {
 	many_res["m4"] = make(map[string]interface{})
 	many_res["m4"].(map[string]interface{})["m5"] = 0
 	many_res["m4"].(map[string]interface{})["m6"] = 0
-	// 这里many_res["m4"]["m5"]解析后由于类型丢失变成float64类型需要特别注意一下
 	if err := cache.GetMany(many_res); err != nil ||
 		many_res["m1"].(string) != "hello" ||
 		many_res["m2"].(int) != 100 ||
 		many_res["m3"].(bool) != true ||
-		many_res["m4"].(map[string]interface{})["m5"].(float64) != 200 ||
+		many_res["m4"].(map[string]interface{})["m5"].(int64) != 200 ||
 		many_res["m4"].(map[string]interface{})["m6"] != nil ||
 		many_res["m5"].([]int)[0] != 1 ||
 		many_res["m5"].([]int)[1] != 2 ||
@@ -414,12 +413,15 @@ func TestCacheExt_CachedFunc_Struct(t *testing.T) {
 		Value1 int
 		Value2 string
 		Value3 []node
+		Value4 *string
 	}
 	complex_ff := func() (myData, error) {
 		call_times += 1
 		mydata := myData{}
 		mydata.Value1 = 100
 		mydata.Value2 = "thre si a verty conplex data {}{}"
+		some_str := "some str"
+		mydata.Value4 = &some_str
 		mydata.Value3 = []node{node{"这是第一个node", []string{"id1", "id2", "id3"}}, node{"这是第二个node", []string{"id4", "id5", "id6"}}}
 		return mydata, nil
 	}
@@ -435,6 +437,9 @@ func TestCacheExt_CachedFunc_Struct(t *testing.T) {
 	}
 	if complex_val.(myData).Value3[0].Name != "这是第一个node" {
 		t.Errorf("Data is wrong in cache complex")
+	}
+	if *(complex_val.(myData).Value4) != "some str" {
+		t.Errorf("Value4 is wrong in cache complex")
 	}
 }
 

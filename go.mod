@@ -14,6 +14,7 @@ require (
 	github.com/spf13/viper v1.5.0
 	github.com/streadway/amqp v0.0.0-20190827072141-edfb9018d271
 	github.com/stretchr/testify v1.4.0
+	github.com/vmihailenco/msgpack v4.0.4+incompatible
 	go.elastic.co/apm v1.5.0
 	google.golang.org/grpc v1.25.1
 )

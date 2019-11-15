@@ -1,10 +1,10 @@
 package cache
 
 import (
-	"encoding/json"
 	"errors"
 	"github.com/go-redis/redis"
 	"github.com/shanbay/gobay"
+	"github.com/vmihailenco/msgpack"
 	"net/url"
 	"reflect"
 	"runtime"
@@ -60,15 +60,21 @@ func (c *CacheExt) SetBackend(backend CacheBackend) {
 
 // MakeCacheKey 用于生成函数的缓存key，带版本控制。只允许数字、布尔、字符串这几种类型的参数。
 func (c *CacheExt) MakeCacheKey(f interface{}, version int, args ...interface{}) (string, error) {
+	function := reflect.ValueOf(f)
+	if function.Kind() != reflect.Func {
+		return "", errors.New("Generate cache key failed, the first param must be a function!")
+	}
+	if function.Type().NumOut() != 2 || !function.Type().Out(1).Implements(reflect.TypeOf((*error)(nil)).Elem()) {
+		return "", errors.New("Generate cache key failed, the response of function is invalid, should return (SomeStruct, error)")
+	}
+
 	inputs := make([]string, len(args)+2)
-	inputs[0] = runtime.FuncForPC(reflect.ValueOf(f).Pointer()).Name()
+	inputs[0] = runtime.FuncForPC(function.Pointer()).Name()
 	inputs[1] = strconv.Itoa(version)
 	for i, _ := range args {
 		v := reflect.ValueOf(args[i])
 		i += 2
 		switch v.Kind() {
-		case reflect.Invalid:
-			return "", errors.New("invalid")
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 			inputs[i] = strconv.FormatInt(v.Int(), 10)
 		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
@@ -77,6 +83,8 @@ func (c *CacheExt) MakeCacheKey(f interface{}, version int, args ...interface{})
 			inputs[i] = strconv.FormatBool(v.Bool())
 		case reflect.String:
 			inputs[i] = v.String()
+		case reflect.Invalid:
+			return "", errors.New("Invalid args")
 		default:
 			return "", errors.New("Unsupported args type: " + v.Type().String())
 		}
@@ -111,9 +119,8 @@ func (c *CacheExt) CachedFunc(f interface{}, ttl int64, version int) (func(args 
 		}
 		fOut := function.Type().Out(0)
 		var cacheRes interface{}
-		var reCall bool
+		var reCall, exist bool
 		cacheRes = reflect.New(fOut).Interface()
-		var exist bool
 		exist, err = c.Get(cacheKey, cacheRes)
 		if err != nil {
 			return nil, err
@@ -207,7 +214,7 @@ func (c *CacheExt) validKind(kind reflect.Kind) (bool, error) {
 }
 
 func (c *CacheExt) encode(value interface{}) (string, error) {
-	json_bytes, err := json.Marshal(value)
+	json_bytes, err := msgpack.Marshal(&value)
 	if err != nil {
 		return "", err
 	}
@@ -216,7 +223,7 @@ func (c *CacheExt) encode(value interface{}) (string, error) {
 
 func (c *CacheExt) decode(data interface{}, out interface{}) error {
 	if strData, ok := data.(string); ok == true {
-		return json.Unmarshal([]byte(strData), out)
+		return msgpack.Unmarshal([]byte(strData), out)
 	} else {
 		outValue := reflect.ValueOf(out).Elem()
 		if outValue.CanSet() == false {

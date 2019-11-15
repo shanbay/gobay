@@ -140,6 +140,7 @@ func (m *memBackend) Expire(key string, ttl time.Duration) bool {
 	if val == nil {
 		return false
 	}
+	m.client[key].SetedAt = time.Now()
 	m.client[key].Ttl = ttl
 	return true
 }
