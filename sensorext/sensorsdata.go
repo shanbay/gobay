@@ -1,34 +1,32 @@
-package	sensorext
+package sensorext
 
 import (
-	"os"
-	"fmt"
-	"errors"
-	"path/filepath"
 	"../encoderext"
-	"github.com/shanbay/gobay"
+	"errors"
+	"fmt"
 	sdk "github.com/sensorsdata/sa-sdk-go"
+	"github.com/shanbay/gobay"
+	"os"
+	"path/filepath"
 )
 
 const (
-	sensorNs     	= "sensor_ns"
-	sensorPath      = "sensor_path"
-	sensorFilename  = "sensor_filename"
-	nsProperty  	= "ns"
-	alphabet		= "short_url_alphabet"
-	isLoginID 		= true
+	sensorNs       = "sensor_ns"
+	sensorPath     = "sensor_path"
+	sensorFilename = "sensor_filename"
+	nsProperty     = "ns"
+	alphabet       = "short_url_alphabet"
+	isLoginID      = true
 )
-
 
 // SensorsData extension
 type SensorsData struct {
-	NS 			string
-	app 		*gobay.Application
-	encoder 	*encoderext.Encoder
-	trackNs 	string
-	sa			sdk.SensorsAnalytics
+	NS      string
+	app     *gobay.Application
+	encoder *encoderext.Encoder
+	trackNs string
+	sa      sdk.SensorsAnalytics
 }
-
 
 // Init extension interface
 func (s *SensorsData) Init(app *gobay.Application) error {
@@ -46,13 +44,13 @@ func (s *SensorsData) Init(app *gobay.Application) error {
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		os.MkdirAll(filePath, os.ModePerm)
 	}
-	
+
 	consumer, err := sdk.InitConcurrentLoggingConsumer(filePath, false)
 	if err != nil {
 		fmt.Println(err)
 		return err
 	}
-	s.sa = sdk.InitSensorsAnalytics(consumer, "", false)	
+	s.sa = sdk.InitSensorsAnalytics(consumer, "", false)
 	return nil
 }
 
@@ -72,12 +70,12 @@ func (s *SensorsData) Application() *gobay.Application {
 }
 
 func formatMap(valueMap map[string]interface{}) map[string]interface{} {
-	for k, v:= range valueMap{
+	for k, v := range valueMap {
 		// sensorsData Only supports string slice
 		switch v.(type) {
 		case []interface{}:
 			s := []string{}
-			for _, vv := range v.([]interface{}){
+			for _, vv := range v.([]interface{}) {
 				s = append(s, fmt.Sprint(vv))
 			}
 			valueMap[k] = s
@@ -86,13 +84,12 @@ func formatMap(valueMap map[string]interface{}) map[string]interface{} {
 	return valueMap
 }
 
-func (s *SensorsData) EncodeAndFormat(properties map[string]interface{}) map[string]interface{}{
+func (s *SensorsData) EncodeAndFormat(properties map[string]interface{}) map[string]interface{} {
 	encodedProperties := s.encoder.EncodeMap(properties, []string{})
-	enP:= encodedProperties.(map[string]interface{})
+	enP := encodedProperties.(map[string]interface{})
 	formatMap(enP)
 	return enP
 }
-
 
 // Track event
 func (s *SensorsData) Track(distinctID uint64, event string, properties map[string]interface{}) error {
@@ -144,11 +141,10 @@ func (s *SensorsData) ProfileDelete(distinctID uint64) error {
 	return s.sa.ProfileDelete(distinctIDStr, isLoginID)
 }
 
-
 // DataModel log model
 type DataModel struct {
-	name 	string
-	fields 	[]string
+	name   string
+	fields []string
 }
 
 // Track event method
@@ -164,5 +160,3 @@ func (d *DataModel) Track(s SensorsData, distinctID uint64, properties map[strin
 
 	return s.Track(distinctID, d.name, properties)
 }
-
-
