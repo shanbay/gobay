@@ -2,6 +2,7 @@ package	encoderext
 
 
 import (
+	"fmt"
 	"strings"
 	"reflect"
 	"github.com/shanbay/gobay"
@@ -88,61 +89,141 @@ func deepCopy(value interface{}) interface{} {
 	return value
 }
 
-func (e *Encoder) EncodeMap(data map[string]interface{}, excludedFields []string) map[string]interface{}{
-	resData := mapDeepCopy(data)
+func (e *Encoder) EncodeMap(data interface{}, excludedFields []string) interface{}{
+	dataV, ok:= data.(map[string]interface{})
+	if !ok{
+		fmt.Println("Only accept Map with type map[string]interface{} !")
+		return data
+	}
+	resData := map[string]interface{}{}
 	fieldsMap := getFieldsMap(excludedFields)
-	for key, value := range(resData){
+
+	for key, value := range(dataV){
 		if value == nil || fieldsMap[key] {
 			continue
 		}
-		kind := reflect.TypeOf(value).Kind()
-		switch kind {
+		v := reflect.ValueOf(value)
+		switch v.Kind() {
+			case reflect.Map:
+				resData[key] = e.EncodeMap(value, excludedFields)
 			case reflect.Array, reflect.Slice:
-				if v, ok:= value.([]uint64); ok{
-					resData[key] = e.EncodeSlice(v)
-				}
-			case reflect.Uint64:
+				resData[key] = e.EncodeSlice(value, excludedFields)
+			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 				if key == idStr || strings.HasSuffix(key, idStr){
-					resData[key] = e.Pk2str(value.(uint64))
+					resData[key] = e.Pk2str(uint64(v.Int()))
+				}else{
+					resData[key] = value
 				}
+			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+				if key == idStr || strings.HasSuffix(key, idStr){
+					resData[key] = e.Pk2str(uint64(v.Uint()))
+				}else{
+					resData[key] = value
+				}
+			default:
+				resData[key] = value
 		}
 	}
 	return resData
 }
 
-func (e *Encoder) EncodeSlice(arr []uint64) []string {
-	res := []string{}
-	for _, value := range(arr){
-		res = append(res, e.Pk2str(value))
+func (e *Encoder) EncodeSlice(arr interface{}, excludedFields []string) interface{} {
+	arrV := reflect.ValueOf(arr)
+	if arrV.Kind() != reflect.Array && arrV.Kind() != reflect.Slice{
+		fmt.Println("Only accept Array or Slice type!")
+		return arr
+	}
+	res := []interface{}{}
+	
+    for i := 0; i < arrV.Len(); i++ {
+    	value := arrV.Index(i).Interface()
+		v := reflect.ValueOf(value)
+		switch v.Kind() {
+			case reflect.Array, reflect.Slice:
+				res = append(res, e.EncodeSlice(value, excludedFields))
+			case reflect.Map:
+				if vMap, ok:= value.(map[string]interface{}); ok{
+					res = append(res, e.EncodeMap(vMap, excludedFields))
+				}
+			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+				res = append(res, e.Pk2str(uint64(v.Int())))
+			case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+				res = append(res, e.Pk2str(uint64(v.Uint())))
+			default:
+				res = append(res, value)
+		}
 	}
 	return res
 }
 
-func (e *Encoder) DecodeMap(data map[string]interface{}) map[string]interface{}{
-	resData := mapDeepCopy(data)
-	for key, value := range(resData){
+func (e *Encoder) CanDecode(value string) bool{
+	for i:= range value{
+		if strings.IndexByte(e.encoder.opt.Alphabet, value[i]) == -1{
+			return false
+		}
+	}
+	return true
+}
+
+func (e *Encoder) DecodeMap(data interface{}) interface{}{
+	dataV, ok:= data.(map[string]interface{})
+	if !ok{
+		fmt.Println("Only accept Map with type map[string]interface{} !")
+		return data
+	}
+	resData := map[string]interface{}{}
+
+	for key, value := range(dataV){
 		if value == nil {
 			continue
 		}
-		kind := reflect.TypeOf(value).Kind()
-		switch kind {
+		v := reflect.ValueOf(value)
+		switch v.Kind() {
+			case reflect.Map:
+				resData[key] = e.DecodeMap(value)
 			case reflect.Array, reflect.Slice:
-				if v, ok:= value.([]string); ok{
-					resData[key] = e.DecodeSlice(v)
-				}
+				resData[key] = e.DecodeSlice(value)
 			case reflect.String:
-				if key == idStr || strings.HasSuffix(key, idStr){
-					resData[key] = e.Str2pk(value.(string))
+				if (key == idStr || strings.HasSuffix(key, idStr)) && e.CanDecode(v.String()){
+					resData[key] = e.Str2pk(v.String())
+				}else{
+					resData[key] = value
 				}
+			default:
+				resData[key] = value
 		}
 	}
 	return resData
 }
 
-func (e *Encoder) DecodeSlice(arr []string) []uint64 {
-	res := []uint64{}
-	for _, value := range(arr){
-		res = append(res, e.Str2pk(value))
+
+func (e *Encoder) DecodeSlice(arr interface{}) interface{} {
+	arrV := reflect.ValueOf(arr)
+	if arrV.Kind() != reflect.Array && arrV.Kind() != reflect.Slice{
+		fmt.Println("Only accept Array or Slice type!")
+		return arr
+	}
+	res := []interface{}{}
+	
+    for i := 0; i < arrV.Len(); i++ {
+    	value := arrV.Index(i).Interface()
+		v := reflect.ValueOf(value)
+		switch v.Kind() {
+			case reflect.Array, reflect.Slice:
+				res = append(res, e.DecodeSlice(value))
+			case reflect.Map:
+				if vMap, ok:= value.(map[string]interface{}); ok{
+					res = append(res, e.DecodeMap(vMap))
+				}
+			case reflect.String:
+				if e.CanDecode(v.String()){
+					res = append(res, e.Str2pk(v.String()))
+				}else{
+					res = append(res, value)
+				}
+			default:
+				res = append(res, value)
+		}
 	}
 	return res
 }

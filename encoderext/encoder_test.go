@@ -37,56 +37,145 @@ func TestEncoder(t *testing.T) {
 		}
 	}
 
+
 	testMap := map[string]interface{}{
-		"id": uint64(20),
-		"user_id": uint64(399),
-		"age": uint64(18),
+		"id": 20,
+		"user_id": uint16(399),
+		"age": uint(18),
 		"gender": "male",
 		"tags": []uint64{1, 2, 3},
+		"other_id": map[string]interface{}{
+			"wordbok_id": 123,
+			"hobby_id": 5,
+		},
 	}
-
+	
 	testMapRes := map[string]interface{}{
 		"id": "6xqx7",
 		"user_id": "z2vr7",
-		"age": uint64(18),
+		"age": uint(18),
 		"gender": "male",
-		"tags": []string{"867nv", "25t52", "ghpzy"},
+		"tags": []interface{}{"867nv", "25t52", "ghpzy"},
+		"other_id": map[string]interface{}{
+			"wordbok_id": "9epgb",
+			"hobby_id": "pbq8b",
+		},
 	}
 
+	// Encode map with excluded_fields
 	encodedMap := encoder.EncodeMap(testMap, []string{"user_id"})
-	for v := range(encodedMap){
-		if v != "user_id" && !reflect.DeepEqual(encodedMap[v], testMapRes[v]){
+	encodedMapV, ok := encodedMap.(map[string]interface{})
+	if !ok{
+		t.Errorf("Wrong type")
+	}
+	for k := range(encodedMapV){
+		if k != "user_id" && !reflect.DeepEqual(encodedMapV[k], testMapRes[k]){
 			t.Errorf("Encode map with exclueded fields error")
 		}
-		if v == "user_id" && encodedMap[v] != testMap[v]{
+		if k == "user_id" && encodedMapV[k] != testMap[k]{
 			t.Errorf("Encode map error")
 		}
 	}
 
+	// Encode map without excluded_fields
 	encodedMapN := encoder.EncodeMap(testMap, []string{})
-	for v:= range(encodedMapN){
-		if !reflect.DeepEqual(encodedMapN[v], testMapRes[v]){
-			t.Errorf("Encode map error")
+	encodedMapNV, ok := encodedMapN.(map[string]interface{})
+	if !ok{
+		t.Errorf("Wrong type")
+	}
+	for k := range(encodedMapNV){
+		if !reflect.DeepEqual(encodedMapNV[k], testMapRes[k]){
+			t.Errorf("Encode map with exclueded fields error")
 		}
 	}
 
+	testMapDecodeRes := map[string]interface{}{
+		"id": uint64(20),
+		"user_id": uint64(399),
+		"age": uint(18),
+		"gender": "male",
+		"tags": []uint64{1, 2, 3},
+		"other_id": map[string]uint64{
+			"wordbok_id": 123,
+			"hobby_id": 5,
+		},
+	}
+
+	// Decode map
 	decodedMap := encoder.DecodeMap(testMapRes)
-	for v:= range(decodedMap){
-		if !reflect.DeepEqual(decodedMap[v], testMap[v]){
-			t.Errorf("Decode map error")
+	decodedMapV, ok := decodedMap.(map[string]interface{})
+	if !ok{
+		t.Errorf("Wrong type")
+	}
+	for k, v:= range(decodedMapV){
+		switch v.(type){
+		case []interface{}:
+			sliceRes := testMapDecodeRes[k].([]uint64)
+			for kk, vv:= range v.([]interface{}){
+				if vv.(uint64) != sliceRes[kk]{
+					t.Errorf("Decode map error")
+				}
+			}
+		case map[string]interface{}:
+			mapRes := testMapDecodeRes[k].(map[string]uint64)
+			for kk, vv:= range v.(map[string]interface{}){
+				// fmt.Println(vv, )
+				if vv.(uint64) != mapRes[kk]{
+					t.Errorf("Decode map error")
+				}
+			}
+		default:
+			if !reflect.DeepEqual(v, testMapDecodeRes[k]){
+				t.Errorf("Decode map error")
+			}
 		}
 	}
 
 	testSlice := []uint64{100, 99, 98}
-	testSliceRes := []string{"6d7gw", "wnzat", "2fqd5"}
+	testSliceRes := []interface{}{"6d7gw", "wnzat", "2fqd5"}
 	
-		encodedSlice := encoder.EncodeSlice(testSlice)
-		if !reflect.DeepEqual(encodedSlice, testSliceRes){
-			t.Errorf("Encode Slice error")
-		}
+	// Encode slice
+	encodedSlice := encoder.EncodeSlice(testSlice, []string{})
+	if !reflect.DeepEqual(encodedSlice, testSliceRes){
+		t.Errorf("Encode Slice error")
+	}
+
+	// Encode two-dimension slice
+	testSliceM := [][]uint64{{100, 99, 98},}
+	testSliceMRes := []interface{}{}
+	testSliceMRes = append(testSliceMRes, (interface{})(testSliceRes))
 	
-		decodedSlice := encoder.DecodeSlice(testSliceRes)
-		if !reflect.DeepEqual(decodedSlice, testSlice){
+	encodedSliceM := encoder.EncodeSlice(testSliceM, []string{})
+	if !reflect.DeepEqual(encodedSliceM, testSliceMRes){
+		t.Errorf("Encode Slice error")
+	}
+
+	// Decode slice
+	decodedSlice := encoder.DecodeSlice(testSliceRes).([]interface{})
+	for k, v:= range decodedSlice{
+		if v.(uint64) != testSlice[k]{
 			t.Errorf("Decode Slice error")
 		}
+	}
+
+	// Decode two-dimension slice
+	decodedSliceM := encoder.DecodeSlice(testSliceMRes).([]interface{})
+	for k, v:= range decodedSliceM{
+		for kk, vv:= range v.([]interface{}){
+			if vv.(uint64) != testSliceM[k][kk]{
+				t.Errorf("Decode Slice error")
+			}
+		}
+	}
+
+	// Test CanDecode method
+	canD := encoder.CanDecode("hahaha")
+	if !canD {
+		t.Errorf("CanDecode analyze error")
+	}
+
+	canDD := encoder.CanDecode("23_haah")
+	if canDD {
+		t.Errorf("CanDecode analyze error")
+	}
 }
