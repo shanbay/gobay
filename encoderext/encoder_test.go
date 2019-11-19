@@ -103,11 +103,7 @@ func TestEncoder(t *testing.T) {
 	if err != nil {
 		t.Errorf("Decode map error")
 	}
-	decodedMapV, ok := decodedMap.(map[string]interface{})
-	if !ok {
-		t.Errorf("Wrong type")
-	}
-	for k, v := range decodedMapV {
+	for k, v := range decodedMap {
 		switch v.(type) {
 		case []interface{}:
 			sliceRes := testMapDecodeRes[k].([]uint64)

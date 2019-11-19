@@ -155,26 +155,25 @@ func (e *Encoder) CanDecode(value string) bool {
 	return true
 }
 
-func (e *Encoder) DecodeMap(data interface{}) (interface{}, error) {
-	dataV, ok := data.(map[string]interface{})
-	if !ok {
-		err := errors.New("Only accept Map with type map[string]interface{} !")
-		return nil, err
-	}
+func (e *Encoder) DecodeMap(data map[string]interface{}) (map[string]interface{}, error) {
 	resData := map[string]interface{}{}
 
-	for key, value := range dataV {
+	for key, value := range data {
 		if value == nil {
 			continue
 		}
 		v := reflect.ValueOf(value)
 		switch v.Kind() {
 		case reflect.Map:
-			deSub, err := e.DecodeMap(value)
-			if err != nil {
-				return nil, err
+			if vMap, ok := value.(map[string]interface{}); ok {
+				deSub, err := e.DecodeMap(vMap)
+				if err != nil {
+					return nil, err
+				}
+				resData[key] = deSub
+			} else {
+				resData[key] = value
 			}
-			resData[key] = deSub
 		case reflect.Array, reflect.Slice:
 			deSub, err := e.DecodeSlice(value)
 			if err != nil {
