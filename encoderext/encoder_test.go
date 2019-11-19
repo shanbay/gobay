@@ -1,22 +1,22 @@
 package encoderext
 
 import (
-	"github.com/shanbay/gobay"
-	"github.com/stretchr/testify/assert"
 	"reflect"
 	"testing"
+
+	"github.com/shanbay/gobay"
 )
 
 func TestEncoder(t *testing.T) {
-	assert := assert.New(t)
 
 	encoder := &Encoder{}
 	exts := map[gobay.Key]gobay.Extension{
 		"test": encoder,
 	}
 	app, err := gobay.CreateApp("../testdata", "testing", exts)
-	assert.NotNil(app)
-	assert.Nil(err)
+	if app == nil || err != nil {
+		t.Errorf("CreateApp error")
+	}
 
 	testSingleElem := map[string]int{
 		"mmmmm": 0,
@@ -62,28 +62,26 @@ func TestEncoder(t *testing.T) {
 	}
 
 	// Encode map with excluded_fields
-	encodedMap := encoder.EncodeMap(testMap, []string{"user_id"})
-	encodedMapV, ok := encodedMap.(map[string]interface{})
-	if !ok {
-		t.Errorf("Wrong type")
+	encodedMap, err := encoder.EncodeMap(testMap, []string{"user_id"})
+	if err != nil {
+		t.Errorf("Encode map error")
 	}
-	for k := range encodedMapV {
-		if k != "user_id" && !reflect.DeepEqual(encodedMapV[k], testMapRes[k]) {
+	for k := range encodedMap {
+		if k != "user_id" && !reflect.DeepEqual(encodedMap[k], testMapRes[k]) {
 			t.Errorf("Encode map with exclueded fields error")
 		}
-		if k == "user_id" && encodedMapV[k] != testMap[k] {
+		if k == "user_id" && encodedMap[k] != testMap[k] {
 			t.Errorf("Encode map error")
 		}
 	}
 
 	// Encode map without excluded_fields
-	encodedMapN := encoder.EncodeMap(testMap, []string{})
-	encodedMapNV, ok := encodedMapN.(map[string]interface{})
-	if !ok {
-		t.Errorf("Wrong type")
+	encodedMapN, err := encoder.EncodeMap(testMap, []string{})
+	if err != nil {
+		t.Errorf("Encode map error")
 	}
-	for k := range encodedMapNV {
-		if !reflect.DeepEqual(encodedMapNV[k], testMapRes[k]) {
+	for k := range encodedMapN {
+		if !reflect.DeepEqual(encodedMapN[k], testMapRes[k]) {
 			t.Errorf("Encode map with exclueded fields error")
 		}
 	}
@@ -101,7 +99,10 @@ func TestEncoder(t *testing.T) {
 	}
 
 	// Decode map
-	decodedMap := encoder.DecodeMap(testMapRes)
+	decodedMap, err := encoder.DecodeMap(testMapRes)
+	if err != nil {
+		t.Errorf("Decode map error")
+	}
 	decodedMapV, ok := decodedMap.(map[string]interface{})
 	if !ok {
 		t.Errorf("Wrong type")
@@ -134,8 +135,8 @@ func TestEncoder(t *testing.T) {
 	testSliceRes := []interface{}{"6d7gw", "wnzat", "2fqd5"}
 
 	// Encode slice
-	encodedSlice := encoder.EncodeSlice(testSlice, []string{})
-	if !reflect.DeepEqual(encodedSlice, testSliceRes) {
+	encodedSlice, err := encoder.EncodeSlice(testSlice, []string{})
+	if err != nil || !reflect.DeepEqual(encodedSlice, testSliceRes) {
 		t.Errorf("Encode Slice error")
 	}
 
@@ -144,22 +145,28 @@ func TestEncoder(t *testing.T) {
 	testSliceMRes := []interface{}{}
 	testSliceMRes = append(testSliceMRes, (interface{})(testSliceRes))
 
-	encodedSliceM := encoder.EncodeSlice(testSliceM, []string{})
-	if !reflect.DeepEqual(encodedSliceM, testSliceMRes) {
+	encodedSliceM, err := encoder.EncodeSlice(testSliceM, []string{})
+	if err != nil || !reflect.DeepEqual(encodedSliceM, testSliceMRes) {
 		t.Errorf("Encode Slice error")
 	}
 
 	// Decode slice
-	decodedSlice := encoder.DecodeSlice(testSliceRes).([]interface{})
-	for k, v := range decodedSlice {
+	decodedSlice, err := encoder.DecodeSlice(testSliceRes)
+	if err != nil {
+		t.Errorf("Decode slice error")
+	}
+	for k, v := range decodedSlice.([]interface{}) {
 		if v.(uint64) != testSlice[k] {
 			t.Errorf("Decode Slice error")
 		}
 	}
 
 	// Decode two-dimension slice
-	decodedSliceM := encoder.DecodeSlice(testSliceMRes).([]interface{})
-	for k, v := range decodedSliceM {
+	decodedSliceM, err := encoder.DecodeSlice(testSliceMRes)
+	if err != nil {
+		t.Errorf("Decode slice error")
+	}
+	for k, v := range decodedSliceM.([]interface{}) {
 		for kk, vv := range v.([]interface{}) {
 			if vv.(uint64) != testSliceM[k][kk] {
 				t.Errorf("Decode Slice error")

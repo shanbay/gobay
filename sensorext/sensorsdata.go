@@ -84,17 +84,22 @@ func formatMap(valueMap map[string]interface{}) map[string]interface{} {
 	return valueMap
 }
 
-func (s *SensorsData) EncodeAndFormat(properties map[string]interface{}) map[string]interface{} {
-	encodedProperties := s.encoder.EncodeMap(properties, []string{})
-	enP := encodedProperties.(map[string]interface{})
-	formatMap(enP)
-	return enP
+func (s *SensorsData) EncodeAndFormat(properties map[string]interface{}) (map[string]interface{}, error) {
+	encodedProperties, err := s.encoder.EncodeMap(properties, []string{})
+	if err != nil {
+		return nil, err
+	}
+	formatMap(encodedProperties)
+	return encodedProperties, nil
 }
 
 // Track event
 func (s *SensorsData) Track(distinctID uint64, event string, properties map[string]interface{}) error {
 	distinctIDStr := s.encoder.Pk2str(distinctID)
-	encodedProperties := s.EncodeAndFormat(properties)
+	encodedProperties, err := s.EncodeAndFormat(properties)
+	if err != nil {
+		return err
+	}
 	// register ns property
 	encodedProperties[nsProperty] = s.trackNs
 	return s.sa.Track(distinctIDStr, event, encodedProperties, isLoginID)
@@ -103,35 +108,50 @@ func (s *SensorsData) Track(distinctID uint64, event string, properties map[stri
 // ProfileSet for user
 func (s *SensorsData) ProfileSet(distinctID uint64, properties map[string]interface{}) error {
 	distinctIDStr := s.encoder.Pk2str(distinctID)
-	encodedProperties := s.EncodeAndFormat(properties)
+	encodedProperties, err := s.EncodeAndFormat(properties)
+	if err != nil {
+		return err
+	}
 	return s.sa.ProfileSet(distinctIDStr, encodedProperties, isLoginID)
 }
 
 // ProfileSetOnce for "first_time" property
 func (s *SensorsData) ProfileSetOnce(distinctID uint64, properties map[string]interface{}) error {
 	distinctIDStr := s.encoder.Pk2str(distinctID)
-	encodedProperties := s.EncodeAndFormat(properties)
+	encodedProperties, err := s.EncodeAndFormat(properties)
+	if err != nil {
+		return err
+	}
 	return s.sa.ProfileSetOnce(distinctIDStr, encodedProperties, isLoginID)
 }
 
 // ProfileIncrement for int type property
 func (s *SensorsData) ProfileIncrement(distinctID uint64, properties map[string]interface{}) error {
 	distinctIDStr := s.encoder.Pk2str(distinctID)
-	encodedProperties := s.EncodeAndFormat(properties)
+	encodedProperties, err := s.EncodeAndFormat(properties)
+	if err != nil {
+		return err
+	}
 	return s.sa.ProfileIncrement(distinctIDStr, encodedProperties, isLoginID)
 }
 
 // ProfileAppend for []string type property
 func (s *SensorsData) ProfileAppend(distinctID uint64, properties map[string]interface{}) error {
 	distinctIDStr := s.encoder.Pk2str(distinctID)
-	encodedProperties := s.EncodeAndFormat(properties)
+	encodedProperties, err := s.EncodeAndFormat(properties)
+	if err != nil {
+		return err
+	}
 	return s.sa.ProfileAppend(distinctIDStr, encodedProperties, isLoginID)
 }
 
 // ProfileUnset unset user property
 func (s *SensorsData) ProfileUnset(distinctID uint64, properties map[string]interface{}) error {
 	distinctIDStr := s.encoder.Pk2str(distinctID)
-	encodedProperties := s.EncodeAndFormat(properties)
+	encodedProperties, err := s.EncodeAndFormat(properties)
+	if err != nil {
+		return err
+	}
 	return s.sa.ProfileUnset(distinctIDStr, encodedProperties, isLoginID)
 }
 
