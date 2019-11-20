@@ -3,6 +3,7 @@ package cachext
 import (
 	"github.com/go-redis/redis"
 	"github.com/shanbay/gobay"
+	"math"
 	"time"
 )
 
@@ -20,17 +21,16 @@ type CacheBackend interface {
 	Close() error
 }
 
-var _ CacheBackend = &redisBackend{}
-var _ CacheBackend = &memBackend{}
+var _ CacheBackend = (*redisBackend)(nil)
+var _ CacheBackend = (*memBackend)(nil)
 
 type redisBackend struct {
 	client *redis.Client
 }
 
 type memBackendNode struct {
-	Value   interface{}
-	Ttl     time.Duration
-	SetedAt time.Time
+	Value     interface{}
+	ExpiredAt time.Time
 }
 
 type memBackend struct {
@@ -41,17 +41,15 @@ func (b *redisBackend) Init(app *gobay.Application) error {
 	config := app.Config()
 	host := config.GetString("cache_host")
 	password := config.GetString("cache_password")
-	db_num := config.GetInt("cache_db")
+	dbNum := config.GetInt("cache_db")
 	redisClient := redis.NewClient(&redis.Options{
 		Addr:     host,
 		Password: password,
-		DB:       db_num,
+		DB:       dbNum,
 	})
 	b.client = redisClient
-	if _, err := redisClient.Ping().Result(); err != nil {
-		return err
-	}
-	return nil
+	_, err := redisClient.Ping().Result()
+	return err
 }
 
 func (b *redisBackend) Get(key string) (interface{}, error) {
@@ -59,10 +57,7 @@ func (b *redisBackend) Get(key string) (interface{}, error) {
 	if err == redis.Nil {
 		return nil, nil
 	}
-	if err != nil {
-		return val, err
-	}
-	return val, nil
+	return val, err
 }
 
 func (b *redisBackend) Set(key string, value interface{}, ttl time.Duration) error {
@@ -92,8 +87,7 @@ func (b *redisBackend) Delete(key string) bool {
 }
 
 func (b *redisBackend) DeleteMany(keys []string) bool {
-	var res bool = b.client.Del(keys...).Val() == 1
-	return res
+	return b.client.Del(keys...).Val() == 1
 }
 
 func (b *redisBackend) Expire(key string, ttl time.Duration) bool {
@@ -108,8 +102,7 @@ func (b *redisBackend) Exists(key string) bool {
 	keys := make([]string, 1)
 	keys[0] = key
 	res := b.client.Exists(keys...)
-	exists := (res.Val() == 1)
-	return exists
+	return res.Val() == 1
 }
 
 func (b *redisBackend) Close() error {
@@ -126,7 +119,7 @@ func (m *memBackend) Get(key string) (interface{}, error) {
 	if exists == false {
 		return nil, nil
 	}
-	if res.SetedAt.Add(res.Ttl).After(time.Now()) == false {
+	if res.ExpiredAt.Before(time.Now()) {
 		m.Delete(key)
 		return nil, nil
 	} else {
@@ -135,7 +128,7 @@ func (m *memBackend) Get(key string) (interface{}, error) {
 }
 
 func (m *memBackend) Set(key string, value interface{}, ttl time.Duration) error {
-	node := &memBackendNode{Value: value, Ttl: ttl, SetedAt: time.Now()}
+	node := &memBackendNode{Value: value, ExpiredAt: time.Now().Add(ttl)}
 	m.client[key] = node
 	return nil
 }
@@ -176,8 +169,7 @@ func (m *memBackend) Expire(key string, ttl time.Duration) bool {
 	if val == nil {
 		return false
 	}
-	m.client[key].SetedAt = time.Now()
-	m.client[key].Ttl = ttl
+	m.client[key].ExpiredAt = time.Now().Add(ttl)
 	return true
 }
 
@@ -187,7 +179,7 @@ func (m *memBackend) TTL(key string) int64 {
 	if val == nil {
 		return 0
 	}
-	return int64(val.Ttl.Seconds())
+	return int64(math.Round(val.ExpiredAt.Sub(time.Now()).Seconds()))
 }
 
 func (m *memBackend) Exists(key string) bool {

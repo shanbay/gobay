@@ -1,12 +1,10 @@
 package cachext
 
 import (
+	"bytes"
 	"errors"
 	"github.com/shanbay/gobay"
 	"github.com/vmihailenco/msgpack"
-	"net/url"
-	"strconv"
-	"strings"
 	"time"
 )
 
@@ -19,7 +17,7 @@ type CacheExt struct {
 	prefix     string
 }
 
-var _ gobay.Extension = &CacheExt{}
+var _ gobay.Extension = (*CacheExt)(nil)
 
 // Init init a cache extension
 func (c *CacheExt) Init(app *gobay.Application) error {
@@ -34,64 +32,25 @@ func (c *CacheExt) Init(app *gobay.Application) error {
 	}
 	c.backendMap["redis"] = &redisBackend{}
 	c.backendMap["memory"] = &memBackend{}
-	backend_str := config.GetString("cache_backend")
-	if c.backendMap[backend_str] != nil {
-		c.backend = c.backendMap[backend_str]
+	backendStr := config.GetString("cache_backend")
+	if c.backendMap[backendStr] != nil {
+		c.backend = c.backendMap[backendStr]
 		if err := c.backend.Init(app); err != nil {
 			return err
 		}
 	} else {
-		return errors.New("No backend found, config cache_backend:" + backend_str)
+		return errors.New("No backend found for cache_backend:" + backendStr)
 	}
 	return nil
 }
 
 // RegisteBackend if you want a new backend, use this func to registe your backend
 // then load it by config
-func (c *CacheExt) RegisteBackend(config_backend string, backend CacheBackend) {
+func (c *CacheExt) RegisteBackend(configBackend string, backend CacheBackend) {
 	if c.backendMap == nil {
 		c.backendMap = make(map[string]CacheBackend)
 	}
-	c.backendMap[config_backend] = backend
-}
-
-// MakeCacheKey
-func (c *CacheExt) MakeCacheKey(funcName string, arg1 []string, arg2 ...int) string {
-	inputs := make([]string, len(arg1)+len(arg2)+1)
-	inputs[0] = funcName
-	for i, arg := range arg1 {
-		i += 1
-		inputs[i] = arg
-	}
-	for i, arg := range arg2 {
-		i += 1 + len(arg1)
-		inputs[i] = strconv.Itoa(arg)
-	}
-	for i, input := range inputs {
-		inputs[i] = url.QueryEscape(input)
-	}
-	return strings.Join(inputs, "&")
-}
-
-// Cached return another cached func
-func (c *CacheExt) Cached(funcName string, ttl int64, f func([]string, ...int) (interface{}, error)) func(interface{}, []string, ...int) error {
-	return func(result interface{}, arg1 []string, arg2 ...int) error {
-		cacheKey := c.MakeCacheKey(funcName, arg1, arg2...)
-		if exist, decode_err := c.Get(cacheKey, result); decode_err != nil {
-			return decode_err
-		} else if !exist {
-			value, err := f(arg1, arg2...)
-			if err != nil {
-				return err
-			}
-			if err = c.Set(cacheKey, value, ttl); err != nil {
-				return err
-			}
-			encode_str, _ := c.encode(value)
-			c.decode(encode_str, result)
-		}
-		return nil
-	}
+	c.backendMap[configBackend] = backend
 }
 
 // Close
@@ -109,14 +68,14 @@ func (d *CacheExt) Application() *gobay.Application {
 	return d.app
 }
 
-func (c *CacheExt) trans_key(key string) string {
+func (c *CacheExt) transKey(key string) string {
 	return c.prefix + key
 }
 
 // Get
 func (c *CacheExt) Get(key string, m interface{}) (bool, error) {
-	transed_key := c.trans_key(key)
-	data, err := c.backend.Get(transed_key)
+	transedKey := c.transKey(key)
+	data, err := c.backend.Get(transedKey)
 	if data == nil {
 		return false, err
 	}
@@ -124,55 +83,68 @@ func (c *CacheExt) Get(key string, m interface{}) (bool, error) {
 }
 
 func (c *CacheExt) encode(value interface{}) ([]byte, error) {
-	json_bytes, err := msgpack.Marshal(&value)
+	jsonBytes, err := msgpack.Marshal(&value)
 	if err != nil {
 		return []byte{}, err
 	}
-	return json_bytes, nil
+	return jsonBytes, nil
 }
 
 func (c *CacheExt) decode(data interface{}, out interface{}) error {
-	if strData, ok := data.([]byte); ok == true {
-		return msgpack.Unmarshal(strData, out)
+	if bytesData, ok := data.([]byte); ok {
+		return msgpack.Unmarshal(bytesData, out)
+	} else if strData, ok := data.(string); ok {
+		return msgpack.Unmarshal(([]byte)(strData), out)
 	} else {
 		return errors.New("Invalid param: out, can not set to it")
 	}
 }
 
+func (c *CacheExt) decodeIsNil(data interface{}) bool {
+	if bytesData, ok := data.([]byte); ok {
+		err := msgpack.NewDecoder(bytes.NewReader(bytesData)).DecodeNil()
+		return (err == nil)
+	} else if strData, ok := data.(string); ok {
+		err := msgpack.NewDecoder(bytes.NewReader(([]byte)(strData))).DecodeNil()
+		return (err == nil)
+	}
+	return false
+}
+
 // Set
 func (c *CacheExt) Set(key string, value interface{}, ttl int64) error {
-	transed_key := c.trans_key(key)
-	encoded_value, err := c.encode(value)
+	transedKey := c.transKey(key)
+	encodedValue, err := c.encode(value)
 	if err != nil {
 		return err
 	}
-	return c.backend.Set(transed_key, encoded_value, time.Duration(ttl)*time.Second)
+	return c.backend.Set(transedKey, encodedValue, time.Duration(ttl)*time.Second)
 }
 
 // SetMany
 func (d *CacheExt) SetMany(keyValues map[string]interface{}, ttl int64) error {
-	transed_map := make(map[string]interface{})
+	transedMap := make(map[string]interface{})
 	for key, value := range keyValues {
 		if encodedValue, err := d.encode(value); err != nil {
 			return err
 		} else {
-			transed_map[d.trans_key(key)] = encodedValue
+			transedMap[d.transKey(key)] = encodedValue
 		}
 	}
-	return d.backend.SetMany(transed_map, time.Duration(ttl)*time.Second)
+	return d.backend.SetMany(transedMap, time.Duration(ttl)*time.Second)
 }
 
 // GetMany out map[string]*someStruct
 func (d *CacheExt) GetMany(out map[string]interface{}) error {
-	transed_keys := []string{}
-	transed_key_key := make(map[string]string)
+	transedKeys := []string{}
+	transedKey2key := make(map[string]string)
 	for key, _ := range out {
-		transed_key := d.trans_key(key)
-		transed_keys = append(transed_keys, transed_key)
-		transed_key_key[transed_key] = key
+		transedKey := d.transKey(key)
+		transedKeys = append(transedKeys, transedKey)
+		transedKey2key[transedKey] = key
 	}
-	for i, value := range d.backend.GetMany(transed_keys) {
-		key := transed_key_key[transed_keys[i]]
+	for i, value := range d.backend.GetMany(transedKeys) {
+		key := transedKey2key[transedKeys[i]]
 		if value != nil {
 			if err := d.decode(value, out[key]); err != nil {
 				return err
@@ -184,29 +156,29 @@ func (d *CacheExt) GetMany(out map[string]interface{}) error {
 
 // Delete
 func (d *CacheExt) Delete(key string) bool {
-	return d.backend.Delete(d.trans_key(key))
+	return d.backend.Delete(d.transKey(key))
 }
 
 // DeleteMany
 func (d *CacheExt) DeleteMany(keys ...string) bool {
-	transed_keys := make([]string, len(keys))
+	transedKeys := make([]string, len(keys))
 	for i, key := range keys {
-		transed_keys[i] = d.trans_key(key)
+		transedKeys[i] = d.transKey(key)
 	}
-	return d.backend.DeleteMany(transed_keys)
+	return d.backend.DeleteMany(transedKeys)
 }
 
 // Expire
 func (d *CacheExt) Expire(key string, ttl int) bool {
-	return d.backend.Expire(d.trans_key(key), time.Duration(ttl)*time.Second)
+	return d.backend.Expire(d.transKey(key), time.Duration(ttl)*time.Second)
 }
 
 // TTL
 func (d *CacheExt) TTL(key string) int64 {
-	return d.backend.TTL(d.trans_key(key))
+	return d.backend.TTL(d.transKey(key))
 }
 
 // Exists
 func (d *CacheExt) Exists(key string) bool {
-	return d.backend.Exists(d.trans_key(key))
+	return d.backend.Exists(d.transKey(key))
 }
