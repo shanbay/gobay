@@ -475,5 +475,3 @@ honnef.co/go/tools v0.0.0-20190106161140-3f1c8253044a/go.mod h1:rf3lG4BRIbNafJWh
 honnef.co/go/tools v0.0.0-20190523083050-ea95bdfd59fc/go.mod h1:rf3lG4BRIbNafJWhAfAdb/ePZxsR/4RtNHQocxwk9r4=
 howett.net/plist v0.0.0-20181124034731-591f970eefbb h1:jhnBjNi9UFpfpl8YZhA9CrOqpnJdvzuiHsl/dnxl11M=
 howett.net/plist v0.0.0-20181124034731-591f970eefbb/go.mod h1:vMygbs4qMhSZSc4lCUl2OEE+rDiIIJAIdR4m7MiMcm0=
-github.com/sensorsdata/sa-sdk-go v2.0.2+incompatible h1:ptICZyDBgZPKcIV2Tk27Cd9ojilJckXkb9zKYs1qCw8=
-github.com/sensorsdata/sa-sdk-go v2.0.2+incompatible/go.mod h1:Lx0Y/oEtDd4T2qIxVfYx3P34q0DaIqoAypLK3D7m9cY=
