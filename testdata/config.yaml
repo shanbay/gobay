@@ -1,6 +1,7 @@
 defaults: &defaults
   db_driver: sqlite3
   db_url: ':memory:'
+  short_url_alphabet: 'mn6j2c4rv8bpygw95z7hsdaetxuk3fq'
 testing:
   <<: *defaults
 development:
