@@ -31,7 +31,7 @@ func init() {
 	}
 }
 
-func TestPushPushConsume(t *testing.T) {
+func TestPushConsume(t *testing.T) {
 	// publish
 	routingKey := "buses.oc.post_order_paid"
 	for i := 0; i < 100; i++ {

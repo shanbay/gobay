@@ -1,12 +1,12 @@
 bus: &bus
   broker_url: "amqp://celery:celery@192.168.33.10:5672/shanbay"
-  reconnect_delay: 2
-  reInitDelay: 2
+  reconnect_delay: "2s"
+  reinit_delay: "1s"
   exhanges:
     - sbay-exchange
   queues:
     - test
-  resend_delay: 2
+  resend_delay: "1s"
   publish_retry: 3
   prefetch: 10
   quit_consumer_on_empty_queue: false
