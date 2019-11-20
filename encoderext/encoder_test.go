@@ -115,7 +115,6 @@ func TestEncoder(t *testing.T) {
 		case map[string]interface{}:
 			mapRes := testMapDecodeRes[k].(map[string]uint64)
 			for kk, vv := range v.(map[string]interface{}) {
-				// fmt.Println(vv, )
 				if vv.(uint64) != mapRes[kk] {
 					t.Errorf("Decode map error")
 				}
