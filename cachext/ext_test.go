@@ -1,13 +1,16 @@
-package cachext
+package cachext_test
 
 import (
 	"fmt"
 	"github.com/shanbay/gobay"
+	"github.com/shanbay/gobay/cachext"
+	_ "github.com/shanbay/gobay/cachext/backend/memory"
+	"strings"
 	"testing"
 )
 
 func Example_Get_Set() {
-	cache := &CacheExt{}
+	cache := &cachext.CacheExt{}
 	exts := map[gobay.Key]gobay.Extension{
 		"cache": cache,
 	}
@@ -23,8 +26,9 @@ func Example_Get_Set() {
 	fmt.Println(exists, res, err)
 	// Output: true hello <nil>
 }
+
 func Example_Cached() {
-	cache := &CacheExt{}
+	cache := &cachext.CacheExt{}
 	exts := map[gobay.Key]gobay.Extension{
 		"cache": cache,
 	}
@@ -43,7 +47,11 @@ func Example_Cached() {
 		res[1] = keys[0]
 		return res, nil
 	}
-	cachedFunc, _ := cache.Cached(f, SetTTL(10), SetVersion(1))
+	cachedFunc, _ := cache.Cached(f, cachext.SetTTL(10), cachext.SetVersion(1), cachext.SetMakeCacheKey(
+		func(funcName string, version int64, strArgs []string, intArgs []int64) string {
+			return strings.Join(strArgs, "_")
+		},
+	))
 
 	zero_res := make([]string, 2)
 	cachedFunc.GetResult(&zero_res, []string{"hello", "world"}, []int64{})
@@ -54,7 +62,7 @@ func Example_Cached() {
 }
 
 func Example_GetMany_SetMany() {
-	cache := &CacheExt{}
+	cache := &cachext.CacheExt{}
 	exts := map[gobay.Key]gobay.Extension{
 		"cache": cache,
 	}
@@ -82,7 +90,7 @@ func Example_GetMany_SetMany() {
 }
 
 func TestCacheExt_Operation(t *testing.T) {
-	cache := &CacheExt{}
+	cache := &cachext.CacheExt{}
 	exts := map[gobay.Key]gobay.Extension{
 		"cache": cache,
 	}
@@ -201,7 +209,7 @@ func TestCacheExt_Operation(t *testing.T) {
 
 func TestCacheExt_Cached_Common(t *testing.T) {
 	// 准备数据
-	cache := &CacheExt{}
+	cache := &cachext.CacheExt{}
 	exts := map[gobay.Key]gobay.Extension{
 		"cache": cache,
 	}
@@ -220,7 +228,7 @@ func TestCacheExt_Cached_Common(t *testing.T) {
 		res[1] = keys[0]
 		return res, nil
 	}
-	c_f_strs, _ := cache.Cached(f_strs, SetTTL(10))
+	c_f_strs, _ := cache.Cached(f_strs, cachext.SetTTL(10))
 	cache_key := c_f_strs.MakeCacheKey([]string{"hello", "world"}, []int64{12})
 	cache.Delete(cache_key)
 	call_times = 0
@@ -244,7 +252,7 @@ func TestCacheExt_Cached_Common(t *testing.T) {
 		call_times += 1
 		return keys[0], nil
 	}
-	c_f_str, _ := cache.Cached(f_str, SetTTL(10))
+	c_f_str, _ := cache.Cached(f_str, cachext.SetTTL(10))
 	call_times = 0
 	str := ""
 	c_f_str.GetResult(&str, []string{"hello"}, []int64{})
@@ -256,7 +264,7 @@ func TestCacheExt_Cached_Common(t *testing.T) {
 	}
 	// bool
 	f_bool := func(keys []string, args []int64) (interface{}, error) { call_times += 1; return true, nil }
-	c_f_bool, _ := cache.Cached(f_bool, SetTTL(10))
+	c_f_bool, _ := cache.Cached(f_bool, cachext.SetTTL(10))
 	call_times = 0
 	res_bool := false
 	c_f_bool.GetResult(&res_bool, []string{"hello", "world"}, []int64{})
@@ -271,7 +279,7 @@ func TestCacheExt_Cached_Common(t *testing.T) {
 		call_times += 1
 		return []bool{true, false, true}, nil
 	}
-	c_f_bools, _ := cache.Cached(f_bools, SetTTL(10))
+	c_f_bools, _ := cache.Cached(f_bools, cachext.SetTTL(10))
 	call_times = 0
 	bools := make([]bool, 3)
 	bools[0] = false
@@ -288,7 +296,7 @@ func TestCacheExt_Cached_Common(t *testing.T) {
 	}
 	// int
 	f_int := func(names []string, args []int64) (interface{}, error) { call_times += 1; return 1, nil }
-	c_f_int, _ := cache.Cached(f_int, SetTTL(10))
+	c_f_int, _ := cache.Cached(f_int, cachext.SetTTL(10))
 	call_times = 0
 	var int_res int
 	c_f_int.GetResult(&int_res, []string{"well"}, []int64{})
@@ -304,7 +312,7 @@ func TestCacheExt_Cached_Common(t *testing.T) {
 		res[0] = 1
 		return res, nil
 	}
-	c_f_ints, _ := cache.Cached(f_ints, SetTTL(10))
+	c_f_ints, _ := cache.Cached(f_ints, cachext.SetTTL(10))
 	call_times = 0
 	ints_res := make([]int, 1)
 	c_f_ints.GetResult(&ints_res, []string{"hello"}, []int64{})
@@ -319,44 +327,44 @@ func TestCacheExt_Cached_Common(t *testing.T) {
 		call_times += 1
 		return nil, nil
 	}
-	c_f_nil, _ := cache.Cached(f_nil, SetTTL(10), SetCacheNil(false))
+	c_f_nil, _ := cache.Cached(f_nil, cachext.SetVersion(2), cachext.SetTTL(10), cachext.SetCacheNil(false))
 	nil_res := ""
 	call_times = 0
 	c_f_nil.GetResult(&nil_res, []string{}, []int64{})
 	c_f_nil.GetResult(&nil_res, []string{}, []int64{})
 	c_f_nil.GetResult(&nil_res, []string{}, []int64{})
-	if err := c_f_nil.GetResult(&nil_res, []string{}, []int64{}); err != Nil || call_times != 4 {
+	if err := c_f_nil.GetResult(&nil_res, []string{}, []int64{}); err != cachext.Nil || call_times != 4 {
 		t.Log(nil_res, err, call_times)
-		t.Errorf("Not Cached None failed")
+		t.Errorf("Not Cache Nil failed")
 	}
-	cn_f_nil, _ := cache.Cached(f_nil, SetTTL(10), SetCacheNil(true))
+	cn_f_nil, _ := cache.Cached(f_nil, cachext.SetVersion(5), cachext.SetTTL(10), cachext.SetCacheNil(true))
 	call_times = 0
 	cn_f_nil.GetResult(&nil_res, []string{}, []int64{})
 	cn_f_nil.GetResult(&nil_res, []string{}, []int64{})
 	cn_f_nil.GetResult(&nil_res, []string{}, []int64{})
-	if err := cn_f_nil.GetResult(&nil_res, []string{}, []int64{}); err != Nil || call_times != 1 {
+	if err := cn_f_nil.GetResult(&nil_res, []string{}, []int64{}); err != cachext.Nil || call_times != 1 {
 		t.Log(nil_res, err, call_times)
-		t.Errorf("Cached None failed")
+		t.Errorf("Cache Nil failed")
 	}
 	// nil 测试函数返回值与cacheNil预设值冲突时，报错情况
 	f_evil_nil := func(names []string, arg []int64) (interface{}, error) {
 		return []byte{192}, nil
 	}
-	c_f_evil_nil, _ := cache.Cached(f_evil_nil, SetCacheNil(true))
+	c_f_evil_nil, _ := cache.Cached(f_evil_nil, cachext.SetTTL(10), cachext.SetVersion(2), cachext.SetCacheNil(true))
 	if err := c_f_evil_nil.GetResult(&nil_res, []string{}, []int64{}); err == nil {
 		t.Log(nil_res, err, call_times)
-		t.Errorf("Evil cache nil happened")
+		t.Errorf("Evil Cache Nil happened")
 	}
-	c_f_kind_nil, _ := cache.Cached(f_evil_nil)
+	c_f_kind_nil, _ := cache.Cached(f_evil_nil, cachext.SetTTL(10), cachext.SetVersion(2))
 	if err := c_f_kind_nil.GetResult(&nil_res, []string{}, []int64{}); err != nil {
 		t.Log(nil_res, err, call_times)
-		t.Errorf("Evil cache nil happened")
+		t.Errorf("Evil Cache Nil happened")
 	}
 }
 
 func TestCacheExt_Cached_Struct(t *testing.T) {
 	// 准备数据
-	cache := &CacheExt{}
+	cache := &cachext.CacheExt{}
 	exts := map[gobay.Key]gobay.Extension{
 		"cache": cache,
 	}
@@ -377,7 +385,7 @@ func TestCacheExt_Cached_Struct(t *testing.T) {
 		Value3 []node
 		Value4 string
 	}
-	complex_ff := func(arg1 []string, arg2 []int64) (interface{}, error) {
+	complex_ff := func(strArgs []string, intArgs []int64) (interface{}, error) {
 		call_times += 1
 		mydata := myData{}
 		mydata.Value1 = 100
@@ -387,7 +395,7 @@ func TestCacheExt_Cached_Struct(t *testing.T) {
 		mydata.Value3 = []node{node{"这是第一个node", []string{"id1", "id2", "id3"}}, node{"这是第二个node", []string{"id4", "id5", "id6"}}}
 		return mydata, nil
 	}
-	cached_complex_ff, _ := cache.Cached(complex_ff, SetTTL(10))
+	cached_complex_ff, _ := cache.Cached(complex_ff, cachext.SetTTL(10))
 	call_times = 0
 	data := myData{}
 	cached_complex_ff.GetResult(&data, []string{"hell"}, []int64{})
@@ -402,7 +410,7 @@ func TestCacheExt_Cached_Struct(t *testing.T) {
 }
 
 func Benchmark_SetMany(b *testing.B) {
-	cache := &CacheExt{}
+	cache := &cachext.CacheExt{}
 	exts := map[gobay.Key]gobay.Extension{
 		"cache": cache,
 	}
@@ -428,7 +436,7 @@ func Benchmark_SetMany(b *testing.B) {
 }
 
 func Benchmark_GetMany(b *testing.B) {
-	cache := &CacheExt{}
+	cache := &cachext.CacheExt{}
 	exts := map[gobay.Key]gobay.Extension{
 		"cache": cache,
 	}
@@ -471,7 +479,7 @@ func Benchmark_GetMany(b *testing.B) {
 }
 
 func Benchmark_Cached(b *testing.B) {
-	cache := &CacheExt{}
+	cache := &cachext.CacheExt{}
 	exts := map[gobay.Key]gobay.Extension{
 		"cache": cache,
 	}
@@ -488,7 +496,7 @@ func Benchmark_Cached(b *testing.B) {
 		many_map["5"] = "wewe"
 		return many_map, nil
 	}
-	cached_f, _ := cache.Cached(f, SetTTL(10))
+	cached_f, _ := cache.Cached(f, cachext.SetTTL(10))
 	for i := 0; i < b.N; i++ {
 		zero_map := make(map[string]string)
 		if err := cached_f.GetResult(&zero_map, []string{"hello"}, []int64{}); err != nil ||

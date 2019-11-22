@@ -1,4 +1,4 @@
-package cachext
+package redisext
 
 import (
 	"github.com/go-redis/redis"
@@ -12,35 +12,38 @@ type RedisExt struct {
 	client *redis.Client
 }
 
-var _ gobay.Extension = &RedisExt{}
+var _ gobay.Extension = (*RedisExt)(nil)
 
 // Init
-func (d *RedisExt) Init(app *gobay.Application) error {
-	d.app = app
+func (c *RedisExt) Init(app *gobay.Application) error {
+	c.app = app
 	config := app.Config()
+	if c.NS != "" {
+		config = config.Sub(c.NS)
+	}
 	host := config.GetString("redis_host")
 	password := config.GetString("redis_password")
 	dbNum := config.GetInt("redis_db")
-	d.client = redis.NewClient(&redis.Options{
+	c.client = redis.NewClient(&redis.Options{
 		Addr:     host,
 		Password: password,
 		DB:       dbNum,
 	})
-	_, err := d.client.Ping().Result()
+	_, err := c.client.Ping().Result()
 	return err
 }
 
 // Object return redis client
-func (d *RedisExt) Object() interface{} {
-	return d.client
+func (c *RedisExt) Object() interface{} {
+	return c.client
 }
 
 // Close close redis client
-func (d *RedisExt) Close() error {
-	return d.client.Close()
+func (c *RedisExt) Close() error {
+	return c.client.Close()
 }
 
 // Application
-func (d *RedisExt) Application() *gobay.Application {
-	return d.app
+func (c *RedisExt) Application() *gobay.Application {
+	return c.app
 }
