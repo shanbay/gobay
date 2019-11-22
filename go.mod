@@ -16,5 +16,7 @@ require (
 	github.com/stretchr/testify v1.4.0
 	github.com/vmihailenco/msgpack v4.0.4+incompatible
 	go.elastic.co/apm v1.6.0
+	golang.org/x/tools v0.0.0-20190617190820-da514acc4774 // indirect
 	google.golang.org/grpc v1.25.1
+	honnef.co/go/tools v0.0.0-20190523083050-ea95bdfd59fc // indirect
 )

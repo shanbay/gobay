@@ -67,7 +67,12 @@ func TestPushConsume(t *testing.T) {
 
 	//consume
 	bus.Register("buses.oc.post_order_paid", &OCPaid{})
-	go bus.Consume()
+	go func() {
+		err := bus.Consume()
+		if err != nil{
+			t.Error(err)
+		}
+	}()
 	time.Sleep(2 * time.Second)
 	if len(result) != 100 {
 		t.Error("consume length doesn't match publish'")
