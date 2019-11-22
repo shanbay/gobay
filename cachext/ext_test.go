@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-func Test_Get_Set(t *testing.T) {
+func ExampleCacheExt_Set() {
 	cache := &cachext.CacheExt{}
 	exts := map[gobay.Key]gobay.Extension{
 		"cache": cache,
@@ -29,7 +29,7 @@ func Test_Get_Set(t *testing.T) {
 	// Output: true hello <nil>
 }
 
-func Test_Cached(t *testing.T) {
+func ExampleCacheExt_Cached() {
 	cache := &cachext.CacheExt{}
 	exts := map[gobay.Key]gobay.Extension{
 		"cache": cache,
@@ -66,7 +66,7 @@ func Test_Cached(t *testing.T) {
 	// Output: [hello hello] 1 <nil>
 }
 
-func Test_GetMany_SetMany(t *testing.T) {
+func ExampleCacheExt_SetMany() {
 	cache := &cachext.CacheExt{}
 	exts := map[gobay.Key]gobay.Extension{
 		"cache": cache,
