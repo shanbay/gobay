@@ -7,6 +7,7 @@ import (
 	_ "github.com/shanbay/gobay/cachext/backend/memory"
 	"strings"
 	"testing"
+	"time"
 )
 
 func Example_Get_Set() {
@@ -20,7 +21,7 @@ func Example_Get_Set() {
 	}
 
 	var key = "cache_key"
-	cache.Set(key, "hello", 10)
+	cache.Set(key, "hello", 10*time.Second)
 	var res string
 	exists, err := cache.Get(key, &res)
 	fmt.Println(exists, res, err)
@@ -47,7 +48,7 @@ func Example_Cached() {
 		res[1] = keys[0]
 		return res, nil
 	}
-	cachedFunc, _ := cache.Cached(f, cachext.SetTTL(10), cachext.SetVersion(1), cachext.SetMakeCacheKey(
+	cachedFunc, _ := cache.Cached(f, cachext.SetTTL(10*time.Second), cachext.SetVersion(1), cachext.SetMakeCacheKey(
 		func(funcName string, version int64, strArgs []string, intArgs []int64) string {
 			return strings.Join(strArgs, "_")
 		},
@@ -74,7 +75,7 @@ func Example_GetMany_SetMany() {
 	many_map := make(map[string]interface{})
 	many_map["1"] = "hello"
 	many_map["2"] = []bool{true, true}
-	err := cache.SetMany(many_map, 10)
+	err := cache.SetMany(many_map, 10*time.Second)
 	fmt.Println(err)
 
 	many_res := make(map[string]interface{})
@@ -100,7 +101,7 @@ func TestCacheExt_Operation(t *testing.T) {
 	}
 
 	// Get Set
-	if err := cache.Set("cache_key_1", "100", 10); err != nil {
+	if err := cache.Set("cache_key_1", "100", 10*time.Second); err != nil {
 		t.Errorf("Cache Set Key Failed")
 	}
 	var cache_val string
@@ -122,7 +123,7 @@ func TestCacheExt_Operation(t *testing.T) {
 	mydata.Value1 = 100
 	mydata.Value2 = "thre si a verty conplex data {}{}"
 	mydata.Value3 = []node{node{"这是第一个node", []string{"id1", "id2", "id3"}}, node{"这是第二个node", []string{"id4", "id5", "id6"}}}
-	if err := cache.Set("cache_key_2", mydata, 10); err != nil {
+	if err := cache.Set("cache_key_2", mydata, 10*time.Second); err != nil {
 		t.Log(err)
 		t.Errorf("Cache Set Failed")
 	}
@@ -136,7 +137,7 @@ func TestCacheExt_Operation(t *testing.T) {
 	many_map["m1"] = "hello"
 	many_map["m2"] = "100"
 	many_map["m3"] = "true"
-	if err := cache.SetMany(many_map, 10); err != nil {
+	if err := cache.SetMany(many_map, 10*time.Second); err != nil {
 		t.Log(err)
 		t.Errorf("Cache SetMany Failed")
 	}
@@ -155,8 +156,8 @@ func TestCacheExt_Operation(t *testing.T) {
 		t.Errorf("Cache GetMany Failed")
 	}
 	// Delete Exists
-	cache.Set("cache_key_3", "golang", 10)
-	cache.Set("cache_key_4", "gobay", 10)
+	cache.Set("cache_key_3", "golang", 10*time.Second)
+	cache.Set("cache_key_4", "gobay", 10*time.Second)
 	if res := cache.Exists("cache_key_3"); res != true {
 		t.Log(res)
 		t.Errorf("Cache Exists Failed")
@@ -192,16 +193,16 @@ func TestCacheExt_Operation(t *testing.T) {
 		t.Errorf("Cache DeleteMany Failed")
 	}
 	// Expire TTL
-	cache.Set("cache_key_4", "hello", 10)
-	if res := cache.TTL("cache_key_4"); res != 10 {
+	cache.Set("cache_key_4", "hello", 10*time.Second)
+	if res := cache.TTL("cache_key_4"); res < 9*time.Second || res > 10*time.Second {
 		t.Log(res)
 		t.Errorf("Cache TTL Failed")
 	}
-	if res := cache.Expire("cache_key_4", 20); res != true {
+	if res := cache.Expire("cache_key_4", 20*time.Second); res != true {
 		t.Log(res)
 		t.Errorf("Cache Expire Failed")
 	}
-	if res := cache.TTL("cache_key_4"); res != 20 {
+	if res := cache.TTL("cache_key_4"); res < 19*time.Second || res > 20*time.Second {
 		t.Log(res)
 		t.Errorf("Cache TTL Failed")
 	}
@@ -228,7 +229,7 @@ func TestCacheExt_Cached_Common(t *testing.T) {
 		res[1] = keys[0]
 		return res, nil
 	}
-	c_f_strs, _ := cache.Cached(f_strs, cachext.SetTTL(10))
+	c_f_strs, _ := cache.Cached(f_strs, cachext.SetTTL(10*time.Second))
 	cache_key := c_f_strs.MakeCacheKey([]string{"hello", "world"}, []int64{12})
 	cache.Delete(cache_key)
 	call_times = 0
@@ -252,7 +253,7 @@ func TestCacheExt_Cached_Common(t *testing.T) {
 		call_times += 1
 		return keys[0], nil
 	}
-	c_f_str, _ := cache.Cached(f_str, cachext.SetTTL(10))
+	c_f_str, _ := cache.Cached(f_str, cachext.SetTTL(10*time.Second))
 	call_times = 0
 	str := ""
 	c_f_str.GetResult(&str, []string{"hello"}, []int64{})
@@ -264,7 +265,7 @@ func TestCacheExt_Cached_Common(t *testing.T) {
 	}
 	// bool
 	f_bool := func(keys []string, args []int64) (interface{}, error) { call_times += 1; return true, nil }
-	c_f_bool, _ := cache.Cached(f_bool, cachext.SetTTL(10))
+	c_f_bool, _ := cache.Cached(f_bool, cachext.SetTTL(10*time.Second))
 	call_times = 0
 	res_bool := false
 	c_f_bool.GetResult(&res_bool, []string{"hello", "world"}, []int64{})
@@ -279,7 +280,7 @@ func TestCacheExt_Cached_Common(t *testing.T) {
 		call_times += 1
 		return []bool{true, false, true}, nil
 	}
-	c_f_bools, _ := cache.Cached(f_bools, cachext.SetTTL(10))
+	c_f_bools, _ := cache.Cached(f_bools, cachext.SetTTL(10*time.Second))
 	call_times = 0
 	bools := make([]bool, 3)
 	bools[0] = false
@@ -296,7 +297,7 @@ func TestCacheExt_Cached_Common(t *testing.T) {
 	}
 	// int
 	f_int := func(names []string, args []int64) (interface{}, error) { call_times += 1; return 1, nil }
-	c_f_int, _ := cache.Cached(f_int, cachext.SetTTL(10))
+	c_f_int, _ := cache.Cached(f_int, cachext.SetTTL(10*time.Second))
 	call_times = 0
 	var int_res int
 	c_f_int.GetResult(&int_res, []string{"well"}, []int64{})
@@ -312,7 +313,7 @@ func TestCacheExt_Cached_Common(t *testing.T) {
 		res[0] = 1
 		return res, nil
 	}
-	c_f_ints, _ := cache.Cached(f_ints, cachext.SetTTL(10))
+	c_f_ints, _ := cache.Cached(f_ints, cachext.SetTTL(10*time.Second))
 	call_times = 0
 	ints_res := make([]int, 1)
 	c_f_ints.GetResult(&ints_res, []string{"hello"}, []int64{})
@@ -327,7 +328,7 @@ func TestCacheExt_Cached_Common(t *testing.T) {
 		call_times += 1
 		return nil, nil
 	}
-	c_f_nil, _ := cache.Cached(f_nil, cachext.SetVersion(2), cachext.SetTTL(10), cachext.SetCacheNil(false))
+	c_f_nil, _ := cache.Cached(f_nil, cachext.SetVersion(2), cachext.SetTTL(10*time.Second), cachext.SetCacheNil(false))
 	nil_res := ""
 	call_times = 0
 	c_f_nil.GetResult(&nil_res, []string{}, []int64{})
@@ -337,7 +338,7 @@ func TestCacheExt_Cached_Common(t *testing.T) {
 		t.Log(nil_res, err, call_times)
 		t.Errorf("Not Cache Nil failed")
 	}
-	cn_f_nil, _ := cache.Cached(f_nil, cachext.SetVersion(5), cachext.SetTTL(10), cachext.SetCacheNil(true))
+	cn_f_nil, _ := cache.Cached(f_nil, cachext.SetVersion(5), cachext.SetTTL(10*time.Second), cachext.SetCacheNil(true))
 	call_times = 0
 	cn_f_nil.GetResult(&nil_res, []string{}, []int64{})
 	cn_f_nil.GetResult(&nil_res, []string{}, []int64{})
@@ -350,12 +351,12 @@ func TestCacheExt_Cached_Common(t *testing.T) {
 	f_evil_nil := func(names []string, arg []int64) (interface{}, error) {
 		return []byte{192}, nil
 	}
-	c_f_evil_nil, _ := cache.Cached(f_evil_nil, cachext.SetTTL(10), cachext.SetVersion(2), cachext.SetCacheNil(true))
+	c_f_evil_nil, _ := cache.Cached(f_evil_nil, cachext.SetTTL(10*time.Second), cachext.SetVersion(2), cachext.SetCacheNil(true))
 	if err := c_f_evil_nil.GetResult(&nil_res, []string{}, []int64{}); err == nil {
 		t.Log(nil_res, err, call_times)
 		t.Errorf("Evil Cache Nil happened")
 	}
-	c_f_kind_nil, _ := cache.Cached(f_evil_nil, cachext.SetTTL(10), cachext.SetVersion(2))
+	c_f_kind_nil, _ := cache.Cached(f_evil_nil, cachext.SetTTL(10*time.Second), cachext.SetVersion(2))
 	if err := c_f_kind_nil.GetResult(&nil_res, []string{}, []int64{}); err != nil {
 		t.Log(nil_res, err, call_times)
 		t.Errorf("Evil Cache Nil happened")
@@ -395,7 +396,7 @@ func TestCacheExt_Cached_Struct(t *testing.T) {
 		mydata.Value3 = []node{node{"这是第一个node", []string{"id1", "id2", "id3"}}, node{"这是第二个node", []string{"id4", "id5", "id6"}}}
 		return mydata, nil
 	}
-	cached_complex_ff, _ := cache.Cached(complex_ff, cachext.SetTTL(10))
+	cached_complex_ff, _ := cache.Cached(complex_ff, cachext.SetTTL(10*time.Second))
 	call_times = 0
 	data := myData{}
 	cached_complex_ff.GetResult(&data, []string{"hell"}, []int64{})
@@ -428,7 +429,7 @@ func Benchmark_SetMany(b *testing.B) {
 	many_map["4"].(map[string]int)["2"] = 900
 	many_map["4"].(map[string]int)["3"] = 1200
 	for i := 0; i < b.N; i++ {
-		err := cache.SetMany(many_map, 10)
+		err := cache.SetMany(many_map, 10*time.Second)
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -454,7 +455,7 @@ func Benchmark_GetMany(b *testing.B) {
 	many_map["6"].(map[string]int)["1"] = 200
 	many_map["6"].(map[string]int)["2"] = 900
 	many_map["6"].(map[string]int)["3"] = 1200
-	if err := cache.SetMany(many_map, 10); err != nil {
+	if err := cache.SetMany(many_map, 10*time.Second); err != nil {
 		fmt.Println(err)
 	}
 	for i := 0; i < b.N; i++ {
@@ -496,7 +497,7 @@ func Benchmark_Cached(b *testing.B) {
 		many_map["5"] = "wewe"
 		return many_map, nil
 	}
-	cached_f, _ := cache.Cached(f, cachext.SetTTL(10))
+	cached_f, _ := cache.Cached(f, cachext.SetTTL(10*time.Second))
 	for i := 0; i < b.N; i++ {
 		zero_map := make(map[string]string)
 		if err := cached_f.GetResult(&zero_map, []string{"hello"}, []int64{}); err != nil ||

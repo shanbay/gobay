@@ -3,11 +3,8 @@ package memory
 import (
 	"github.com/shanbay/gobay"
 	"github.com/shanbay/gobay/cachext"
-	"math"
 	"time"
 )
-
-var _ cachext.CacheBackend = (*memoryBackend)(nil)
 
 func init() {
 	cachext.RegisteBackend("memory", &memoryBackend{})
@@ -86,13 +83,13 @@ func (m *memoryBackend) Expire(key string, ttl time.Duration) bool {
 	return true
 }
 
-func (m *memoryBackend) TTL(key string) int64 {
+func (m *memoryBackend) TTL(key string) time.Duration {
 	_, _ = m.Get(key)
 	val := m.client[key]
 	if val == nil {
 		return 0
 	}
-	return int64(math.Round(val.ExpiredAt.Sub(time.Now()).Seconds()))
+	return val.ExpiredAt.Sub(time.Now())
 }
 
 func (m *memoryBackend) Exists(key string) bool {

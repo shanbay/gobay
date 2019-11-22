@@ -7,6 +7,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const Nil = cacheNil("cache result is nil")
@@ -15,18 +16,18 @@ type cacheNil string
 
 func (e cacheNil) Error() string { return string(e) }
 
-// cachedFuncConfig save the param and config for a cached func
-type cachedFuncConfig struct {
+// cachedConfig save the param and config for a cached func
+type cachedConfig struct {
 	cache        *CacheExt
 	cacheNil     bool
-	ttl          int64
+	ttl          time.Duration
 	version      int64
 	funcName     string
 	makeCacheKey func(string, int64, []string, []int64) string
 	getResult    func([]string, []int64) (interface{}, error)
 }
 
-type cacheOption func(config *cachedFuncConfig) error
+type cacheOption func(config *cachedConfig) error
 
 // this func is the default makeCacheKey, use SetMakeCacheKey to override it
 func makeCacheKey(funcName string, version int64, strArgs []string, intArgs []int64) string {
@@ -45,12 +46,12 @@ func makeCacheKey(funcName string, version int64, strArgs []string, intArgs []in
 }
 
 // MakeCacheKey return the cache key of a function cache
-func (c *cachedFuncConfig) MakeCacheKey(strArgs []string, intArgs []int64) string {
+func (c *cachedConfig) MakeCacheKey(strArgs []string, intArgs []int64) string {
 	return c.makeCacheKey(c.funcName, c.version, strArgs, intArgs)
 }
 
 // GetResult
-func (c *cachedFuncConfig) GetResult(out interface{}, strArgs []string, intArgs []int64) error {
+func (c *cachedConfig) GetResult(out interface{}, strArgs []string, intArgs []int64) error {
 	cacheKey := c.MakeCacheKey(strArgs, intArgs)
 	data, err := c.cache.backend.Get(c.cache.transKey(cacheKey))
 	if err != nil {
@@ -90,7 +91,7 @@ func (c *cachedFuncConfig) GetResult(out interface{}, strArgs []string, intArgs 
 		if encodedBytes, err := encode(res); err != nil {
 			return err
 		} else {
-			err = c.cache.backend.Set(c.cache.transKey(cacheKey), encodedBytes, ttl2duration(c.ttl))
+			err = c.cache.backend.Set(c.cache.transKey(cacheKey), encodedBytes, c.ttl)
 			if err != nil {
 				return err
 			}
@@ -100,26 +101,26 @@ func (c *cachedFuncConfig) GetResult(out interface{}, strArgs []string, intArgs 
 }
 
 // Cached return a ptr with two function: MakeCacheKey and GetResult
-func (c *CacheExt) Cached(f func([]string, []int64) (interface{}, error), options ...cacheOption) (*cachedFuncConfig, error) {
-	var defaultTTL int64 = 60 * 60 * 24 * 2
-	cacheFuncConf := &cachedFuncConfig{
+func (c *CacheExt) Cached(f func([]string, []int64) (interface{}, error), options ...cacheOption) (*cachedConfig, error) {
+	var defaultTTL time.Duration = 60 * 60 * 24 * 2 * time.Second
+	cacheFuncConf := &cachedConfig{
 		ttl: defaultTTL, cacheNil: false, version: 1, getResult: f, cache: c,
 		funcName:     runtime.FuncForPC(reflect.ValueOf(f).Pointer()).Name(),
 		makeCacheKey: makeCacheKey,
 	}
 	for _, option := range options {
 		if err := option(cacheFuncConf); err != nil {
-			return (*cachedFuncConfig)(nil), err
+			return (*cachedConfig)(nil), err
 		}
 	}
 	return cacheFuncConf, nil
 }
 
-// SetTTL set ttl to the cachedFuncConfig object, ttl must be a positive number
-func SetTTL(ttl int64) cacheOption {
-	return func(config *cachedFuncConfig) error {
-		if ttl <= 0 {
-			return errors.New("`ttl` should be a positive number")
+// SetTTL set ttl to the cachedConfig object, ttl must be a positive number
+func SetTTL(ttl time.Duration) cacheOption {
+	return func(config *cachedConfig) error {
+		if ttl < 0 {
+			return errors.New("ttl should be positive duration")
 		}
 		config.ttl = ttl
 		return nil
@@ -129,7 +130,7 @@ func SetTTL(ttl int64) cacheOption {
 // SetVersion set version to the cacheFuncConfig object, if you want a function's all cache
 // update immediately, change the version.
 func SetVersion(version int64) cacheOption {
-	return func(config *cachedFuncConfig) error {
+	return func(config *cachedConfig) error {
 		config.version = version
 		return nil
 	}
@@ -138,15 +139,16 @@ func SetVersion(version int64) cacheOption {
 // SetCacheNil set whether cacheNil to cacheFuncConfig, if cacheNil seted and function returns nil, GetResult will return Nil
 // cacheNil stored in redis with []byte{192} 0xC0
 func SetCacheNil(cacheNil bool) cacheOption {
-	return func(config *cachedFuncConfig) error {
+	return func(config *cachedConfig) error {
 		config.cacheNil = cacheNil
 		return nil
 	}
 }
 
-// SetMakeCacheKey you can write your own makeCacheKey, use this func to change the default makeCacheKey to yours.
-func SetMakeCacheKey(f func(string, int64, []string, []int64) string) cacheOption {
-	return func(config *cachedFuncConfig) error {
+// SetMakeCacheKey you can write your own makeCacheKey, use this func to change the default makeCacheKey.
+// first param means funcName, the second param means version, next params mean real function input param.
+func SetMakeCacheKey(f func(funcName string, version int64, strArgs []string, intArgs []int64) string) cacheOption {
+	return func(config *cachedConfig) error {
 		config.makeCacheKey = f
 		return nil
 	}

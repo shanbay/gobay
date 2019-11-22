@@ -7,8 +7,6 @@ import (
 	"time"
 )
 
-var _ cachext.CacheBackend = (*redisBackend)(nil)
-
 func init() {
 	cachext.RegisteBackend("redis", &redisBackend{})
 }
@@ -80,8 +78,8 @@ func (b *redisBackend) Expire(key string, ttl time.Duration) bool {
 	return b.client.Expire(key, ttl).Val()
 }
 
-func (b *redisBackend) TTL(key string) int64 {
-	return b.client.TTL(key).Val().Milliseconds() / 1000
+func (b *redisBackend) TTL(key string) time.Duration {
+	return b.client.TTL(key).Val()
 }
 
 func (b *redisBackend) Exists(key string) bool {

@@ -30,7 +30,7 @@ type CacheBackend interface {
 	Delete(key string) bool
 	DeleteMany(keys []string) bool
 	Expire(key string, ttl time.Duration) bool
-	TTL(key string) int64
+	TTL(key string) time.Duration
 	Exists(key string) bool
 	Close() error
 }
@@ -91,17 +91,17 @@ func (c *CacheExt) Get(key string, m interface{}) (bool, error) {
 }
 
 // Set
-func (c *CacheExt) Set(key string, value interface{}, ttl int64) error {
+func (c *CacheExt) Set(key string, value interface{}, ttl time.Duration) error {
 	transedKey := c.transKey(key)
 	encodedValue, err := encode(value)
 	if err != nil {
 		return err
 	}
-	return c.backend.Set(transedKey, encodedValue, ttl2duration(ttl))
+	return c.backend.Set(transedKey, encodedValue, ttl)
 }
 
 // SetMany
-func (c *CacheExt) SetMany(keyValues map[string]interface{}, ttl int64) error {
+func (c *CacheExt) SetMany(keyValues map[string]interface{}, ttl time.Duration) error {
 	transedMap := make(map[string][]byte)
 	for key, value := range keyValues {
 		if encodedValue, err := encode(value); err != nil {
@@ -110,7 +110,7 @@ func (c *CacheExt) SetMany(keyValues map[string]interface{}, ttl int64) error {
 			transedMap[c.transKey(key)] = encodedValue
 		}
 	}
-	return c.backend.SetMany(transedMap, ttl2duration(ttl))
+	return c.backend.SetMany(transedMap, ttl)
 }
 
 // GetMany out map[string]*someStruct
@@ -148,12 +148,12 @@ func (c *CacheExt) DeleteMany(keys ...string) bool {
 }
 
 // Expire
-func (c *CacheExt) Expire(key string, ttl int64) bool {
-	return c.backend.Expire(c.transKey(key), ttl2duration(ttl))
+func (c *CacheExt) Expire(key string, ttl time.Duration) bool {
+	return c.backend.Expire(c.transKey(key), ttl)
 }
 
 // TTL
-func (c *CacheExt) TTL(key string) int64 {
+func (c *CacheExt) TTL(key string) time.Duration {
 	return c.backend.TTL(c.transKey(key))
 }
 
@@ -180,8 +180,4 @@ func decodeIsNil(data interface{}) bool {
 		return (err == nil)
 	}
 	return false
-}
-
-func ttl2duration(ttl int64) time.Duration {
-	return time.Duration(ttl) * time.Second
 }
