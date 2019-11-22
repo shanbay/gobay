@@ -102,7 +102,7 @@ func (c *cachedConfig) GetResult(out interface{}, strArgs []string, intArgs []in
 
 // Cached return a ptr with two function: MakeCacheKey and GetResult
 func (c *CacheExt) Cached(f func([]string, []int64) (interface{}, error), options ...cacheOption) (*cachedConfig, error) {
-	var defaultTTL time.Duration = 60 * 60 * 24 * 2 * time.Second
+	defaultTTL := 24 * 2 * time.Hour
 	cacheFuncConf := &cachedConfig{
 		ttl: defaultTTL, cacheNil: false, version: 1, getResult: f, cache: c,
 		funcName:     runtime.FuncForPC(reflect.ValueOf(f).Pointer()).Name(),

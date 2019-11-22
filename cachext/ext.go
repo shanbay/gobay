@@ -5,20 +5,24 @@ import (
 	"errors"
 	"github.com/shanbay/gobay"
 	"github.com/vmihailenco/msgpack"
+	"sync"
 	"time"
 )
 
 // CacheExt
 type CacheExt struct {
-	NS      string
-	app     *gobay.Application
-	backend CacheBackend
-	prefix  string
+	NS          string
+	app         *gobay.Application
+	backend     CacheBackend
+	prefix      string
+	mu          sync.Mutex
+	initialized bool
 }
 
 var (
 	_          gobay.Extension = (*CacheExt)(nil)
 	backendMap                 = map[string]CacheBackend{}
+	mu         sync.Mutex
 )
 
 type CacheBackend interface {
@@ -37,6 +41,12 @@ type CacheBackend interface {
 
 // Init init a cache extension
 func (c *CacheExt) Init(app *gobay.Application) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if c.initialized {
+		return nil
+	}
 	c.app = app
 	config := app.Config()
 	if c.NS != "" {
@@ -44,7 +54,7 @@ func (c *CacheExt) Init(app *gobay.Application) error {
 	}
 	c.prefix = config.GetString("cache_prefix")
 	backendConfig := config.GetString("cache_backend")
-	if backend, found := backendMap[backendConfig]; found {
+	if backend, exist := backendMap[backendConfig]; exist {
 		c.backend = backend
 		if err := c.backend.Init(app); err != nil {
 			return err
@@ -52,13 +62,21 @@ func (c *CacheExt) Init(app *gobay.Application) error {
 	} else {
 		return errors.New("No backend found for cache_backend:" + backendConfig)
 	}
+	c.initialized = true
 	return nil
 }
 
 // RegisteBackend if you want a new backend, use this func to registe your backend
 // then load it by config
-func RegisteBackend(configBackend string, backend CacheBackend) {
-	backendMap[configBackend] = backend
+func RegisteBackend(configBackend string, backend CacheBackend) error {
+	mu.Lock()
+	defer mu.Unlock()
+	if _, exist := backendMap[configBackend]; !exist {
+		backendMap[configBackend] = backend
+		return nil
+	} else {
+		return errors.New("Backend already registered")
+	}
 }
 
 // Close
