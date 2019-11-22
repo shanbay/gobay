@@ -17,4 +17,9 @@ before_script:
 
 script:
   - golangci-lint run
-  - go test -v ./...
+  # - go test -v ./...
+  - go test -v .
+  - go test -v ./encoderext/*
+  - go test -v ./sentryext/*
+  - go test -v ./cachext/*
+  - go test -v ./busext/*
