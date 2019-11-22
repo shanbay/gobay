@@ -20,6 +20,10 @@ defaults: &defaults
   short_url_alphabet: 'mn6j2c4rv8bpygw95z7hsdaetxuk3fq'
   bus:
     <<: *bus
+  sentry:
+    dsn: 'http://user:pass@127.0.0.1/5'
+    environment: 'default'
+    repanic: true
   cache_backend: "memory"
   cache_prefix: "github"
   cache_host: "127.0.0.1:6379"
