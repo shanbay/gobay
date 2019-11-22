@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-func Example_Get_Set() {
+func Test_Get_Set(t *testing.T) {
 	cache := &cachext.CacheExt{}
 	exts := map[gobay.Key]gobay.Extension{
 		"cache": cache,
@@ -21,14 +21,15 @@ func Example_Get_Set() {
 	}
 
 	var key = "cache_key"
-	cache.Set(key, "hello", 10*time.Second)
+	err := cache.Set(key, "hello", 10*time.Second)
+	fmt.Println(err)
 	var res string
 	exists, err := cache.Get(key, &res)
 	fmt.Println(exists, res, err)
 	// Output: true hello <nil>
 }
 
-func Example_Cached() {
+func Test_Cached(t *testing.T) {
 	cache := &cachext.CacheExt{}
 	exts := map[gobay.Key]gobay.Extension{
 		"cache": cache,
@@ -55,14 +56,17 @@ func Example_Cached() {
 	))
 
 	zero_res := make([]string, 2)
-	cachedFunc.GetResult(&zero_res, []string{"hello", "world"}, []int64{})
-	cachedFunc.GetResult(&zero_res, []string{"hello", "world"}, []int64{})
+	for i := 0; i <= 1; i++{
+		if err:= cachedFunc.GetResult(&zero_res, []string{"hello", "world"}, []int64{}); err != nil {
+			fmt.Println("Cache set Failed")
+		} 
+	}
 	err = cachedFunc.GetResult(&zero_res, []string{"hello", "world"}, []int64{})
 	fmt.Println(zero_res, call_times, err)
 	// Output: [hello hello] 1 <nil>
 }
 
-func Example_GetMany_SetMany() {
+func Test_GetMany_SetMany(t *testing.T) {
 	cache := &cachext.CacheExt{}
 	exts := map[gobay.Key]gobay.Extension{
 		"cache": cache,
@@ -156,8 +160,12 @@ func TestCacheExt_Operation(t *testing.T) {
 		t.Errorf("Cache GetMany Failed")
 	}
 	// Delete Exists
-	cache.Set("cache_key_3", "golang", 10*time.Second)
-	cache.Set("cache_key_4", "gobay", 10*time.Second)
+	if err := cache.Set("cache_key_3", "golang", 10*time.Second); err != nil{
+		t.Errorf("Cache set Failed")
+	}
+	if err := cache.Set("cache_key_4", "gobay", 10*time.Second); err != nil{
+		t.Errorf("Cache set Failed")
+	}
 	if res := cache.Exists("cache_key_3"); res != true {
 		t.Log(res)
 		t.Errorf("Cache Exists Failed")
@@ -193,7 +201,9 @@ func TestCacheExt_Operation(t *testing.T) {
 		t.Errorf("Cache DeleteMany Failed")
 	}
 	// Expire TTL
-	cache.Set("cache_key_4", "hello", 10*time.Second)
+	if err := cache.Set("cache_key_4", "hello", 10*time.Second); err != nil{
+		t.Errorf("Cache set Failed")
+	}
 	if res := cache.TTL("cache_key_4"); res < 9*time.Second || res > 10*time.Second {
 		t.Log(res)
 		t.Errorf("Cache TTL Failed")
@@ -234,9 +244,13 @@ func TestCacheExt_Cached_Common(t *testing.T) {
 	cache.Delete(cache_key)
 	call_times = 0
 	str_list := make([]string, 2)
-	c_f_strs.GetResult(&str_list, []string{"hello", "world"}, []int64{12})
-	c_f_strs.GetResult(&str_list, []string{"hello", "world"}, []int64{12})
-	c_f_strs.GetResult(&str_list, []string{"hello", "world"}, []int64{12})
+
+	for i := 0; i <= 2; i++{
+		err := c_f_strs.GetResult(&str_list, []string{"hello", "world"}, []int64{12})
+		if err != nil{
+			t.Errorf("GetResult failed")
+		}
+	}
 	str_list = make([]string, 2)
 	if err := c_f_strs.GetResult(&str_list, []string{"hello", "world"}, []int64{12}); err != nil || str_list[0] != "hello" || str_list[1] != "hello" || call_times != 1 {
 		t.Log(str_list, err, call_times)
@@ -256,9 +270,13 @@ func TestCacheExt_Cached_Common(t *testing.T) {
 	c_f_str, _ := cache.Cached(f_str, cachext.SetTTL(10*time.Second))
 	call_times = 0
 	str := ""
-	c_f_str.GetResult(&str, []string{"hello"}, []int64{})
-	c_f_str.GetResult(&str, []string{"hello"}, []int64{})
-	c_f_str.GetResult(&str, []string{"hello"}, []int64{})
+	
+	for i := 0; i <= 2; i++{
+		err := c_f_str.GetResult(&str, []string{"hello"}, []int64{})
+		if err != nil{
+			t.Errorf("GetResult failed")
+		}
+	}
 	if err := c_f_str.GetResult(&str, []string{"hello"}, []int64{}); str != "hello" || err != nil || call_times != 1 {
 		t.Log(str, err, call_times)
 		t.Errorf("Cached str failed")
@@ -268,8 +286,13 @@ func TestCacheExt_Cached_Common(t *testing.T) {
 	c_f_bool, _ := cache.Cached(f_bool, cachext.SetTTL(10*time.Second))
 	call_times = 0
 	res_bool := false
-	c_f_bool.GetResult(&res_bool, []string{"hello", "world"}, []int64{})
-	c_f_bool.GetResult(&res_bool, []string{"hello", "world"}, []int64{})
+
+	for i := 0; i <= 1; i++{
+		err := c_f_bool.GetResult(&res_bool, []string{"hello", "world"}, []int64{})
+		if err != nil{
+			t.Errorf("GetResult failed")
+		}
+	}
 	res_bool = false
 	if err := c_f_bool.GetResult(&res_bool, []string{"hello", "world"}, []int64{}); !res_bool || err != nil || call_times != 1 {
 		t.Log(res_bool, err, call_times)
@@ -286,8 +309,12 @@ func TestCacheExt_Cached_Common(t *testing.T) {
 	bools[0] = false
 	bools[1] = false
 	bools[2] = false
-	c_f_bools.GetResult(&bools, []string{}, []int64{})
-	c_f_bools.GetResult(&bools, []string{}, []int64{})
+	for i := 0; i <= 1; i++{
+		err := c_f_bools.GetResult(&bools, []string{}, []int64{})
+		if err != nil{
+			t.Errorf("GetResult failed")
+		}
+	}
 	bools[0] = false
 	bools[1] = false
 	bools[2] = false
@@ -300,8 +327,12 @@ func TestCacheExt_Cached_Common(t *testing.T) {
 	c_f_int, _ := cache.Cached(f_int, cachext.SetTTL(10*time.Second))
 	call_times = 0
 	var int_res int
-	c_f_int.GetResult(&int_res, []string{"well"}, []int64{})
-	c_f_int.GetResult(&int_res, []string{"well"}, []int64{})
+	for i := 0; i <= 1; i++{
+		err := c_f_int.GetResult(&int_res, []string{"well"}, []int64{})
+		if err != nil{
+			t.Errorf("GetResult failed")
+		}
+	}
 	if err := c_f_int.GetResult(&int_res, []string{"well"}, []int64{}); int_res != 1 || err != nil || call_times != 1 {
 		t.Log(int_res, err, call_times)
 		t.Errorf("Cached int failed")
@@ -316,9 +347,12 @@ func TestCacheExt_Cached_Common(t *testing.T) {
 	c_f_ints, _ := cache.Cached(f_ints, cachext.SetTTL(10*time.Second))
 	call_times = 0
 	ints_res := make([]int, 1)
-	c_f_ints.GetResult(&ints_res, []string{"hello"}, []int64{})
-	c_f_ints.GetResult(&ints_res, []string{"hello"}, []int64{})
-	c_f_ints.GetResult(&ints_res, []string{"hello"}, []int64{})
+	for i := 0; i <= 2; i++{
+		err := c_f_ints.GetResult(&ints_res, []string{"hello"}, []int64{})
+		if err != nil{
+			t.Errorf("GetResult failed")
+		}
+	}
 	if err := c_f_ints.GetResult(&ints_res, []string{"hello"}, []int64{}); ints_res[0] != 1 || err != nil || call_times != 1 {
 		t.Log(ints_res, err, call_times)
 		t.Errorf("Cached []int failed")
@@ -331,18 +365,24 @@ func TestCacheExt_Cached_Common(t *testing.T) {
 	c_f_nil, _ := cache.Cached(f_nil, cachext.SetVersion(2), cachext.SetTTL(10*time.Second), cachext.SetCacheNil(false))
 	nil_res := ""
 	call_times = 0
-	c_f_nil.GetResult(&nil_res, []string{}, []int64{})
-	c_f_nil.GetResult(&nil_res, []string{}, []int64{})
-	c_f_nil.GetResult(&nil_res, []string{}, []int64{})
+	for i := 0; i <= 2; i++{
+		err := c_f_nil.GetResult(&nil_res, []string{}, []int64{})
+		if err != nil{
+			t.Errorf("GetResult failed")
+		}
+	}
 	if err := c_f_nil.GetResult(&nil_res, []string{}, []int64{}); err != cachext.Nil || call_times != 4 {
 		t.Log(nil_res, err, call_times)
 		t.Errorf("Not Cache Nil failed")
 	}
 	cn_f_nil, _ := cache.Cached(f_nil, cachext.SetVersion(5), cachext.SetTTL(10*time.Second), cachext.SetCacheNil(true))
 	call_times = 0
-	cn_f_nil.GetResult(&nil_res, []string{}, []int64{})
-	cn_f_nil.GetResult(&nil_res, []string{}, []int64{})
-	cn_f_nil.GetResult(&nil_res, []string{}, []int64{})
+	for i := 0; i <= 2; i++{
+		err := cn_f_nil.GetResult(&nil_res, []string{}, []int64{})
+		if err != nil{
+			t.Errorf("GetResult failed")
+		}
+	}
 	if err := cn_f_nil.GetResult(&nil_res, []string{}, []int64{}); err != cachext.Nil || call_times != 1 {
 		t.Log(nil_res, err, call_times)
 		t.Errorf("Cache Nil failed")
@@ -399,9 +439,12 @@ func TestCacheExt_Cached_Struct(t *testing.T) {
 	cached_complex_ff, _ := cache.Cached(complex_ff, cachext.SetTTL(10*time.Second))
 	call_times = 0
 	data := myData{}
-	cached_complex_ff.GetResult(&data, []string{"hell"}, []int64{})
-	cached_complex_ff.GetResult(&data, []string{"hell"}, []int64{})
-	cached_complex_ff.GetResult(&data, []string{"hell"}, []int64{})
+	for i := 0; i <= 2; i++{
+		err := cached_complex_ff.GetResult(&data, []string{"hell"}, []int64{})
+		if err != nil{
+			t.Errorf("GetResult failed")
+		}
+	}
 	data = myData{}
 	err := cached_complex_ff.GetResult(&data, []string{"hell"}, []int64{})
 	if call_times != 1 || err != nil || data.Value4 != "some str" {

@@ -8,7 +8,9 @@ import (
 )
 
 func init() {
-	cachext.RegisteBackend("redis", &redisBackend{})
+	if err:=cachext.RegisteBackend("redis", &redisBackend{}); err != nil{
+		panic("RedisBackend init error")
+	}
 }
 
 type redisBackend struct {
@@ -48,7 +50,7 @@ func (b *redisBackend) SetMany(keyValues map[string][]byte, ttl time.Duration) e
 		pairs = append(pairs, key, value)
 	}
 	b.client.MSet(pairs...)
-	for key, _ := range keyValues {
+	for key := range keyValues {
 		b.client.Expire(key, ttl)
 	}
 	return nil
