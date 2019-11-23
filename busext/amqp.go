@@ -75,9 +75,9 @@ func (b *BusExt) Init(app *gobay.Application) error {
 	brokerUrl := b.config.GetString("broker_url")
 	go b.handleReconnect(brokerUrl)
 	for {
-		if !b.isReady{
+		if !b.isReady {
 			continue
-		}else{
+		} else {
 			break
 		}
 	}
@@ -365,7 +365,7 @@ func (b *BusExt) init(conn *amqp.Connection) error {
 		b.consumeChannels = make(map[string]<-chan amqp.Delivery)
 		go func() {
 			err := b.Consume()
-			if err != nil{
+			if err != nil {
 				log.Errorf("errors occur when consume: %v", err)
 			}
 		}()

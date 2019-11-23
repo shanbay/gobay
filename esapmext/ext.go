@@ -10,7 +10,6 @@ import (
 	"github.com/shanbay/gobay"
 )
 
-
 type EsApmExt struct {
 	app    *gobay.Application
 	tracer *apm.Tracer

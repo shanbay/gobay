@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	if err:=cachext.RegisteBackend("redis", &redisBackend{}); err != nil{
+	if err := cachext.RegisteBackend("redis", &redisBackend{}); err != nil {
 		panic("RedisBackend init error")
 	}
 }

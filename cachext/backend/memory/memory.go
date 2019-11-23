@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	if err:=cachext.RegisteBackend("memory", &memoryBackend{}); err != nil{
+	if err := cachext.RegisteBackend("memory", &memoryBackend{}); err != nil {
 		panic("MemoryBackend Init error")
 	}
 }
@@ -47,7 +47,7 @@ func (m *memoryBackend) Set(key string, value []byte, ttl time.Duration) error {
 
 func (m *memoryBackend) SetMany(keyValues map[string][]byte, ttl time.Duration) error {
 	for key, value := range keyValues {
-		if err:=m.Set(key, value, ttl); err != nil{
+		if err := m.Set(key, value, ttl); err != nil {
 			return err
 		}
 	}

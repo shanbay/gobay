@@ -69,7 +69,7 @@ func TestPushConsume(t *testing.T) {
 	bus.Register("buses.oc.post_order_paid", &OCPaid{})
 	go func() {
 		err := bus.Consume()
-		if err != nil{
+		if err != nil {
 			t.Error(err)
 		}
 	}()

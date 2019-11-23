@@ -58,10 +58,10 @@ func ExampleCacheExt_Cached() {
 	))
 
 	zero_res := make([]string, 2)
-	for i := 0; i <= 1; i++{
-		if err:= cachedFunc.GetResult(&zero_res, []string{"hello", "world"}, []int64{}); err != nil {
+	for i := 0; i <= 1; i++ {
+		if err := cachedFunc.GetResult(&zero_res, []string{"hello", "world"}, []int64{}); err != nil {
 			fmt.Println("Cache set Failed")
-		} 
+		}
 	}
 	err = cachedFunc.GetResult(&zero_res, []string{"hello", "world"}, []int64{})
 	fmt.Println(zero_res, call_times, err)
@@ -162,10 +162,10 @@ func TestCacheExt_Operation(t *testing.T) {
 		t.Errorf("Cache GetMany Failed")
 	}
 	// Delete Exists
-	if err := cache.Set("cache_key_3", "golang", 10*time.Second); err != nil{
+	if err := cache.Set("cache_key_3", "golang", 10*time.Second); err != nil {
 		t.Errorf("Cache set Failed")
 	}
-	if err := cache.Set("cache_key_4", "gobay", 10*time.Second); err != nil{
+	if err := cache.Set("cache_key_4", "gobay", 10*time.Second); err != nil {
 		t.Errorf("Cache set Failed")
 	}
 	if res := cache.Exists("cache_key_3"); res != true {
@@ -203,7 +203,7 @@ func TestCacheExt_Operation(t *testing.T) {
 		t.Errorf("Cache DeleteMany Failed")
 	}
 	// Expire TTL
-	if err := cache.Set("cache_key_4", "hello", 10*time.Second); err != nil{
+	if err := cache.Set("cache_key_4", "hello", 10*time.Second); err != nil {
 		t.Errorf("Cache set Failed")
 	}
 	if res := cache.TTL("cache_key_4"); res < 9*time.Second || res > 10*time.Second {
@@ -247,9 +247,9 @@ func TestCacheExt_Cached_Common(t *testing.T) {
 	call_times = 0
 	str_list := make([]string, 2)
 
-	for i := 0; i <= 2; i++{
+	for i := 0; i <= 2; i++ {
 		err := c_f_strs.GetResult(&str_list, []string{"hello", "world"}, []int64{12})
-		if err != nil{
+		if err != nil {
 			t.Errorf("GetResult failed")
 		}
 	}
@@ -272,10 +272,10 @@ func TestCacheExt_Cached_Common(t *testing.T) {
 	c_f_str, _ := cache.Cached(f_str, cachext.SetTTL(10*time.Second))
 	call_times = 0
 	str := ""
-	
-	for i := 0; i <= 2; i++{
+
+	for i := 0; i <= 2; i++ {
 		err := c_f_str.GetResult(&str, []string{"hello"}, []int64{})
-		if err != nil{
+		if err != nil {
 			t.Errorf("GetResult failed")
 		}
 	}
@@ -289,9 +289,9 @@ func TestCacheExt_Cached_Common(t *testing.T) {
 	call_times = 0
 	res_bool := false
 
-	for i := 0; i <= 1; i++{
+	for i := 0; i <= 1; i++ {
 		err := c_f_bool.GetResult(&res_bool, []string{"hello", "world"}, []int64{})
-		if err != nil{
+		if err != nil {
 			t.Errorf("GetResult failed")
 		}
 	}
@@ -311,9 +311,9 @@ func TestCacheExt_Cached_Common(t *testing.T) {
 	bools[0] = false
 	bools[1] = false
 	bools[2] = false
-	for i := 0; i <= 1; i++{
+	for i := 0; i <= 1; i++ {
 		err := c_f_bools.GetResult(&bools, []string{}, []int64{})
-		if err != nil{
+		if err != nil {
 			t.Errorf("GetResult failed")
 		}
 	}
@@ -329,9 +329,9 @@ func TestCacheExt_Cached_Common(t *testing.T) {
 	c_f_int, _ := cache.Cached(f_int, cachext.SetTTL(10*time.Second))
 	call_times = 0
 	var int_res int
-	for i := 0; i <= 1; i++{
+	for i := 0; i <= 1; i++ {
 		err := c_f_int.GetResult(&int_res, []string{"well"}, []int64{})
-		if err != nil{
+		if err != nil {
 			t.Errorf("GetResult failed")
 		}
 	}
@@ -349,9 +349,9 @@ func TestCacheExt_Cached_Common(t *testing.T) {
 	c_f_ints, _ := cache.Cached(f_ints, cachext.SetTTL(10*time.Second))
 	call_times = 0
 	ints_res := make([]int, 1)
-	for i := 0; i <= 2; i++{
+	for i := 0; i <= 2; i++ {
 		err := c_f_ints.GetResult(&ints_res, []string{"hello"}, []int64{})
-		if err != nil{
+		if err != nil {
 			t.Errorf("GetResult failed")
 		}
 	}
@@ -367,9 +367,9 @@ func TestCacheExt_Cached_Common(t *testing.T) {
 	c_f_nil, _ := cache.Cached(f_nil, cachext.SetVersion(2), cachext.SetTTL(10*time.Second), cachext.SetCacheNil(false))
 	nil_res := ""
 	call_times = 0
-	for i := 0; i <= 3; i++{
+	for i := 0; i <= 3; i++ {
 		err := c_f_nil.GetResult(&nil_res, []string{}, []int64{})
-		if err != cachext.Nil{
+		if err != cachext.Nil {
 			t.Errorf("Not Cache Nil failed")
 		}
 	}
@@ -378,9 +378,9 @@ func TestCacheExt_Cached_Common(t *testing.T) {
 	}
 	cn_f_nil, _ := cache.Cached(f_nil, cachext.SetVersion(5), cachext.SetTTL(10*time.Second), cachext.SetCacheNil(true))
 	call_times = 0
-	for i := 0; i <= 3; i++{
+	for i := 0; i <= 3; i++ {
 		err := cn_f_nil.GetResult(&nil_res, []string{}, []int64{})
-		if err != cachext.Nil{
+		if err != cachext.Nil {
 			t.Errorf("Cache Nil failed")
 		}
 	}
@@ -439,9 +439,9 @@ func TestCacheExt_Cached_Struct(t *testing.T) {
 	cached_complex_ff, _ := cache.Cached(complex_ff, cachext.SetTTL(10*time.Second))
 	call_times = 0
 	data := myData{}
-	for i := 0; i <= 2; i++{
+	for i := 0; i <= 2; i++ {
 		err := cached_complex_ff.GetResult(&data, []string{"hell"}, []int64{})
-		if err != nil{
+		if err != nil {
 			t.Errorf("GetResult failed")
 		}
 	}

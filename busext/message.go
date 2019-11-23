@@ -8,7 +8,7 @@ import (
 )
 
 type Handler interface {
-	ParsePayload(args []byte, kwargs[]byte) error
+	ParsePayload(args []byte, kwargs []byte) error
 
 	Run() error
 }
