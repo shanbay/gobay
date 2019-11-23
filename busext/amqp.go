@@ -74,8 +74,12 @@ func (b *BusExt) Init(app *gobay.Application) error {
 	b.reinitDelay = b.config.GetDuration("reinit_delay")
 	brokerUrl := b.config.GetString("broker_url")
 	go b.handleReconnect(brokerUrl)
-	for !b.isReady {
-		log.Info("waiting for BusExt ready...")
+	for {
+		if !b.isReady{
+			continue
+		}else{
+			break
+		}
 	}
 	log.Info("BusExt init done")
 	return nil

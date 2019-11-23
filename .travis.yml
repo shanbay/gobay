@@ -20,6 +20,7 @@ script:
   # - go test -v ./...
   - go test -v .
   - go test -v ./encoderext/*
-  - go test -v ./sentryext/*
-  - go test -v ./cachext/*
+  - go test ./sentryext/openapi/ -v
+  - go test ./sentryext/grpc/ -v
+  - go test ./cachext/. -v
   - go test -v ./busext/*
