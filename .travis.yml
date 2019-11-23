@@ -9,6 +9,11 @@ go:
 env:
   - GO111MODULE=on
 
+dist: xenial
+addons:
+  apt:
+    packages:
+      - rabbitmq-server
 services:
   - rabbitmq
 
