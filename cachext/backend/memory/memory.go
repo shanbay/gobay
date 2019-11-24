@@ -7,7 +7,9 @@ import (
 )
 
 func init() {
-	cachext.RegisteBackend("memory", &memoryBackend{})
+	if err := cachext.RegisteBackend("memory", &memoryBackend{}); err != nil {
+		panic("MemoryBackend Init error")
+	}
 }
 
 type memoryBackendNode struct {
@@ -26,7 +28,7 @@ func (m *memoryBackend) Init(app *gobay.Application) error {
 
 func (m *memoryBackend) Get(key string) ([]byte, error) {
 	res, exists := m.client[key]
-	if exists == false {
+	if !exists {
 		return nil, nil
 	}
 	if res.ExpiredAt.Before(time.Now()) {
@@ -45,7 +47,9 @@ func (m *memoryBackend) Set(key string, value []byte, ttl time.Duration) error {
 
 func (m *memoryBackend) SetMany(keyValues map[string][]byte, ttl time.Duration) error {
 	for key, value := range keyValues {
-		m.Set(key, value, ttl)
+		if err := m.Set(key, value, ttl); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -89,7 +93,7 @@ func (m *memoryBackend) TTL(key string) time.Duration {
 	if val == nil {
 		return 0
 	}
-	return val.ExpiredAt.Sub(time.Now())
+	return time.Until(val.ExpiredAt)
 }
 
 func (m *memoryBackend) Exists(key string) bool {

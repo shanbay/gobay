@@ -1,0 +1,20 @@
+language: go
+go:
+  - 1.11.x
+  - 1.12.x
+  - 1.13.x
+  - tip
+env:
+  - GO111MODULE=on
+dist: xenial
+addons:
+  apt:
+    packages:
+      - rabbitmq-server
+services:
+  - rabbitmq
+before_script:
+  - go install github.com/golangci/golangci-lint/cmd/golangci-lint
+script:
+  - golangci-lint run
+  - go test -v ./...

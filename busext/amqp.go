@@ -23,31 +23,31 @@ var (
 )
 
 const (
-	defaultResendDelay = "1s"
+	defaultResendDelay    = "1s"
 	defaultReconnectDelay = "2s"
-	defaultReinitDelay = "1s"
-	defaultPrefetch = 100
-	defaultPublishRetry = 3
+	defaultReinitDelay    = "1s"
+	defaultPrefetch       = 100
+	defaultPublishRetry   = 3
 )
 
 type BusExt struct {
-	NS                       string
-	app                      *gobay.Application
-	connection               *amqp.Connection
-	channel                  *amqp.Channel
-	done                     chan bool
-	notifyConnClose          chan *amqp.Error
-	notifyChanClose          chan *amqp.Error
-	notifyConfirm            chan amqp.Confirmation
-	isReady                  bool
-	config                   *viper.Viper
-	consumers                map[string]Handler
-	consumeChannels          map[string]<-chan amqp.Delivery
-	publishRetry             int
-	prefetch                 int
-	resendDelay              time.Duration
-	reconnectDelay           time.Duration
-	reinitDelay              time.Duration
+	NS              string
+	app             *gobay.Application
+	connection      *amqp.Connection
+	channel         *amqp.Channel
+	done            chan bool
+	notifyConnClose chan *amqp.Error
+	notifyChanClose chan *amqp.Error
+	notifyConfirm   chan amqp.Confirmation
+	isReady         bool
+	config          *viper.Viper
+	consumers       map[string]Handler
+	consumeChannels map[string]<-chan amqp.Delivery
+	publishRetry    int
+	prefetch        int
+	resendDelay     time.Duration
+	reconnectDelay  time.Duration
+	reinitDelay     time.Duration
 }
 
 func (b *BusExt) Object() interface{} {
@@ -74,7 +74,12 @@ func (b *BusExt) Init(app *gobay.Application) error {
 	b.reinitDelay = b.config.GetDuration("reinit_delay")
 	brokerUrl := b.config.GetString("broker_url")
 	go b.handleReconnect(brokerUrl)
-	for !b.isReady {
+	for {
+		if !b.isReady {
+			continue
+		} else {
+			break
+		}
 	}
 	log.Info("BusExt init done")
 	return nil
@@ -128,8 +133,8 @@ func (b *BusExt) Push(exchange, routingKey string, data amqp.Publishing) error {
 		log.Warnf("Publish not confirmed after %f seconds. Retrying...",
 			b.resendDelay.Seconds())
 	}
-	err := errors.New(fmt.Sprintf(
-		"publishing message failed after retry %d times", b.publishRetry))
+	err := fmt.Errorf(
+		"publishing message failed after retry %d times", b.publishRetry)
 	log.Error(err)
 	return err
 }
@@ -310,7 +315,7 @@ func (b *BusExt) init(conn *amqp.Connection) error {
 			false,
 			false,
 			false,
-			nil, )
+			nil)
 
 		if err != nil {
 			log.Errorf("declare exchange: %v failed: %v", exchange, err)
@@ -358,7 +363,12 @@ func (b *BusExt) init(conn *amqp.Connection) error {
 	b.isReady = true
 	if len(b.consumers) > 0 {
 		b.consumeChannels = make(map[string]<-chan amqp.Delivery)
-		go b.Consume()
+		go func() {
+			err := b.Consume()
+			if err != nil {
+				log.Errorf("errors occur when consume: %v", err)
+			}
+		}()
 	}
 	log.Info("init finished")
 

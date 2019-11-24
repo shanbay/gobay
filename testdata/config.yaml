@@ -1,5 +1,5 @@
 bus: &bus
-  broker_url: "amqp://celery:celery@192.168.33.10:5672/shanbay"
+  broker_url: "amqp://guest:guest@127.0.0.1:5672/"
   reconnect_delay: "2s"
   reinit_delay: "1s"
   exhanges:
@@ -33,7 +33,6 @@ testing:
   <<: *defaults
   bus:
     <<: *bus
-#    broker_url: "amqp://guest:guest@localhost:5672/shanbay"
 development:
   <<: *defaults
 production:

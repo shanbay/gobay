@@ -135,7 +135,7 @@ func (c *CacheExt) SetMany(keyValues map[string]interface{}, ttl time.Duration) 
 func (c *CacheExt) GetMany(out map[string]interface{}) error {
 	transedKeys := []string{}
 	transedKey2key := make(map[string]string)
-	for key, _ := range out {
+	for key := range out {
 		transedKey := c.transKey(key)
 		transedKeys = append(transedKeys, transedKey)
 		transedKey2key[transedKey] = key
