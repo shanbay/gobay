@@ -17,15 +17,15 @@ import (
 )
 
 const (
-	TIMESTAMP_SHIFT = 15
-	MAX_STEP        = 1 << (TIMESTAMP_SHIFT - 2)
+	timestampShift = 15
+	maxStep        = 1 << (timestampShift - 2)
 	// 空一位是为了避免 incrby step 超出 14 位导致自增溢出
-	MAX_SEQUENCE = 1 << (TIMESTAMP_SHIFT - 2)
+	maxSequence = 1 << (timestampShift - 2)
 	// 起始时间的作用是避免时间过早的达到边界
 	// 1514764800 是 UTC 时间 2018-01-01 00:00:00
-	BEGINNING_TIMESTAMP = 1514764800
+	beginningTimestamp = 1514764800
 	// 由于 increment 跟时间无关, 某一毫秒内 increment 可能出现 ... MAX_SEQUENCE, 1, 2, ... 的序列, sequence 时间递增精度只能为毫秒
-	SCRIPT = `
+	luaScript = `
 local sq = redis.call('incrby', KEYS[1], ARGV[2])
 if(sq>tonumber(ARGV[1]))
 then
@@ -75,10 +75,10 @@ func (d *SequenceGeneratorExt) Close() error {
 // 当 step > 1 时, 即分配了一批 sequence, 可以使用 (sequence - step, sequence] 间的 sequence,
 // 注意此时在分布式环境下 sequence 并不能保证随着时间递增
 func (g *SequenceGeneratorExt) getSequence(step uint64) (uint64, error) {
-	if step < 1 || step > MAX_SEQUENCE {
-		return 0, fmt.Errorf("step should not less than 1 or greater than MAX_STEP(%d)", MAX_STEP)
+	if step < 1 || step > maxSequence {
+		return 0, fmt.Errorf("step should not less than 1 or greater than MAX_STEP(%d)", maxStep)
 	}
-	cmd := g.redisClient.Eval(SCRIPT, []string{g.SequenceKey}, MAX_SEQUENCE, step)
+	cmd := g.redisClient.Eval(luaScript, []string{g.SequenceKey}, maxSequence, step)
 	result, err := cmd.Result()
 	if err != nil {
 		return 0, err
@@ -87,7 +87,7 @@ func (g *SequenceGeneratorExt) getSequence(step uint64) (uint64, error) {
 	increment := uint64(values[0].(int64))
 	currentSeconds := uint64(values[1].(int64))
 	currentMicroseconds := uint64(values[2].(int64))
-	shiftedMillisecond := ((currentSeconds-BEGINNING_TIMESTAMP)*1000 + currentMicroseconds/1000) << TIMESTAMP_SHIFT
+	shiftedMillisecond := ((currentSeconds-beginningTimestamp)*1000 + currentMicroseconds/1000) << timestampShift
 	sequence := shiftedMillisecond + increment + g.SequenceBase
 	return sequence, nil
 }

@@ -15,8 +15,8 @@ func TestSequenceGenerator(t *testing.T) {
 		SequenceBase: 0,
 		SequenceKey:  "test_key",
 	}
-	_, err := g.getSequence(MAX_SEQUENCE + 1)
-	expectedErr := fmt.Errorf("step should not less than 1 or greater than MAX_STEP(%d)", MAX_STEP)
+	_, err := g.getSequence(maxSequence + 1)
+	expectedErr := fmt.Errorf("step should not less than 1 or greater than MAX_STEP(%d)", maxStep)
 	if err == nil || err.Error() != expectedErr.Error() {
 		t.Errorf("err `%s` is not expected, expected `%s`", err, expectedErr)
 	}
