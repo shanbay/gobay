@@ -12,7 +12,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/go-redis/redis/v7"
+	"github.com/go-redis/redis"
 	"github.com/shanbay/gobay"
 )
 

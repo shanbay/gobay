@@ -6,7 +6,6 @@ require (
 	github.com/getsentry/sentry-go v0.3.1
 	github.com/go-openapi/runtime v0.19.8
 	github.com/go-redis/redis v6.15.6+incompatible
-	github.com/go-redis/redis/v7 v7.0.0-beta.4
 	github.com/grpc-ecosystem/go-grpc-middleware v1.1.0
 	github.com/jinzhu/gorm v1.9.11
 	github.com/mattn/go-sqlite3 v1.11.0
