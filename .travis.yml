@@ -11,8 +11,10 @@ addons:
   apt:
     packages:
       - rabbitmq-server
+      - redis-server
 services:
   - rabbitmq
+  - redis
 before_script:
   - go install github.com/golangci/golangci-lint/cmd/golangci-lint
 script:
