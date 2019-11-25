@@ -1,4 +1,4 @@
-package encoderext
+package shorturl
 
 import (
 	"strings"
