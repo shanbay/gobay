@@ -39,7 +39,7 @@ func (d *SentryExt) Close() error {
 
 // Object implements Extension interface
 func (d *SentryExt) Object() interface{} {
-	return nil
+	return d
 }
 
 // Application implements Extension interface

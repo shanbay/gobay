@@ -59,7 +59,7 @@ func (d *SequenceGeneratorExt) Init(app *gobay.Application) error {
 
 // Object implements Extension interface
 func (d *SequenceGeneratorExt) Object() interface{} {
-	return nil
+	return d
 }
 
 // Application implements Extension interface
