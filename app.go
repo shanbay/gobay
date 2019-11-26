@@ -38,9 +38,6 @@ func (d *Application) Get(key Key) Extension {
 
 // GetOK the extension at the specified key, return false when the component doesn't exist
 func (d *Application) GetOK(key Key) (Extension, bool) {
-	d.mu.Lock()
-	defer d.mu.Unlock()
-
 	ext, ok := d.extensions[key]
 	if !ok {
 		return nil, ok
