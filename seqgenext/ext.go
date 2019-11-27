@@ -50,7 +50,9 @@ func (d *SequenceGeneratorExt) Init(app *gobay.Application) error {
 	config := app.Config()
 	if d.NS != "" {
 		config = config.Sub(d.NS)
+		config.SetEnvPrefix(d.NS)
 	}
+	config.AutomaticEnv()
 	d.app = app
 	d.SequenceBase = config.GetUint64("sequence_base")
 	d.SequenceKey = config.GetString("sequence_key")

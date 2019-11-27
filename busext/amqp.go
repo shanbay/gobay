@@ -63,7 +63,9 @@ func (b *BusExt) Init(app *gobay.Application) error {
 	b.config = app.Config()
 	if b.NS != "" {
 		b.config = b.config.Sub(b.NS)
+		b.config.SetEnvPrefix(b.NS)
 	}
+	b.config.AutomaticEnv()
 	setDefaultConfig(b.config)
 	b.consumers = make(map[string]Handler)
 	b.consumeChannels = make(map[string]<-chan amqp.Delivery)

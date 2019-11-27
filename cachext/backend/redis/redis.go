@@ -2,8 +2,8 @@ package redis
 
 import (
 	"github.com/go-redis/redis"
-	"github.com/shanbay/gobay"
 	"github.com/shanbay/gobay/cachext"
+	"github.com/spf13/viper"
 	"time"
 )
 
@@ -17,8 +17,7 @@ type redisBackend struct {
 	client *redis.Client
 }
 
-func (b *redisBackend) Init(app *gobay.Application) error {
-	config := app.Config()
+func (b *redisBackend) Init(config *viper.Viper) error {
 	host := config.GetString("cache_host")
 	password := config.GetString("cache_password")
 	dbNum := config.GetInt("cache_db")

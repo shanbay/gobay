@@ -18,7 +18,9 @@ func (d *SentryExt) Init(app *gobay.Application) error {
 	config := app.Config()
 	if d.NS != "" {
 		config = config.Sub(d.NS)
+		config.SetEnvPrefix(d.NS)
 	}
+	config.AutomaticEnv()
 	co := sentry.ClientOptions{}
 	if err := config.Unmarshal(&co); err != nil {
 		return err

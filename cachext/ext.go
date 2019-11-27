@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"github.com/shanbay/gobay"
+	"github.com/spf13/viper"
 	"github.com/vmihailenco/msgpack"
 	"sync"
 	"time"
@@ -26,7 +27,7 @@ var (
 )
 
 type CacheBackend interface {
-	Init(app *gobay.Application) error
+	Init(*viper.Viper) error
 	Get(key string) ([]byte, error) // if record not exist, return (nil, nil)
 	Set(key string, value []byte, ttl time.Duration) error
 	SetMany(keyValues map[string][]byte, ttl time.Duration) error
@@ -51,12 +52,14 @@ func (c *CacheExt) Init(app *gobay.Application) error {
 	config := app.Config()
 	if c.NS != "" {
 		config = config.Sub(c.NS)
+		config.SetEnvPrefix(c.NS)
 	}
+	config.AutomaticEnv()
 	c.prefix = config.GetString("cache_prefix")
 	backendConfig := config.GetString("cache_backend")
 	if backend, exist := backendMap[backendConfig]; exist {
 		c.backend = backend
-		if err := c.backend.Init(app); err != nil {
+		if err := c.backend.Init(config); err != nil {
 			return err
 		}
 	} else {
