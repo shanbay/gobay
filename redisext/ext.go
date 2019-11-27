@@ -20,7 +20,9 @@ func (c *RedisExt) Init(app *gobay.Application) error {
 	config := app.Config()
 	if c.NS != "" {
 		config = config.Sub(c.NS)
+		config.SetEnvPrefix(c.NS)
 	}
+	config.AutomaticEnv()
 	host := config.GetString("redis_host")
 	password := config.GetString("redis_password")
 	dbNum := config.GetInt("redis_db")

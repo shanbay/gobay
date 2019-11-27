@@ -1,8 +1,8 @@
 package memory
 
 import (
-	"github.com/shanbay/gobay"
 	"github.com/shanbay/gobay/cachext"
+	"github.com/spf13/viper"
 	"time"
 )
 
@@ -21,7 +21,7 @@ type memoryBackend struct {
 	client map[string]*memoryBackendNode
 }
 
-func (m *memoryBackend) Init(app *gobay.Application) error {
+func (m *memoryBackend) Init(*viper.Viper) error {
 	m.client = make(map[string]*memoryBackendNode)
 	return nil
 }

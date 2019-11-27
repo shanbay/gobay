@@ -50,8 +50,10 @@ func (d *SequenceGeneratorExt) Init(app *gobay.Application) error {
 	config := app.Config()
 	if d.NS != "" {
 		config = config.Sub(d.NS)
+		config.SetEnvPrefix(d.NS)
 	}
-	d.redisClient = app.Get(d.RedisExtName).Object().(*redis.Client)
+	config.AutomaticEnv()
+	d.app = app
 	d.SequenceBase = config.GetUint64("sequence_base")
 	d.SequenceKey = config.GetString("sequence_key")
 	return nil
@@ -77,6 +79,9 @@ func (d *SequenceGeneratorExt) Close() error {
 func (g *SequenceGeneratorExt) getSequence(step uint64) (uint64, error) {
 	if step < 1 || step > maxSequence {
 		return 0, fmt.Errorf("step should not less than 1 or greater than MAX_STEP(%d)", maxStep)
+	}
+	if g.redisClient == nil {
+		g.redisClient = g.app.Get(g.RedisExtName).Object().(*redis.Client)
 	}
 	cmd := g.redisClient.Eval(luaScript, []string{g.SequenceKey}, maxSequence, step)
 	result, err := cmd.Result()

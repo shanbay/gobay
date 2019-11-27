@@ -18,7 +18,9 @@ func (d *GormExt) Init(app *gobay.Application) error {
 	config := app.Config()
 	if d.NS != "" {
 		config = config.Sub(d.NS)
+		config.SetEnvPrefix(d.NS)
 	}
+	config.AutomaticEnv()
 	dbURL := config.GetString("db_url")
 	dbDriver := config.GetString("db_driver")
 	db, err := gorm.Open(dbDriver, dbURL)
