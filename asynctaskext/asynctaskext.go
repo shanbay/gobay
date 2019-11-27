@@ -37,7 +37,7 @@ func (t *AsyncTaskExt) Init(app *gobay.Application) error {
 	}
 	t.config = &machineryConfig.Config{}
 	if err := config.Unmarshal(t.config, func(config *mapstructure.
-	DecoderConfig) {
+		DecoderConfig) {
 		config.TagName = "yaml"
 	}); err != nil {
 		log.FATAL.Printf("parse config error: %v", err)
@@ -58,12 +58,12 @@ func (t *AsyncTaskExt) Close() error {
 	return nil
 }
 
-//RegisterWorkerHandler add handler to worker to process message
+//RegisterWorkerHandler add task handler to worker to process task messages
 func (t *AsyncTaskExt) RegisterWorkerHandler(name string, handler interface{}) error {
 	return t.server.RegisterTask(name, handler)
 }
 
-//StartWorker start a consumer for queue
+//StartWorker start a worker that consume task messages for queue
 func (t *AsyncTaskExt) StartWorker(queue string) error {
 	hostName, err := os.Hostname()
 	if err != nil {
@@ -75,7 +75,7 @@ func (t *AsyncTaskExt) StartWorker(queue string) error {
 	return worker.Launch()
 }
 
-//SendTask publish message to broker
+//SendTask publish task messages to broker
 func (t *AsyncTaskExt) SendTask(sign *tasks.Signature) (*result.AsyncResult, error) {
 	asyncResult, err := t.server.SendTask(sign)
 	if err != nil {
