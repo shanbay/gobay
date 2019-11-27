@@ -1,6 +1,7 @@
 # gobay
 
 [![Build Status](https://travis-ci.org/shanbay/gobay.svg?branch=master)](https://travis-ci.org/shanbay/gobay)
+[![](https://img.shields.io/:license-mit-blue.svg?style=flat-square)](https://shanbay.mit-license.org)
 
 # 贡献代码
 
