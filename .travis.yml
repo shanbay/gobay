@@ -6,6 +6,9 @@ go:
   - tip
 env:
   - GO111MODULE=on
+cache:
+  directories:
+    - $GOPATH/pkg/mod
 dist: xenial
 addons:
   apt:
@@ -13,9 +16,9 @@ addons:
       - rabbitmq-server
 services:
   - rabbitmq
-  - redis
+  - redis-server
 before_script:
   - go install github.com/golangci/golangci-lint/cmd/golangci-lint
 script:
-  - golangci-lint run
+  - golangci-lint run --timeout=3m
   - go test -v ./...

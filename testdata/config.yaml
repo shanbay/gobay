@@ -14,14 +14,26 @@ bus: &bus
     - exchange: sbay-exchange
       queue: test
       binding_key: buses.oc.post_order_paid
+
+asynctask: &asynctask
+  concurrency: 10
+  broker: "redis://127.0.0.1:6379/8"
+  default_queue: "gobay.task"
+  result_backend: "redis://127.0.0.1:6379/8"
+  results_expire_in: 1
+  redis: {}
+
 defaults: &defaults
   db_driver: sqlite3
-  db_url: ':memory:'
+  db_url: ":memory:"
+  short_url_alphabet: "mn6j2c4rv8bpygw95z7hsdaetxuk3fq"
+  asynctask:
+    <<: *asynctask
   bus:
     <<: *bus
   sentry:
-    dsn: 'http://user:pass@127.0.0.1/5'
-    environment: 'default'
+    dsn: "http://user:pass@127.0.0.1/5"
+    environment: "default"
     repanic: true
   cache_backend: "memory"
   cache_prefix: "github"
