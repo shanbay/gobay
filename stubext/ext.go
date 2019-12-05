@@ -30,12 +30,11 @@ type StubExt struct {
 
 	Host         string
 	Port         uint16
-	Authority    string
-	SvcAuthToken string
 	ConnTimeout  time.Duration
 	CallTimeout  time.Duration
 	RetryBackoff time.Duration
 	RetryTimes   uint
+	Metadata     map[string]string
 
 	retryCodes []codes.Code
 	conn       *grpc.ClientConn
@@ -92,7 +91,7 @@ func (d *StubExt) getCallOpts() []grpc_retry.CallOption {
 
 }
 
-func (d *StubExt) GetConn(opts ...grpc.DialOption) *grpc.ClientConn {
+func (d *StubExt) GetConn(opts ...grpc.DialOption) (*grpc.ClientConn, error) {
 	if d.conn == nil {
 		// opts: per call opts
 		callOpts := d.getCallOpts()
@@ -112,17 +111,26 @@ func (d *StubExt) GetConn(opts ...grpc.DialOption) *grpc.ClientConn {
 		// connect
 		conn, err := grpc.DialContext(ctxDefault, address, opts...)
 		if err != nil {
-			panic(err)
+			return nil, err
 		}
 		d.conn = conn
 	}
-	return d.conn
+	return d.conn, nil
+}
+
+func (d *StubExt) GetClient(newFunc func(*grpc.ClientConn) interface{}, opts ...grpc.DialOption) (interface{}, error) {
+	conn, err := d.GetConn(opts...)
+	if err != nil {
+		return nil, err
+	}
+	client := newFunc(conn)
+	return client, nil
 }
 
 func (d *StubExt) GetCtx(ctx context.Context) context.Context {
-	// authority
-	md := metadata.Pairs("grpc.default_authority", d.Authority)
-	// avc auth
-	md = metadata.Join(md, metadata.Pairs("svc_auth_token", d.SvcAuthToken))
+	var md metadata.MD
+	for k, v := range d.Metadata {
+		md = metadata.Join(md, metadata.Pairs(k, v))
+	}
 	return metadata.NewOutgoingContext(ctx, md)
 }

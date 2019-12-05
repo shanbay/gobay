@@ -17,8 +17,9 @@ bus: &bus
 stub_health: &stub_health
   host: '127.0.0.1'
   port: 5555
-  authority: 'health-rpc.xyz'
-  svcauthtoken: 'abcdefg'
+  metadata:
+    grpc.default_authority: 'health-rpc.xyz'
+    svc_auth_token: 'abcdefg'
   conntimeout: 1s
   calltimeout: 300ms
   retrybackoff: 50ms

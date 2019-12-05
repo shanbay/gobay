@@ -90,8 +90,13 @@ func TestStubExt(t *testing.T) {
 		setupStub()
 
 		// init client
-		conn := stubext.GetConn(grpc.WithInsecure(), grpc.WithBlock())
-		stubclient := protos_go.NewHealthClient(conn)
+		client, err := stubext.GetClient(func(conn *grpc.ClientConn) interface{} {
+			return protos_go.NewHealthClient(conn)
+		}, grpc.WithInsecure(), grpc.WithBlock())
+		if err != nil {
+			t.Error(err)
+		}
+		stubclient := client.(protos_go.HealthClient)
 
 		// set ctx
 		ctx := stubext.GetCtx(context.Background())
@@ -121,8 +126,13 @@ func TestStubExtServerStop(t *testing.T) {
 	setupStub()
 
 	// init client
-	conn := stubext.GetConn(grpc.WithInsecure(), grpc.WithBlock())
-	stubclient := protos_go.NewHealthClient(conn)
+	client, err := stubext.GetClient(func(conn *grpc.ClientConn) interface{} {
+		return protos_go.NewHealthClient(conn)
+	}, grpc.WithInsecure(), grpc.WithBlock())
+	if err != nil {
+		t.Error(err)
+	}
+	stubclient := client.(protos_go.HealthClient)
 
 	// stop server
 	server.GracefulStop()
@@ -150,8 +160,13 @@ func TestStubExtServerStopRetryLonger(t *testing.T) {
 	stubext.RetryBackoff = 300 * time.Millisecond
 
 	// init client
-	conn := stubext.GetConn(grpc.WithInsecure(), grpc.WithBlock())
-	stubclient := protos_go.NewHealthClient(conn)
+	client, err := stubext.GetClient(func(conn *grpc.ClientConn) interface{} {
+		return protos_go.NewHealthClient(conn)
+	}, grpc.WithInsecure(), grpc.WithBlock())
+	if err != nil {
+		t.Error(err)
+	}
+	stubclient := client.(protos_go.HealthClient)
 
 	// stop server
 	server.GracefulStop()
@@ -179,8 +194,13 @@ func TestStubExtServerStopNoRetry(t *testing.T) {
 	stubext.RetryTimes = 0
 
 	// init client
-	conn := stubext.GetConn(grpc.WithInsecure(), grpc.WithBlock())
-	stubclient := protos_go.NewHealthClient(conn)
+	client, err := stubext.GetClient(func(conn *grpc.ClientConn) interface{} {
+		return protos_go.NewHealthClient(conn)
+	}, grpc.WithInsecure(), grpc.WithBlock())
+	if err != nil {
+		t.Error(err)
+	}
+	stubclient := client.(protos_go.HealthClient)
 
 	// stop server
 	server.GracefulStop()
