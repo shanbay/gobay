@@ -14,6 +14,16 @@ bus: &bus
     - exchange: sbay-exchange
       queue: test
       binding_key: buses.oc.post_order_paid
+stub_health: &stub_health
+  host: '127.0.0.1'
+  port: 5555
+  authority: 'health-rpc.xyz'
+  metadata:
+    svc_auth_token: 'abcdefg'
+  conntimeout: 1s
+  calltimeout: 300ms
+  retrybackoff: 50ms
+  retrytimes: 3
 
 asynctask: &asynctask
   concurrency: 10
@@ -35,6 +45,8 @@ defaults: &defaults
     dsn: "http://user:pass@127.0.0.1/5"
     environment: "default"
     repanic: true
+  stub_health:
+    <<: *stub_health
   cache_backend: "memory"
   cache_prefix: "github"
   cache_host: "127.0.0.1:6379"
@@ -44,7 +56,34 @@ testing:
   <<: *defaults
   bus:
     <<: *bus
+  stub_health:
+    <<: *stub_health
+grpclong:
+  <<: *defaults
+  bus:
+    <<: *bus
+  stub_health:
+    <<: *stub_health
+    retrybackoff: 300ms
+grpcnoretry:
+  <<: *defaults
+  bus:
+    <<: *bus
+  stub_health:
+    <<: *stub_health
+    retrytimes: 0
+grpcmocked:
+  <<: *defaults
+  bus:
+    <<: *bus
+  stub_health:
+    <<: *stub_health
+    mocked: true
 development:
   <<: *defaults
+  stub_health:
+    <<: *stub_health
 production:
   <<: *defaults
+  stub_health:
+    <<: *stub_health
