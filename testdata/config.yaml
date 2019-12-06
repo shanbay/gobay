@@ -53,12 +53,32 @@ defaults: &defaults
   cache_password: ""
   cache_db: 3
 testing:
-  gobay_env: testing
   <<: *defaults
   bus:
     <<: *bus
   stub_health:
     <<: *stub_health
+grpclong:
+  <<: *defaults
+  bus:
+    <<: *bus
+  stub_health:
+    <<: *stub_health
+    retrybackoff: 300ms
+grpcnoretry:
+  <<: *defaults
+  bus:
+    <<: *bus
+  stub_health:
+    <<: *stub_health
+    retrytimes: 0
+grpcmocked:
+  <<: *defaults
+  bus:
+    <<: *bus
+  stub_health:
+    <<: *stub_health
+    mocked: true
 development:
   <<: *defaults
   stub_health:
