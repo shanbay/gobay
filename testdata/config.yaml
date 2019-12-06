@@ -17,8 +17,8 @@ bus: &bus
 stub_health: &stub_health
   host: '127.0.0.1'
   port: 5555
+  authority: 'health-rpc.xyz'
   metadata:
-    grpc.default_authority: 'health-rpc.xyz'
     svc_auth_token: 'abcdefg'
   conntimeout: 1s
   calltimeout: 300ms
@@ -53,6 +53,7 @@ defaults: &defaults
   cache_password: ""
   cache_db: 3
 testing:
+  gobay_env: testing
   <<: *defaults
   bus:
     <<: *bus

@@ -14,6 +14,8 @@ import (
 	"time"
 )
 
+type NewClientFunc (func(*grpc.ClientConn) interface{})
+
 var (
 	defaultConnTimeout  = 1 * time.Second
 	defaultCallTimeout  = 500 * time.Millisecond
@@ -25,8 +27,10 @@ var (
 )
 
 type StubExt struct {
-	NS  string
-	app *gobay.Application
+	NS            string
+	MockChecker   map[string]string // check if app.Config().GetString(key) == value
+	NewClientFunc NewClientFunc
+	app           *gobay.Application
 
 	Host         string
 	Port         uint16
@@ -34,8 +38,10 @@ type StubExt struct {
 	CallTimeout  time.Duration
 	RetryBackoff time.Duration
 	RetryTimes   uint
+	Authority    string
 	Metadata     map[string]string
 
+	isMocked   bool
 	retryCodes []codes.Code
 	conn       *grpc.ClientConn
 }
@@ -55,18 +61,31 @@ func (d *StubExt) Init(app *gobay.Application) error {
 	d.retryCodes = defaultRetryCodes
 
 	// init from config
+	d.app = app
 	config := app.Config()
+	if d.MockChecker != nil {
+		isMocked := true
+		for k, v := range d.MockChecker {
+			if config.GetString(k) != v {
+				isMocked = false
+			}
+		}
+		d.isMocked = isMocked
+	}
+	// sub config
 	if d.NS != "" {
 		config = config.Sub(d.NS)
 		config.SetEnvPrefix(d.NS)
 	}
 	config.AutomaticEnv()
-	err := config.Unmarshal(d)
+	if err := config.Unmarshal(d); err != nil {
+		return err
+	}
 	if d.Port == 0 || d.Host == "" {
 		log.Printf("host: %v, port: %v", d.Host, d.Port)
 		return errors.New("lack of port or host")
 	}
-	return err
+	return nil
 }
 
 func (d *StubExt) SetRetryCodes(retryCodes []codes.Code) { d.retryCodes = retryCodes }
@@ -107,6 +126,7 @@ func (d *StubExt) GetConn(opts ...grpc.DialOption) (*grpc.ClientConn, error) {
 			ctxDefault = ctx
 			defer cancelFunc()
 		}
+		opts = append(opts, grpc.WithAuthority(d.Authority))
 		address := net.JoinHostPort(d.Host, strconv.Itoa(int(d.Port)))
 		// connect
 		conn, err := grpc.DialContext(ctxDefault, address, opts...)
@@ -118,12 +138,15 @@ func (d *StubExt) GetConn(opts ...grpc.DialOption) (*grpc.ClientConn, error) {
 	return d.conn, nil
 }
 
-func (d *StubExt) GetClient(newFunc func(*grpc.ClientConn) interface{}, opts ...grpc.DialOption) (interface{}, error) {
+func (d *StubExt) GetClient(opts ...grpc.DialOption) (interface{}, error) {
+	if d.isMocked {
+		return nil, nil
+	}
 	conn, err := d.GetConn(opts...)
 	if err != nil {
 		return nil, err
 	}
-	client := newFunc(conn)
+	client := d.NewClientFunc(conn)
 	return client, nil
 }
 

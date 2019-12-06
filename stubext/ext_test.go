@@ -18,8 +18,16 @@ var (
 	stubext StubExt
 )
 
-func setupStub() {
-	stubext = StubExt{NS: "stub_health"}
+func newHealthClient(conn *grpc.ClientConn) interface{} {
+	return protos_go.NewHealthClient(conn)
+}
+
+func setupStub(mockChecker map[string]string) {
+	stubext = StubExt{
+		NS:            "stub_health",
+		MockChecker:   mockChecker,
+		NewClientFunc: newHealthClient,
+	}
 
 	app, err := gobay.CreateApp(
 		"../testdata",
@@ -54,7 +62,7 @@ func (h *healthServer) Check(ctx context.Context, req *protos_go.HealthCheckRequ
 		panic(md)
 	}
 	log.Printf("md got on server: %v", md)
-	if md["grpc.default_authority"][0] != "health-rpc.xyz" {
+	if md[":authority"][0] != "health-rpc.xyz" {
 		panic("authority should be \"health-rpc.xyz\"")
 	}
 	if md["svc_auth_token"][0] != "abcdefg" {
@@ -87,12 +95,10 @@ func TestStubExt(t *testing.T) {
 	for i := 0; i < 3; i++ {
 		// setup
 		setupServer()
-		setupStub()
+		setupStub(nil)
 
 		// init client
-		client, err := stubext.GetClient(func(conn *grpc.ClientConn) interface{} {
-			return protos_go.NewHealthClient(conn)
-		}, grpc.WithInsecure(), grpc.WithBlock())
+		client, err := stubext.GetClient(grpc.WithInsecure(), grpc.WithBlock())
 		if err != nil {
 			t.Error(err)
 		}
@@ -123,12 +129,10 @@ func TestStubExt(t *testing.T) {
 func TestStubExtServerStop(t *testing.T) {
 	// setup
 	setupServer()
-	setupStub()
+	setupStub(nil)
 
 	// init client
-	client, err := stubext.GetClient(func(conn *grpc.ClientConn) interface{} {
-		return protos_go.NewHealthClient(conn)
-	}, grpc.WithInsecure(), grpc.WithBlock())
+	client, err := stubext.GetClient(grpc.WithInsecure(), grpc.WithBlock())
 	if err != nil {
 		t.Error(err)
 	}
@@ -156,13 +160,11 @@ func TestStubExtServerStop(t *testing.T) {
 func TestStubExtServerStopRetryLonger(t *testing.T) {
 	// setup
 	setupServer()
-	setupStub()
+	setupStub(nil)
 	stubext.RetryBackoff = 300 * time.Millisecond
 
 	// init client
-	client, err := stubext.GetClient(func(conn *grpc.ClientConn) interface{} {
-		return protos_go.NewHealthClient(conn)
-	}, grpc.WithInsecure(), grpc.WithBlock())
+	client, err := stubext.GetClient(grpc.WithInsecure(), grpc.WithBlock())
 	if err != nil {
 		t.Error(err)
 	}
@@ -190,13 +192,11 @@ func TestStubExtServerStopRetryLonger(t *testing.T) {
 func TestStubExtServerStopNoRetry(t *testing.T) {
 	// setup
 	setupServer()
-	setupStub()
+	setupStub(nil)
 	stubext.RetryTimes = 0
 
 	// init client
-	client, err := stubext.GetClient(func(conn *grpc.ClientConn) interface{} {
-		return protos_go.NewHealthClient(conn)
-	}, grpc.WithInsecure(), grpc.WithBlock())
+	client, err := stubext.GetClient(grpc.WithInsecure(), grpc.WithBlock())
 	if err != nil {
 		t.Error(err)
 	}
@@ -219,4 +219,19 @@ func TestStubExtServerStopNoRetry(t *testing.T) {
 		t.Errorf("time shoud less than 1ms, got %v", diff)
 	}
 	t.Logf("no retry duration: %v", diff)
+}
+
+func TestStubExtServerStopMocked(t *testing.T) {
+	// setup without server
+	setupStub(map[string]string{"gobay_env": "testing"})
+	stubext.RetryTimes = 0
+
+	// init client
+	client, err := stubext.GetClient(grpc.WithInsecure(), grpc.WithBlock())
+	if err != nil {
+		t.Error(err)
+	}
+	if client != nil {
+		t.Error("mocked failed")
+	}
 }
