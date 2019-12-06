@@ -27,10 +27,9 @@ var (
 )
 
 type StubExt struct {
-	NS            string
-	MockChecker   map[string]string // check if app.Config().GetString(key) == value
-	NewClientFunc NewClientFunc
-	app           *gobay.Application
+	NS          string
+	MockChecker map[string]string // check if app.Config().GetString(key) == value
+	app         *gobay.Application
 
 	Host         string
 	Port         uint16
@@ -138,7 +137,7 @@ func (d *StubExt) GetConn(opts ...grpc.DialOption) (*grpc.ClientConn, error) {
 	return d.conn, nil
 }
 
-func (d *StubExt) GetClient(opts ...grpc.DialOption) (interface{}, error) {
+func (d *StubExt) GetClient(newClient NewClientFunc, opts ...grpc.DialOption) (interface{}, error) {
 	if d.isMocked {
 		return nil, nil
 	}
@@ -146,7 +145,7 @@ func (d *StubExt) GetClient(opts ...grpc.DialOption) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	client := d.NewClientFunc(conn)
+	client := newClient(conn)
 	return client, nil
 }
 
