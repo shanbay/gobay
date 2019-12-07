@@ -38,6 +38,8 @@ func (d *GormExt) Init(app *gobay.Application) error {
 		sqldb.SetMaxIdleConns(config.GetInt("max_idle_conns"))
 	}
 	d.db = db
+	// register callbacks
+	registerCallbacks(d.db)
 	return nil
 }
 
