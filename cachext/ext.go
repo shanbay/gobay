@@ -52,9 +52,7 @@ func (c *CacheExt) Init(app *gobay.Application) error {
 	config := app.Config()
 	if c.NS != "" {
 		config = config.Sub(c.NS)
-		config.SetEnvPrefix(c.NS)
 	}
-	config.AutomaticEnv()
 	c.prefix = config.GetString("cache_prefix")
 	backendConfig := config.GetString("cache_backend")
 	if backend, exist := backendMap[backendConfig]; exist {
