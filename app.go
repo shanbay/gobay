@@ -1,7 +1,10 @@
 package gobay
 
 import (
+	"bytes"
 	"fmt"
+	"io/ioutil"
+	"os"
 	"path/filepath"
 	"sync"
 
@@ -75,9 +78,14 @@ func (d *Application) Init() error {
 
 func (d *Application) initConfig() error {
 	configfile := filepath.Join(d.rootPath, "config.yaml")
+	originConfig, err := ioutil.ReadFile(configfile)
+	if err != nil {
+		return err
+	}
+	renderedConfig := []byte(os.ExpandEnv(string(originConfig)))
 	config := viper.New()
-	config.SetConfigFile(configfile)
-	if err := config.ReadInConfig(); err != nil {
+	config.SetConfigType("yaml")
+	if err := config.ReadConfig(bytes.NewBuffer(renderedConfig)); err != nil {
 		return err
 	}
 	config = config.Sub(d.env)
@@ -86,13 +94,8 @@ func (d *Application) initConfig() error {
 	config.SetDefault("debug", false)
 	config.SetDefault("testing", false)
 	config.SetDefault("timezone", "UTC")
-	config.SetDefault("grpc_host", "localhost")
-	config.SetDefault("grpc_port", 6000)
 	config.SetDefault("openapi_host", "localhost")
 	config.SetDefault("openapi_port", 3000)
-
-	// read env
-	config.AutomaticEnv()
 
 	d.config = config
 

@@ -3,15 +3,16 @@ package stubext
 import (
 	"context"
 	"errors"
-	"github.com/grpc-ecosystem/go-grpc-middleware/retry"
-	"github.com/shanbay/gobay"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/metadata"
 	"log"
 	"net"
 	"strconv"
 	"time"
+
+	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
+	"github.com/shanbay/gobay"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 )
 
 type NewClientFunc (func(*grpc.ClientConn) interface{})
@@ -69,9 +70,7 @@ func (d *StubExt) Init(app *gobay.Application) error {
 	config := app.Config()
 	if d.NS != "" {
 		config = config.Sub(d.NS)
-		config.SetEnvPrefix(d.NS)
 	}
-	config.AutomaticEnv()
 	if err := config.Unmarshal(d); err != nil {
 		return err
 	}
