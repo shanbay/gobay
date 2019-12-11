@@ -10,14 +10,17 @@ import (
 	"time"
 )
 
+type void struct{}
+
 // CacheExt
 type CacheExt struct {
-	NS          string
-	app         *gobay.Application
-	backend     CacheBackend
-	prefix      string
-	mu          sync.Mutex
-	initialized bool
+	NS             string
+	app            *gobay.Application
+	backend        CacheBackend
+	prefix         string
+	mu             sync.Mutex
+	initialized    bool
+	cachedFuncName map[string]void
 }
 
 var (
