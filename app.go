@@ -94,8 +94,10 @@ func (d *Application) initConfig() error {
 	config.SetDefault("debug", false)
 	config.SetDefault("testing", false)
 	config.SetDefault("timezone", "UTC")
-	config.SetDefault("openapi_host", "localhost")
-	config.SetDefault("openapi_port", 3000)
+	config.SetDefault("grpc_listen_host", "localhost")
+	config.SetDefault("grpc_listen_port", 6000)
+	config.SetDefault("openapi_listen_host", "localhost")
+	config.SetDefault("openapi_listen_port", 3000)
 
 	d.config = config
 
