@@ -27,8 +27,7 @@ func (e *EsApmExt) Application() *gobay.Application {
 func (e *EsApmExt) Init(app *gobay.Application) error {
 
 	config := app.Config()
-	apmEnable := config.GetBool("elastic_apm_enable")
-	if !apmEnable {
+	if !config.GetBool("elastic_apm_enable") {
 		return nil
 	}
 	// elastic apm load config from env by default
@@ -37,6 +36,7 @@ func (e *EsApmExt) Init(app *gobay.Application) error {
 	if env == "" {
 		env = app.Env()
 	}
+
 	tracer := apm.DefaultTracer
 	tracer.Service.Environment = env
 	tracer.Service.Name = config.GetString("elastic_apm_service_name")

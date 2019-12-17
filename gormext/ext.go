@@ -2,26 +2,37 @@ package gormext
 
 import (
 	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/mysql"
 	"github.com/shanbay/gobay"
+	"go.elastic.co/apm/module/apmgorm"
+	_ "go.elastic.co/apm/module/apmsql/mysql"
 )
 
 // GormExt gorm extention
 type GormExt struct {
-	NS  string
-	app *gobay.Application
-	db  *gorm.DB
+	NS        string
+	app       *gobay.Application
+	db        *gorm.DB
+	enableApm bool
 }
 
 // Init implements Extension interface
 func (d *GormExt) Init(app *gobay.Application) error {
 	d.app = app
 	config := app.Config()
+	d.enableApm = config.GetBool("elastic_apm_enable")
 	if d.NS != "" {
 		config = config.Sub(d.NS)
 	}
 	dbURL := config.GetString("db_url")
 	dbDriver := config.GetString("db_driver")
-	db, err := gorm.Open(dbDriver, dbURL)
+	var db *gorm.DB
+	var err error
+	if d.enableApm {
+		db, err = apmgorm.Open(dbDriver, dbURL)
+	} else {
+		db, err = gorm.Open(dbDriver, dbURL)
+	}
 	if err != nil {
 		return err
 	}

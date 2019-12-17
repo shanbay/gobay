@@ -1,9 +1,11 @@
 package redis
 
 import (
+	"context"
 	"github.com/go-redis/redis"
 	"github.com/shanbay/gobay/cachext"
 	"github.com/spf13/viper"
+	"go.elastic.co/apm/module/apmgoredis"
 	"time"
 )
 
@@ -29,6 +31,10 @@ func (b *redisBackend) Init(config *viper.Viper) error {
 	b.client = redisClient
 	_, err := redisClient.Ping().Result()
 	return err
+}
+
+func (b *redisBackend) WithContext(ctx context.Context) cachext.CacheBackend {
+	return &redisBackend{client: apmgoredis.Wrap(b.client).WithContext(ctx).RedisClient()}
 }
 
 func (b *redisBackend) Get(key string) ([]byte, error) {
