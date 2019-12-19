@@ -4,6 +4,7 @@ go 1.13
 
 require (
 	github.com/RichardKnop/machinery v1.7.1
+	github.com/facebookincubator/ent v0.0.0-20191218131918-1bbe460259f9
 	github.com/getsentry/sentry-go v0.3.1
 	github.com/go-openapi/runtime v0.19.9
 	github.com/go-redis/redis v6.15.6+incompatible
