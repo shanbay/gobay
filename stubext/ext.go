@@ -10,6 +10,7 @@ import (
 
 	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
 	"github.com/shanbay/gobay"
+	"go.elastic.co/apm/module/apmgrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -46,6 +47,8 @@ type StubExt struct {
 
 	Clients map[string]interface{}
 	conn    *grpc.ClientConn
+
+	enableApm bool
 }
 
 func (d *StubExt) Application() *gobay.Application { return d.app }
@@ -68,6 +71,7 @@ func (d *StubExt) Init(app *gobay.Application) error {
 	// init from config
 	d.app = app
 	config := app.Config()
+	d.enableApm = config.GetBool("elastic_apm_enable")
 	if d.NS != "" {
 		config = config.Sub(d.NS)
 	}
@@ -122,20 +126,24 @@ func (d *StubExt) GetConn(userOpts ...grpc.DialOption) (*grpc.ClientConn, error)
 			grpc.WithUnaryInterceptor(grpc_retry.UnaryClientInterceptor(callOpts...)),
 			grpc.WithStreamInterceptor(grpc_retry.StreamClientInterceptor(callOpts...)),
 		)
-		// opts: connect opts
+		// opts: authority
+		if d.Authority != "" {
+			opts = append(opts, grpc.WithAuthority(d.Authority))
+		}
+		// opts: apm
+		if d.enableApm {
+			opts = append(opts, grpc.WithUnaryInterceptor(apmgrpc.NewUnaryClientInterceptor()))
+		}
+		// opts: user opts
+		opts = append(opts, userOpts...)
+		// connect
 		ctxDefault := context.Background()
 		if d.ConnTimeout > 0 {
 			ctx, cancel := context.WithTimeout(ctxDefault, d.ConnTimeout)
 			ctxDefault = ctx
 			defer cancel()
 		}
-		if d.Authority != "" {
-			opts = append(opts, grpc.WithAuthority(d.Authority))
-		}
 		address := net.JoinHostPort(d.Host, strconv.Itoa(int(d.Port)))
-		// user opts
-		opts = append(opts, userOpts...)
-		// connect
 		conn, err := grpc.DialContext(ctxDefault, address, opts...)
 		if err != nil {
 			return nil, err
