@@ -1,9 +1,11 @@
 package entext
 
 import (
+	"database/sql"
 	"github.com/facebookincubator/ent/dialect"
-	"github.com/facebookincubator/ent/dialect/sql"
+	entsql "github.com/facebookincubator/ent/dialect/sql"
 	"github.com/shanbay/gobay"
+	"go.elastic.co/apm/module/apmsql"
 )
 
 const (
@@ -20,7 +22,7 @@ type EntExt struct {
 	NewClient func(interface{}) Client
 	Driver    func(dialect.Driver) interface{}
 
-	drv    *sql.Driver
+	drv    *entsql.Driver
 	client Client
 	app    *gobay.Application
 }
@@ -39,20 +41,24 @@ func (d *EntExt) Init(app *gobay.Application) error {
 	config.SetDefault("max_idle_conns", defaultMaxIdleConns)
 	dbURL := config.GetString("db_url")
 	dbDriver := config.GetString("db_driver")
-	drv, err := sql.Open(dbDriver, dbURL)
+
+	var db *sql.DB
+	var err error
+	if config.GetBool("enable_apm") || app.Config().GetBool("enable_apm") {
+		db, err = apmsql.Open(dbDriver, dbURL)
+	} else {
+		db, err = sql.Open(dbDriver, dbURL)
+	}
 	if err != nil {
 		return err
 	}
-	db := drv.DB()
+	db.SetMaxOpenConns(config.GetInt("max_open_conns"))
+	db.SetMaxIdleConns(config.GetInt("max_idle_conns"))
 	if config.IsSet("conn_max_lifetime") {
 		db.SetConnMaxLifetime(config.GetDuration("conn_max_lifetime"))
 	}
-	if config.IsSet("max_open_conns") {
-		db.SetMaxOpenConns(config.GetInt("max_open_conns"))
-	}
-	if config.IsSet("max_idle_conns") {
-		db.SetMaxIdleConns(config.GetInt("max_idle_conns"))
-	}
+	drv := entsql.OpenDB(dbDriver, db)
+	d.drv = drv
 	d.client = d.NewClient(d.Driver(drv))
 	return nil
 }
