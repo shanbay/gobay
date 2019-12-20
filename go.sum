@@ -34,6 +34,8 @@ github.com/RichardKnop/logging v0.0.0-20190827224416-1a693bdd4fae h1:DcFpTQBYQ9C
 github.com/RichardKnop/logging v0.0.0-20190827224416-1a693bdd4fae/go.mod h1:rJJ84PyA/Wlmw1hO+xTzV2wsSUon6J5ktg0g8BF2PuU=
 github.com/RichardKnop/machinery v1.7.1 h1:k9iu5GrVGAfa6B9jdSR0UbyqcHTr1pnAsK9kLefX+TM=
 github.com/RichardKnop/machinery v1.7.1/go.mod h1:Ud9v7j7+DrjQgC7gMqFdcIWJBCJMeXmhgr0saIlPGEw=
+github.com/RichardKnop/machinery v1.7.2 h1:TwRiIBpHkH73HNadbLBcEFHFBXL9iAyJ19tKP/4m9tc=
+github.com/RichardKnop/machinery v1.7.2/go.mod h1:Ud9v7j7+DrjQgC7gMqFdcIWJBCJMeXmhgr0saIlPGEw=
 github.com/RichardKnop/redsync v1.2.0 h1:gK35hR3zZkQigHKm8wOGb9MpJ9BsrW6MzxezwjTcHP0=
 github.com/RichardKnop/redsync v1.2.0/go.mod h1:9b8nBGAX3bE2uCfJGSnsDvF23mKyHTZzmvmj5FH3Tp0=
 github.com/Shopify/goreferrer v0.0.0-20181106222321-ec9c9a553398/go.mod h1:a1uqRtAwp2Xwc6WNPJEufxJ7fx3npB4UV/JOLmbu5I0=
