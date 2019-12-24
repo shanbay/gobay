@@ -58,6 +58,9 @@ testing:
     <<: *bus
   stub_health:
     <<: *stub_health
+  ent:
+    db_driver: mysql
+    db_url: "root:@(127.0.0.1:3306)/gobay?charset=utf8mb4&parseTime=true"
 grpclong:
   <<: *defaults
   bus:
