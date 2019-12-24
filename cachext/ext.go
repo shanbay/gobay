@@ -8,6 +8,7 @@ import (
 	"github.com/vmihailenco/msgpack"
 	"sync"
 	"time"
+	"context"
 )
 
 type void struct{}
@@ -18,9 +19,9 @@ type CacheExt struct {
 	app            *gobay.Application
 	backend        CacheBackend
 	prefix         string
-	mu             sync.Mutex
 	initialized    bool
 	cachedFuncName map[string]void
+	enableApm      bool
 }
 
 var (
@@ -41,18 +42,20 @@ type CacheBackend interface {
 	TTL(key string) time.Duration
 	Exists(key string) bool
 	Close() error
+	WithContext(context.Context) CacheBackend
 }
 
 // Init init a cache extension
 func (c *CacheExt) Init(app *gobay.Application) error {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	mu.Lock()
+	defer mu.Unlock()
 
 	if c.initialized {
 		return nil
 	}
 	c.app = app
 	config := app.Config()
+	c.enableApm = config.GetBool("elastic_apm_enable")
 	if c.NS != "" {
 		config = config.Sub(c.NS)
 	}
@@ -93,6 +96,19 @@ func (c *CacheExt) Object() interface{} {
 	return c
 }
 
+// WithContext used to allow mock
+func (c * CacheExt) WithContext(ctx context.Context) *CacheExt {
+	return &CacheExt{
+		NS: c.NS,
+		app: c.app,
+		backend: c.backend.WithContext(ctx),
+		prefix: c.prefix,
+		initialized: c.initialized,
+		cachedFuncName: c.cachedFuncName,
+		enableApm: c.enableApm,
+	}
+}
+
 // Application
 func (c *CacheExt) Application() *gobay.Application {
 	return c.app
@@ -106,7 +122,7 @@ func (c *CacheExt) transKey(key string) string {
 func (c *CacheExt) Get(key string, m interface{}) (bool, error) {
 	transedKey := c.transKey(key)
 	data, err := c.backend.Get(transedKey)
-	if err == Nil {
+	if data == nil {
 		return false, err
 	}
 	return true, decode(data, m)

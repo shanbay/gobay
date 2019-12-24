@@ -1,6 +1,7 @@
 package memory
 
 import (
+	"context"
 	"github.com/shanbay/gobay/cachext"
 	"github.com/spf13/viper"
 	"time"
@@ -24,6 +25,10 @@ type memoryBackend struct {
 func (m *memoryBackend) Init(*viper.Viper) error {
 	m.client = make(map[string]*memoryBackendNode)
 	return nil
+}
+
+func (m *memoryBackend) WithContext(ctx context.Context) cachext.CacheBackend {
+	return m
 }
 
 func (m *memoryBackend) Get(key string) ([]byte, error) {

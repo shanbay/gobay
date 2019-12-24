@@ -25,15 +25,19 @@ func (e *EsApmExt) Application() *gobay.Application {
 
 // https://www.elastic.co/guide/en/apm/agent/go/current/configuration.html
 func (e *EsApmExt) Init(app *gobay.Application) error {
-	tracer := apm.DefaultTracer
 
 	config := app.Config()
+	if !config.GetBool("elastic_apm_enable") {
+		return nil
+	}
 	// elastic apm load config from env by default
 	// use `elastic_apm` as config prefix so we can make compatible with default agent behavior
 	env := config.GetString("elastic_apm_environment")
 	if env == "" {
 		env = app.Env()
 	}
+
+	tracer := apm.DefaultTracer
 	tracer.Service.Environment = env
 	tracer.Service.Name = config.GetString("elastic_apm_service_name")
 	tracer.Service.Version = config.GetString("elastic_apm_service_version")

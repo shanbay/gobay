@@ -3,8 +3,8 @@ module github.com/shanbay/gobay
 go 1.13
 
 require (
-	github.com/facebookincubator/ent v0.0.0-20191218131918-1bbe460259f9
 	github.com/RichardKnop/machinery v1.7.2
+	github.com/facebookincubator/ent v0.0.0-20191218131918-1bbe460259f9
 	github.com/getsentry/sentry-go v0.3.1
 	github.com/go-openapi/runtime v0.19.9
 	github.com/go-redis/redis v6.15.6+incompatible
@@ -21,6 +21,8 @@ require (
 	github.com/stretchr/testify v1.4.0
 	github.com/vmihailenco/msgpack v4.0.4+incompatible
 	go.elastic.co/apm v1.6.0
+	go.elastic.co/apm/module/apmgoredis v1.6.0
+	go.elastic.co/apm/module/apmgorm v1.6.0
 	go.elastic.co/apm/module/apmsql v1.6.0
 	golang.org/x/net v0.0.0-20191014212845-da9a3fd4c582 // indirect
 	golang.org/x/sys v0.0.0-20191020212454-3e7259c5e7c2 // indirect
