@@ -44,7 +44,7 @@ func (d *EntExt) Init(app *gobay.Application) error {
 
 	var db *sql.DB
 	var err error
-	if config.GetBool("enable_apm") || app.Config().GetBool("enable_apm") {
+	if app.Config().GetBool("elastic_apm_enable") {
 		db, err = apmsql.Open(dbDriver, dbURL)
 	} else {
 		db, err = sql.Open(dbDriver, dbURL)

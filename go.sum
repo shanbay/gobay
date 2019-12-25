@@ -463,6 +463,8 @@ go.elastic.co/apm/module/apmgoredis v1.6.0 h1:E/4nyzB8yo1zX1BduAzFpvs/45fq8csMXZ
 go.elastic.co/apm/module/apmgoredis v1.6.0/go.mod h1:2A858ngLiX0/IqNEPPLoUVXT5v527UK0MD7JMEVrWJM=
 go.elastic.co/apm/module/apmgorm v1.6.0 h1:E1CANwa6+xdRUwMBSqgYILIK1mvrFzqIsW/6QYJXjsk=
 go.elastic.co/apm/module/apmgorm v1.6.0/go.mod h1:pnpRtjjQ7CJbq9c3OIIcpDq1vbumitJQFhKvOUkSbdw=
+go.elastic.co/apm/module/apmgrpc v1.6.0/go.mod h1:OnV9gT0x24g6R7w/eHIS8CFgRgJGvNUWRIrS3Qtd4Jk=
+go.elastic.co/apm/module/apmhttp v1.6.0/go.mod h1:pf6GS5vDxdrSF0Qy6wESRBZCRZqATSZpr658ehD5QA4=
 go.elastic.co/apm/module/apmsql v1.6.0 h1:0vMQDYFtA7G6QgGai38CmYY5ki9Q6g/ub/jCQp8/7qU=
 go.elastic.co/apm/module/apmsql v1.6.0/go.mod h1:cmMxjn6l+tjYM9+/sYnlhyGOFcj5Ye+P2NW2yslp/N8=
 go.elastic.co/fastjson v1.0.0 h1:ooXV/ABvf+tBul26jcVViPT3sBir0PvXgibYB1IQQzg=
@@ -532,6 +534,7 @@ golang.org/x/net v0.0.0-20190522155817-f3200d17e092/go.mod h1:HSz+uSET+XFnRR8LxR
 golang.org/x/net v0.0.0-20190603091049-60506f45cf65/go.mod h1:HSz+uSET+XFnRR8LxR5pz3Of3rY3CfYBVs4xY44aLks=
 golang.org/x/net v0.0.0-20190613194153-d28f0bde5980/go.mod h1:z5CRVTTTmAJ677TzLLGU+0bjPO0LkuOLi4/5GtJWs/s=
 golang.org/x/net v0.0.0-20190620200207-3b0461eec859/go.mod h1:z5CRVTTTmAJ677TzLLGU+0bjPO0LkuOLi4/5GtJWs/s=
+golang.org/x/net v0.0.0-20190724013045-ca1201d0de80/go.mod h1:z5CRVTTTmAJ677TzLLGU+0bjPO0LkuOLi4/5GtJWs/s=
 golang.org/x/net v0.0.0-20190827160401-ba9fcec4b297/go.mod h1:z5CRVTTTmAJ677TzLLGU+0bjPO0LkuOLi4/5GtJWs/s=
 golang.org/x/net v0.0.0-20191007182048-72f939374954 h1:JGZucVF/L/TotR719NbujzadOZ2AgnYlqphQGHDCKaU=
 golang.org/x/net v0.0.0-20191007182048-72f939374954/go.mod h1:z5CRVTTTmAJ677TzLLGU+0bjPO0LkuOLi4/5GtJWs/s=
