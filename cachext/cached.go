@@ -13,8 +13,6 @@ import (
 
 const Nil = cacheNil("cache result is nil")
 
-var cachedFuncName = make(map[string]void)
-
 type cacheNil string
 
 func (e cacheNil) Error() string { return string(e) }
@@ -116,10 +114,10 @@ func (c *CachedConfig) GetResult(ctx context.Context, out interface{}, strArgs [
 func (c *CacheExt) Cached(funcName string, f cachedFunc, options ...cacheOption) *CachedConfig {
 	mu.Lock()
 	defer mu.Unlock()
-	if _, ok := cachedFuncName[funcName]; ok {
+	if _, ok := c.cachedFuncName[funcName]; ok {
 		log.ERROR.Printf(fmt.Sprintf("Cached Func: `%s` already exists!", funcName))
 	}
-	cachedFuncName[funcName] = void{}
+	c.cachedFuncName[funcName] = void{}
 	cacheFuncConf := &CachedConfig{
 		ttl:          24 * 2 * time.Hour,
 		cacheNil:     false,
