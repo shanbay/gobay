@@ -2,13 +2,13 @@ package cachext
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"github.com/shanbay/gobay"
 	"github.com/spf13/viper"
 	"github.com/vmihailenco/msgpack"
 	"sync"
 	"time"
-	"context"
 )
 
 type void struct{}
@@ -54,6 +54,7 @@ func (c *CacheExt) Init(app *gobay.Application) error {
 		return nil
 	}
 	c.app = app
+	c.cachedFuncName = make(map[string]void)
 	config := app.Config()
 	c.enableApm = config.GetBool("elastic_apm_enable")
 	if c.NS != "" {
@@ -97,15 +98,15 @@ func (c *CacheExt) Object() interface{} {
 }
 
 // WithContext used to allow mock
-func (c * CacheExt) WithContext(ctx context.Context) *CacheExt {
+func (c *CacheExt) WithContext(ctx context.Context) *CacheExt {
 	return &CacheExt{
-		NS: c.NS,
-		app: c.app,
-		backend: c.backend.WithContext(ctx),
-		prefix: c.prefix,
-		initialized: c.initialized,
+		NS:             c.NS,
+		app:            c.app,
+		backend:        c.backend.WithContext(ctx),
+		prefix:         c.prefix,
+		initialized:    c.initialized,
 		cachedFuncName: c.cachedFuncName,
-		enableApm: c.enableApm,
+		enableApm:      c.enableApm,
 	}
 }
 
