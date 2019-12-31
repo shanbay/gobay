@@ -3,7 +3,7 @@ module github.com/shanbay/gobay
 go 1.13
 
 require (
-	github.com/RichardKnop/machinery v1.7.2
+	github.com/RichardKnop/machinery v1.7.3
 	github.com/facebookincubator/ent v0.0.0-20191218131918-1bbe460259f9
 	github.com/getsentry/sentry-go v0.3.1
 	github.com/go-openapi/runtime v0.19.9
