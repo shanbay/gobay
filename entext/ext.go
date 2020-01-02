@@ -2,6 +2,7 @@ package entext
 
 import (
 	"database/sql"
+	"errors"
 	"github.com/facebookincubator/ent/dialect"
 	entsql "github.com/facebookincubator/ent/dialect/sql"
 	"github.com/shanbay/gobay"
@@ -32,6 +33,9 @@ func (d *EntExt) Object() interface{} { return d.client }
 func (d *EntExt) Application() *gobay.Application { return d.app }
 
 func (d *EntExt) Init(app *gobay.Application) error {
+	if d.NS == "" {
+		return errors.New("lack of NS")
+	}
 	d.app = app
 	config := gobay.GetConfigByPrefix(app.Config(), d.NS, true)
 	config.SetDefault("max_open_conns", defaultMaxOpenConns)

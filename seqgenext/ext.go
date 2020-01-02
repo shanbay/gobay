@@ -9,6 +9,7 @@ package seqgenext
 '0000000010110101100111101101011000010111010001100000000000000000'
 */
 import (
+	"errors"
 	"fmt"
 	"sync"
 
@@ -47,6 +48,9 @@ type SequenceGeneratorExt struct {
 
 // Init implements Extension interface
 func (d *SequenceGeneratorExt) Init(app *gobay.Application) error {
+	if d.NS == "" {
+		return errors.New("lack of NS")
+	}
 	config := gobay.GetConfigByPrefix(app.Config(), d.NS, true)
 	d.app = app
 	d.SequenceBase = config.GetUint64("sequence_base")

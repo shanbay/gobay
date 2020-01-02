@@ -58,6 +58,9 @@ func (d *StubExt) Object() interface{} { return d }
 func (d *StubExt) Close() error { return d.conn.Close() }
 
 func (d *StubExt) Init(app *gobay.Application) error {
+	if d.NS == "" {
+		return errors.New("lack of NS")
+	}
 	// init from default
 	d.ConnTimeout = defaultConnTimeout
 	d.CallTimeout = defaultCallTimeout

@@ -59,6 +59,9 @@ func (b *BusExt) Application() *gobay.Application {
 }
 
 func (b *BusExt) Init(app *gobay.Application) error {
+	if b.NS == "" {
+		return errors.New("lack of NS")
+	}
 	b.app = app
 	config := app.Config()
 	b.config = gobay.GetConfigByPrefix(config, b.NS, true)

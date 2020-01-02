@@ -47,6 +47,9 @@ type CacheBackend interface {
 
 // Init init a cache extension
 func (c *CacheExt) Init(app *gobay.Application) error {
+	if c.NS == "" {
+		return errors.New("lack of NS")
+	}
 	mu.Lock()
 	defer mu.Unlock()
 

@@ -1,6 +1,7 @@
 package asynctaskext
 
 import (
+	"errors"
 	"os"
 
 	"github.com/RichardKnop/machinery/v1"
@@ -30,6 +31,9 @@ func (t *AsyncTaskExt) Application() *gobay.Application {
 }
 
 func (t *AsyncTaskExt) Init(app *gobay.Application) error {
+	if t.NS == "" {
+		return errors.New("lack of NS")
+	}
 	t.app = app
 	config := app.Config()
 	config = gobay.GetConfigByPrefix(config, t.NS, true)

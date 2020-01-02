@@ -16,6 +16,9 @@ type SentryExt struct {
 
 // Init implements Extension interface
 func (d *SentryExt) Init(app *gobay.Application) error {
+	if d.NS == "" {
+		return errors.New("lack of NS")
+	}
 	d.app = app
 	config := gobay.GetConfigByPrefix(app.Config(), d.NS, true)
 	d.config = config

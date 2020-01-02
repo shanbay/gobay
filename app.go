@@ -2,11 +2,11 @@ package gobay
 
 import (
 	"bytes"
-	"strings"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/spf13/viper"
