@@ -15,7 +15,7 @@ var entclient *ent.Client
 func setup() func() error {
 	exts := map[gobay.Key]gobay.Extension{
 		"entext": &EntExt{
-			NS: "ent",
+			NS: "db_",
 			NewClient: func(drvopt interface{}) Client {
 				return ent.NewClient(drvopt.(ent.Option))
 			},

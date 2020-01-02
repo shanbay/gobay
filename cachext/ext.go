@@ -58,7 +58,7 @@ func (c *CacheExt) Init(app *gobay.Application) error {
 	config := app.Config()
 	c.enableApm = config.GetBool("elastic_apm_enable")
 	if c.NS != "" {
-		config = config.Sub(c.NS)
+		config = app.GetConfigByPrefix(c.NS, false)
 	}
 	c.prefix = config.GetString("cache_prefix")
 	backendConfig := config.GetString("cache_backend")

@@ -26,7 +26,7 @@ func (e *EsApmExt) Application() *gobay.Application {
 // https://www.elastic.co/guide/en/apm/agent/go/current/configuration.html
 func (e *EsApmExt) Init(app *gobay.Application) error {
 
-	config := app.Config()
+	config := app.GetConfigByPrefix("elastic_", false)
 	if !config.GetBool("elastic_apm_enable") {
 		return nil
 	}

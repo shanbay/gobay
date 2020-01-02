@@ -16,9 +16,9 @@ var (
 )
 
 func init() {
-	task = AsyncTaskExt{NS: "asynctask"}
+	task = AsyncTaskExt{NS: "asynctask_"}
 
-	app, _ = gobay.CreateApp(
+	app, _ := gobay.CreateApp(
 		"../testdata",
 		"testing",
 		map[gobay.Key]gobay.Extension{

@@ -7,7 +7,7 @@ import (
 )
 
 func GetMiddleWare(d *sentryext.SentryExt) (middleware.Builder, error) {
-	config := d.Application().Config().Sub(d.NS)
+	config := d.Config()
 	o := sentryhttp.Options{}
 	if err := config.Unmarshal(&o); err != nil {
 		return nil, err

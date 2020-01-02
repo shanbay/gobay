@@ -35,10 +35,10 @@ func (d *EntExt) Init(app *gobay.Application) error {
 	d.app = app
 	config := app.Config()
 	if d.NS != "" {
-		config = config.Sub(d.NS)
+		config = app.GetConfigByPrefix(d.NS, false)
 	}
-	config.SetDefault("max_open_conns", defaultMaxOpenConns)
-	config.SetDefault("max_idle_conns", defaultMaxIdleConns)
+	config.SetDefault("db_max_open_conns", defaultMaxOpenConns)
+	config.SetDefault("db_max_idle_conns", defaultMaxIdleConns)
 	dbURL := config.GetString("db_url")
 	dbDriver := config.GetString("db_driver")
 
@@ -52,10 +52,10 @@ func (d *EntExt) Init(app *gobay.Application) error {
 	if err != nil {
 		return err
 	}
-	db.SetMaxOpenConns(config.GetInt("max_open_conns"))
-	db.SetMaxIdleConns(config.GetInt("max_idle_conns"))
-	if config.IsSet("conn_max_lifetime") {
-		db.SetConnMaxLifetime(config.GetDuration("conn_max_lifetime"))
+	db.SetMaxOpenConns(config.GetInt("db_max_open_conns"))
+	db.SetMaxIdleConns(config.GetInt("db_max_idle_conns"))
+	if config.IsSet("db_conn_max_lifetime") {
+		db.SetConnMaxLifetime(config.GetDuration("db_conn_max_lifetime"))
 	}
 	drv := entsql.OpenDB(dbDriver, db)
 	d.drv = drv

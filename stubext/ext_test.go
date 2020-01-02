@@ -20,7 +20,7 @@ var (
 
 func setupStub(env string) {
 	stubext = StubExt{
-		NS:          "stub_health",
+		NS:          "stub_health_",
 		DailOptions: []grpc.DialOption{grpc.WithInsecure(), grpc.WithBlock()},
 		NewClientFuncs: map[string]NewClientFunc{
 			"health": func(conn *grpc.ClientConn) interface{} {

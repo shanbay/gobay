@@ -33,7 +33,7 @@ func (t *AsyncTaskExt) Init(app *gobay.Application) error {
 	t.app = app
 	config := app.Config()
 	if t.NS != "" {
-		config = config.Sub(t.NS)
+		config = app.GetConfigByPrefix(t.NS, true)
 	}
 	t.config = &machineryConfig.Config{}
 	if err := config.Unmarshal(t.config, func(config *mapstructure.

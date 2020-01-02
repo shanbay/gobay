@@ -49,7 +49,7 @@ type SequenceGeneratorExt struct {
 func (d *SequenceGeneratorExt) Init(app *gobay.Application) error {
 	config := app.Config()
 	if d.NS != "" {
-		config = config.Sub(d.NS)
+		config = app.GetConfigByPrefix(d.NS, true)
 	}
 	d.app = app
 	d.SequenceBase = config.GetUint64("sequence_base")

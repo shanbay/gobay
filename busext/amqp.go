@@ -62,7 +62,7 @@ func (b *BusExt) Init(app *gobay.Application) error {
 	b.app = app
 	b.config = app.Config()
 	if b.NS != "" {
-		b.config = b.config.Sub(b.NS)
+		b.config = app.GetConfigByPrefix(b.NS, true)
 	}
 	setDefaultConfig(b.config)
 	b.consumers = make(map[string]Handler)

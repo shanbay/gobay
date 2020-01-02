@@ -73,7 +73,7 @@ func (d *StubExt) Init(app *gobay.Application) error {
 	config := app.Config()
 	d.enableApm = config.GetBool("elastic_apm_enable")
 	if d.NS != "" {
-		config = config.Sub(d.NS)
+		config = app.GetConfigByPrefix(d.NS, true)
 	}
 	if err := config.Unmarshal(d); err != nil {
 		return err
