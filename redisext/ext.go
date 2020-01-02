@@ -8,7 +8,6 @@ import (
 // RedisExt redis扩展，处理client的初始化工作
 type RedisExt struct {
 	NS     string
-	Sub    string
 	app    *gobay.Application
 	client *redis.Client
 }
@@ -18,14 +17,10 @@ var _ gobay.Extension = (*RedisExt)(nil)
 // Init
 func (c *RedisExt) Init(app *gobay.Application) error {
 	c.app = app
-	config := app.Config()
-	if c.Sub != "" {
-		config = config.Sub(c.Sub)
-	}
-	config = gobay.GetConfigByPrefix(config, c.NS, false)
-	host := config.GetString("redis_host")
-	password := config.GetString("redis_password")
-	dbNum := config.GetInt("redis_db")
+	config := gobay.GetConfigByPrefix(app.Config(), c.NS, true)
+	host := config.GetString("host")
+	password := config.GetString("password")
+	dbNum := config.GetInt("db")
 	c.client = redis.NewClient(&redis.Options{
 		Addr:     host,
 		Password: password,

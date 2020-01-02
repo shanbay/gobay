@@ -19,7 +19,6 @@ type Client interface {
 
 type EntExt struct {
 	NS        string
-	Sub       string
 	NewClient func(interface{}) Client
 	Driver    func(dialect.Driver) interface{}
 
@@ -34,15 +33,11 @@ func (d *EntExt) Application() *gobay.Application { return d.app }
 
 func (d *EntExt) Init(app *gobay.Application) error {
 	d.app = app
-	config := app.Config()
-	if d.Sub != "" {
-		config = config.Sub(d.Sub)
-	}
-	config = gobay.GetConfigByPrefix(config, d.NS, false)
-	config.SetDefault("db_max_open_conns", defaultMaxOpenConns)
-	config.SetDefault("db_max_idle_conns", defaultMaxIdleConns)
-	dbURL := config.GetString("db_url")
-	dbDriver := config.GetString("db_driver")
+	config := gobay.GetConfigByPrefix(app.Config(), d.NS, true)
+	config.SetDefault("max_open_conns", defaultMaxOpenConns)
+	config.SetDefault("max_idle_conns", defaultMaxIdleConns)
+	dbURL := config.GetString("url")
+	dbDriver := config.GetString("driver")
 
 	var db *sql.DB
 	var err error
@@ -54,10 +49,10 @@ func (d *EntExt) Init(app *gobay.Application) error {
 	if err != nil {
 		return err
 	}
-	db.SetMaxOpenConns(config.GetInt("db_max_open_conns"))
-	db.SetMaxIdleConns(config.GetInt("db_max_idle_conns"))
-	if config.IsSet("db_conn_max_lifetime") {
-		db.SetConnMaxLifetime(config.GetDuration("db_conn_max_lifetime"))
+	db.SetMaxOpenConns(config.GetInt("max_open_conns"))
+	db.SetMaxIdleConns(config.GetInt("max_idle_conns"))
+	if config.IsSet("conn_max_lifetime") {
+		db.SetConnMaxLifetime(config.GetDuration("conn_max_lifetime"))
 	}
 	drv := entsql.OpenDB(dbDriver, db)
 	d.drv = drv

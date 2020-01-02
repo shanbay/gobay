@@ -15,7 +15,6 @@ import (
 
 type AsyncTaskExt struct {
 	NS      string
-	Sub     string
 	app     *gobay.Application
 	config  *machineryConfig.Config
 	server  *machinery.Server
@@ -33,9 +32,6 @@ func (t *AsyncTaskExt) Application() *gobay.Application {
 func (t *AsyncTaskExt) Init(app *gobay.Application) error {
 	t.app = app
 	config := app.Config()
-	if t.Sub != "" {
-		config = config.Sub(t.Sub)
-	}
 	config = gobay.GetConfigByPrefix(config, t.NS, true)
 	t.config = &machineryConfig.Config{}
 	if err := config.Unmarshal(t.config, func(config *mapstructure.

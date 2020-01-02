@@ -20,9 +20,9 @@ type redisBackend struct {
 }
 
 func (b *redisBackend) Init(config *viper.Viper) error {
-	host := config.GetString("cache_host")
-	password := config.GetString("cache_password")
-	dbNum := config.GetInt("cache_db")
+	host := config.GetString("host")
+	password := config.GetString("password")
+	dbNum := config.GetInt("db")
 	redisClient := redis.NewClient(&redis.Options{
 		Addr:     host,
 		Password: password,

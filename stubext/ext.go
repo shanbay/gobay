@@ -30,7 +30,6 @@ var (
 
 type StubExt struct {
 	NS             string
-	Sub            string
 	DailOptions    []grpc.DialOption
 	NewClientFuncs map[string]NewClientFunc
 	RetryCodes     []codes.Code
@@ -73,9 +72,6 @@ func (d *StubExt) Init(app *gobay.Application) error {
 	d.app = app
 	config := app.Config()
 	d.enableApm = config.GetBool("elastic_apm_enable")
-	if d.Sub != "" {
-		config = config.Sub(d.Sub)
-	}
 	config = gobay.GetConfigByPrefix(config, d.NS, true)
 	if err := config.Unmarshal(d); err != nil {
 		return err
