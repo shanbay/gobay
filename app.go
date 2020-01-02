@@ -139,21 +139,6 @@ func (d *Application) closeExtensions() error {
 	return nil
 }
 
-func (d *Application) GetConfigByPrefix(prefix string, trimPrefix bool) *viper.Viper {
-	subConfig := viper.New()
-	for k, v := range d.Config().AllSettings() {
-		if !strings.HasPrefix(k, prefix) {
-			continue
-		}
-		key := k
-		if trimPrefix {
-			key = k[len(prefix):]
-		}
-		subConfig.SetDefault(key, v)
-	}
-	return subConfig
-}
-
 // CreateApp create an gobay Application
 func CreateApp(rootPath string, env string, exts map[Key]Extension) (*Application, error) {
 	if rootPath == "" || env == "" {
@@ -166,4 +151,19 @@ func CreateApp(rootPath string, env string, exts map[Key]Extension) (*Applicatio
 		return nil, err
 	}
 	return app, nil
+}
+
+func GetConfigByPrefix(config *viper.Viper, prefix string, trimPrefix bool) *viper.Viper {
+	subConfig := viper.New()
+	for k, v := range config.AllSettings() {
+		if !strings.HasPrefix(k, prefix) {
+			continue
+		}
+		key := k
+		if trimPrefix {
+			key = k[len(prefix):]
+		}
+		subConfig.SetDefault(key, v)
+	}
+	return subConfig
 }

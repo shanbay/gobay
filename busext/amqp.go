@@ -32,6 +32,7 @@ const (
 
 type BusExt struct {
 	NS              string
+	Sub             string
 	app             *gobay.Application
 	connection      *amqp.Connection
 	channel         *amqp.Channel
@@ -60,10 +61,11 @@ func (b *BusExt) Application() *gobay.Application {
 
 func (b *BusExt) Init(app *gobay.Application) error {
 	b.app = app
-	b.config = app.Config()
-	if b.NS != "" {
-		b.config = app.GetConfigByPrefix(b.NS, true)
+	config := app.Config()
+	if b.Sub != "" {
+		config = config.Sub(b.Sub)
 	}
+	b.config = gobay.GetConfigByPrefix(config, b.NS, true)
 	setDefaultConfig(b.config)
 	b.consumers = make(map[string]Handler)
 	b.consumeChannels = make(map[string]<-chan amqp.Delivery)

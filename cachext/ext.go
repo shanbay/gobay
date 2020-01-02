@@ -16,6 +16,7 @@ type void struct{}
 // CacheExt
 type CacheExt struct {
 	NS             string
+	Sub            string
 	app            *gobay.Application
 	backend        CacheBackend
 	prefix         string
@@ -57,9 +58,10 @@ func (c *CacheExt) Init(app *gobay.Application) error {
 	c.cachedFuncName = make(map[string]void)
 	config := app.Config()
 	c.enableApm = config.GetBool("elastic_apm_enable")
-	if c.NS != "" {
-		config = app.GetConfigByPrefix(c.NS, false)
+	if c.Sub != "" {
+		config = config.Sub(c.Sub)
 	}
+	config = gobay.GetConfigByPrefix(config, c.NS, false)
 	c.prefix = config.GetString("cache_prefix")
 	backendConfig := config.GetString("cache_backend")
 	if backend, exist := backendMap[backendConfig]; exist {

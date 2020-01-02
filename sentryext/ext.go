@@ -10,6 +10,7 @@ import (
 // SentryExt sentry OpenAPI extension
 type SentryExt struct {
 	NS     string
+	Sub    string
 	app    *gobay.Application
 	config *viper.Viper
 }
@@ -18,9 +19,10 @@ type SentryExt struct {
 func (d *SentryExt) Init(app *gobay.Application) error {
 	d.app = app
 	config := app.Config()
-	if d.NS != "" {
-		config = app.GetConfigByPrefix(d.NS, true)
+	if d.Sub != "" {
+		config = config.Sub(d.Sub)
 	}
+	config = gobay.GetConfigByPrefix(config, d.NS, true)
 	d.config = config
 	co := sentry.ClientOptions{}
 	if err := config.Unmarshal(&co); err != nil {

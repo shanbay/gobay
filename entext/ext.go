@@ -19,6 +19,7 @@ type Client interface {
 
 type EntExt struct {
 	NS        string
+	Sub       string
 	NewClient func(interface{}) Client
 	Driver    func(dialect.Driver) interface{}
 
@@ -34,9 +35,10 @@ func (d *EntExt) Application() *gobay.Application { return d.app }
 func (d *EntExt) Init(app *gobay.Application) error {
 	d.app = app
 	config := app.Config()
-	if d.NS != "" {
-		config = app.GetConfigByPrefix(d.NS, false)
+	if d.Sub != "" {
+		config = config.Sub(d.Sub)
 	}
+	config = gobay.GetConfigByPrefix(config, d.NS, false)
 	config.SetDefault("db_max_open_conns", defaultMaxOpenConns)
 	config.SetDefault("db_max_idle_conns", defaultMaxIdleConns)
 	dbURL := config.GetString("db_url")
