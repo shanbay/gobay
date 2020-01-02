@@ -16,9 +16,9 @@ var (
 )
 
 func init() {
-	task = AsyncTaskExt{NS: "asynctask"}
+	task = AsyncTaskExt{NS: "asynctask_"}
 
-	app, _ = gobay.CreateApp(
+	app, _ := gobay.CreateApp(
 		"../testdata",
 		"testing",
 		map[gobay.Key]gobay.Extension{
@@ -44,15 +44,15 @@ func TestPushConsume(t *testing.T) {
 		Name: "add",
 		Args: []tasks.Arg{
 			{
-				Type: "int64",
+				Type:  "int64",
 				Value: 1,
 			},
 			{
-				Type: "int64",
+				Type:  "int64",
 				Value: 2,
 			},
 			{
-				Type: "int64",
+				Type:  "int64",
 				Value: 3,
 			},
 		},

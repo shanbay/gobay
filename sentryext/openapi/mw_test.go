@@ -16,7 +16,7 @@ var handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 })
 
 func init() {
-	sentry_extension = sentryext.SentryExt{NS: "sentry"}
+	sentry_extension = sentryext.SentryExt{NS: "sentry_"}
 
 	app, err := gobay.CreateApp(
 		"../../testdata",

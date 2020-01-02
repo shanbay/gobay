@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/spf13/viper"
@@ -150,4 +151,19 @@ func CreateApp(rootPath string, env string, exts map[Key]Extension) (*Applicatio
 		return nil, err
 	}
 	return app, nil
+}
+
+func GetConfigByPrefix(config *viper.Viper, prefix string, trimPrefix bool) *viper.Viper {
+	subConfig := viper.New()
+	for k, v := range config.AllSettings() {
+		if !strings.HasPrefix(k, prefix) {
+			continue
+		}
+		key := k
+		if trimPrefix {
+			key = k[len(prefix):]
+		}
+		subConfig.SetDefault(key, v)
+	}
+	return subConfig
 }

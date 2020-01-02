@@ -16,7 +16,7 @@ var (
 )
 
 func init() {
-	bus = BusExt{NS: "bus"}
+	bus = BusExt{NS: "bus_"}
 
 	app, _ = gobay.CreateApp(
 		"../testdata",

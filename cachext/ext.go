@@ -47,6 +47,9 @@ type CacheBackend interface {
 
 // Init init a cache extension
 func (c *CacheExt) Init(app *gobay.Application) error {
+	if c.NS == "" {
+		return errors.New("lack of NS")
+	}
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -57,11 +60,9 @@ func (c *CacheExt) Init(app *gobay.Application) error {
 	c.cachedFuncName = make(map[string]void)
 	config := app.Config()
 	c.enableApm = config.GetBool("elastic_apm_enable")
-	if c.NS != "" {
-		config = config.Sub(c.NS)
-	}
-	c.prefix = config.GetString("cache_prefix")
-	backendConfig := config.GetString("cache_backend")
+	config = gobay.GetConfigByPrefix(config, c.NS, true)
+	c.prefix = config.GetString("prefix")
+	backendConfig := config.GetString("backend")
 	if backend, exist := backendMap[backendConfig]; exist {
 		c.backend = backend
 		if err := c.backend.Init(config); err != nil {

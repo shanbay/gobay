@@ -1,6 +1,7 @@
 package redisext
 
 import (
+	"errors"
 	"github.com/go-redis/redis"
 	"github.com/shanbay/gobay"
 )
@@ -16,14 +17,14 @@ var _ gobay.Extension = (*RedisExt)(nil)
 
 // Init
 func (c *RedisExt) Init(app *gobay.Application) error {
-	c.app = app
-	config := app.Config()
-	if c.NS != "" {
-		config = config.Sub(c.NS)
+	if c.NS == "" {
+		return errors.New("lack of NS")
 	}
-	host := config.GetString("redis_host")
-	password := config.GetString("redis_password")
-	dbNum := config.GetInt("redis_db")
+	c.app = app
+	config := gobay.GetConfigByPrefix(app.Config(), c.NS, true)
+	host := config.GetString("host")
+	password := config.GetString("password")
+	dbNum := config.GetInt("db")
 	c.client = redis.NewClient(&redis.Options{
 		Addr:     host,
 		Password: password,

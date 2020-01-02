@@ -59,11 +59,12 @@ func (b *BusExt) Application() *gobay.Application {
 }
 
 func (b *BusExt) Init(app *gobay.Application) error {
-	b.app = app
-	b.config = app.Config()
-	if b.NS != "" {
-		b.config = b.config.Sub(b.NS)
+	if b.NS == "" {
+		return errors.New("lack of NS")
 	}
+	b.app = app
+	config := app.Config()
+	b.config = gobay.GetConfigByPrefix(config, b.NS, true)
 	setDefaultConfig(b.config)
 	b.consumers = make(map[string]Handler)
 	b.consumeChannels = make(map[string]<-chan amqp.Delivery)

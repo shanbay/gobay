@@ -469,7 +469,9 @@ go.elastic.co/apm/module/apmgoredis v1.6.0 h1:E/4nyzB8yo1zX1BduAzFpvs/45fq8csMXZ
 go.elastic.co/apm/module/apmgoredis v1.6.0/go.mod h1:2A858ngLiX0/IqNEPPLoUVXT5v527UK0MD7JMEVrWJM=
 go.elastic.co/apm/module/apmgorm v1.6.0 h1:E1CANwa6+xdRUwMBSqgYILIK1mvrFzqIsW/6QYJXjsk=
 go.elastic.co/apm/module/apmgorm v1.6.0/go.mod h1:pnpRtjjQ7CJbq9c3OIIcpDq1vbumitJQFhKvOUkSbdw=
+go.elastic.co/apm/module/apmgrpc v1.6.0 h1:LRJO/C2yxCTKSr3FW/0TxLzBW68dBQNm8XX/cq53OdU=
 go.elastic.co/apm/module/apmgrpc v1.6.0/go.mod h1:OnV9gT0x24g6R7w/eHIS8CFgRgJGvNUWRIrS3Qtd4Jk=
+go.elastic.co/apm/module/apmhttp v1.6.0 h1:Y67VwDNnUyq4akeiem8Wtpb222RbZCRfY3FBI0swoJk=
 go.elastic.co/apm/module/apmhttp v1.6.0/go.mod h1:pf6GS5vDxdrSF0Qy6wESRBZCRZqATSZpr658ehD5QA4=
 go.elastic.co/apm/module/apmsql v1.6.0 h1:0vMQDYFtA7G6QgGai38CmYY5ki9Q6g/ub/jCQp8/7qU=
 go.elastic.co/apm/module/apmsql v1.6.0/go.mod h1:cmMxjn6l+tjYM9+/sYnlhyGOFcj5Ye+P2NW2yslp/N8=

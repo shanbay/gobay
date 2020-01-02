@@ -58,6 +58,9 @@ func (d *StubExt) Object() interface{} { return d }
 func (d *StubExt) Close() error { return d.conn.Close() }
 
 func (d *StubExt) Init(app *gobay.Application) error {
+	if d.NS == "" {
+		return errors.New("lack of NS")
+	}
 	// init from default
 	d.ConnTimeout = defaultConnTimeout
 	d.CallTimeout = defaultCallTimeout
@@ -72,9 +75,7 @@ func (d *StubExt) Init(app *gobay.Application) error {
 	d.app = app
 	config := app.Config()
 	d.enableApm = config.GetBool("elastic_apm_enable")
-	if d.NS != "" {
-		config = config.Sub(d.NS)
-	}
+	config = gobay.GetConfigByPrefix(config, d.NS, true)
 	if err := config.Unmarshal(d); err != nil {
 		return err
 	}

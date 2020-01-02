@@ -12,7 +12,7 @@ import (
 )
 
 func ExampleCacheExt_Set() {
-	cache := &cachext.CacheExt{}
+	cache := &cachext.CacheExt{NS: "cache_"}
 	exts := map[gobay.Key]gobay.Extension{
 		"cache": cache,
 	}
@@ -33,7 +33,7 @@ func ExampleCacheExt_Set() {
 }
 
 func ExampleCacheExt_Cached() {
-	cache := &cachext.CacheExt{}
+	cache := &cachext.CacheExt{NS: "cache_"}
 	exts := map[gobay.Key]gobay.Extension{
 		"cache": cache,
 	}
@@ -70,7 +70,7 @@ func ExampleCacheExt_Cached() {
 }
 
 func ExampleCacheExt_SetMany() {
-	cache := &cachext.CacheExt{}
+	cache := &cachext.CacheExt{NS: "cache_"}
 	exts := map[gobay.Key]gobay.Extension{
 		"cache": cache,
 	}
@@ -98,7 +98,7 @@ func ExampleCacheExt_SetMany() {
 }
 
 func TestCacheExt_Operation(t *testing.T) {
-	cache := &cachext.CacheExt{}
+	cache := &cachext.CacheExt{NS: "cache_"}
 	exts := map[gobay.Key]gobay.Extension{
 		"cache": cache,
 	}
@@ -223,7 +223,7 @@ func TestCacheExt_Operation(t *testing.T) {
 
 func TestCacheExt_Cached_Common(t *testing.T) {
 	// 准备数据
-	cache := &cachext.CacheExt{}
+	cache := &cachext.CacheExt{NS: "cache_"}
 	exts := map[gobay.Key]gobay.Extension{
 		"cache": cache,
 	}
@@ -412,7 +412,7 @@ func TestCacheExt_Cached_Common(t *testing.T) {
 
 func TestCacheExt_Cached_Struct(t *testing.T) {
 	// 准备数据
-	cache := &cachext.CacheExt{}
+	cache := &cachext.CacheExt{NS: "cache_"}
 	exts := map[gobay.Key]gobay.Extension{
 		"cache": cache,
 	}
@@ -461,7 +461,7 @@ func TestCacheExt_Cached_Struct(t *testing.T) {
 }
 
 func Benchmark_SetMany(b *testing.B) {
-	cache := &cachext.CacheExt{}
+	cache := &cachext.CacheExt{NS: "cache_"}
 	exts := map[gobay.Key]gobay.Extension{
 		"cache": cache,
 	}
@@ -487,7 +487,7 @@ func Benchmark_SetMany(b *testing.B) {
 }
 
 func Benchmark_GetMany(b *testing.B) {
-	cache := &cachext.CacheExt{}
+	cache := &cachext.CacheExt{NS: "cache_"}
 	exts := map[gobay.Key]gobay.Extension{
 		"cache": cache,
 	}
@@ -530,7 +530,7 @@ func Benchmark_GetMany(b *testing.B) {
 }
 
 func Benchmark_Cached(b *testing.B) {
-	cache := &cachext.CacheExt{}
+	cache := &cachext.CacheExt{NS: "cache_"}
 	exts := map[gobay.Key]gobay.Extension{
 		"cache": cache,
 	}

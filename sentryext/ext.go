@@ -4,21 +4,24 @@ import (
 	"errors"
 	"github.com/getsentry/sentry-go"
 	"github.com/shanbay/gobay"
+	"github.com/spf13/viper"
 )
 
 // SentryExt sentry OpenAPI extension
 type SentryExt struct {
-	NS  string
-	app *gobay.Application
+	NS     string
+	app    *gobay.Application
+	config *viper.Viper
 }
 
 // Init implements Extension interface
 func (d *SentryExt) Init(app *gobay.Application) error {
-	d.app = app
-	config := app.Config()
-	if d.NS != "" {
-		config = config.Sub(d.NS)
+	if d.NS == "" {
+		return errors.New("lack of NS")
 	}
+	d.app = app
+	config := gobay.GetConfigByPrefix(app.Config(), d.NS, true)
+	d.config = config
 	co := sentry.ClientOptions{}
 	if err := config.Unmarshal(&co); err != nil {
 		return err
@@ -46,3 +49,6 @@ func (d *SentryExt) Object() interface{} {
 func (d *SentryExt) Application() *gobay.Application {
 	return d.app
 }
+
+// Config get subConfig
+func (d *SentryExt) Config() *viper.Viper { return d.config }
