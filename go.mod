@@ -11,18 +11,18 @@ require (
 	github.com/go-sql-driver/mysql v1.4.1
 	github.com/golang/protobuf v1.3.2
 	github.com/grpc-ecosystem/go-grpc-middleware v1.1.0
-	github.com/jinzhu/gorm v1.9.11
+	github.com/markbates/pkger v0.13.0
 	github.com/mattn/go-sqlite3 v1.13.0
 	github.com/mitchellh/mapstructure v1.1.2
 	github.com/satori/go.uuid v1.2.0
 	github.com/sirupsen/logrus v1.4.2
+	github.com/spf13/cobra v0.0.5
 	github.com/spf13/viper v1.6.1
 	github.com/streadway/amqp v0.0.0-20190827072141-edfb9018d271
 	github.com/stretchr/testify v1.4.0
 	github.com/vmihailenco/msgpack v4.0.4+incompatible
 	go.elastic.co/apm v1.6.0
 	go.elastic.co/apm/module/apmgoredis v1.6.0
-	go.elastic.co/apm/module/apmgorm v1.6.0
 	go.elastic.co/apm/module/apmgrpc v1.6.0
 	go.elastic.co/apm/module/apmsql v1.6.0
 	golang.org/x/net v0.0.0-20191014212845-da9a3fd4c582 // indirect
