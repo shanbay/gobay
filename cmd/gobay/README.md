@@ -3,7 +3,7 @@
 ## 生成项目文件夹
 
 ```bash
-# go get github.com/shanbay/gobay
+# go get github.com/sljeff/gobay/cmd/gobay
 gobay new github.com/shanbay/my_proj
 ```
 
