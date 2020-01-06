@@ -1,58 +1,60 @@
 package appopenapi
 
 import (
-	"github.com/go-openapi/loads"
+	// "github.com/go-openapi/loads"
 	"github.com/shanbay/gobay"
-	"github.com/shanbay/gobay/openapi"
-	"github.com/sirupsen/logrus"
+	// "github.com/shanbay/gobay/openapi"
+	// "github.com/sirupsen/logrus"
 
-	"{{ $.Url }}/gen/openapi/restapi"
-	"{{ $.Url }}/gen/openapi/restapi/operations"
+	// "{{ $.Url }}/gen/openapi/restapi"
+	// "{{ $.Url }}/gen/openapi/restapi/operations"
 )
 
 {{ $lowerCamelName := toLowerCamel $.Name }}
 {{ $camelName := toCamel $.Name }}
 
-// Serve serve OpenAPI http server
-func Serve(app *gobay.Application) error {
-	config := app.Config()
+func Serve(app *gobay.Application) error { return nil }
 
-	swaggerSpec, err := loads.Embedded(restapi.SwaggerJSON, restapi.FlatSwaggerJSON)
-	if err != nil {
-		return err
-	}
-
-	api := operations.New{{ $camelName }}API(swaggerSpec)
-	server := restapi.NewServer(api)
-	defer func() {
-		err := server.Shutdown()
-		if err != nil {
-			logrus.WithError(err).Fatalln("error when shutdown api server")
-		}
-	}()
-
-	server.Host = config.GetString("openapi_listen_host")
-	server.Port = config.GetInt("openapi_listen_port")
-
-	configureAPI(server, api, &{{ toLowerCamel $.Name }}Server{app: app})
-
-	if err := server.Serve(); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func configureAPI(s *restapi.Server, api *operations.{{ $camelName }}API, wcs *{{ $lowerCamelName }}Server) {
-	// 加载实现 server 的 api handler
-
-	gmw := openapi.ChainMiddlewares(
-	// The middleware configuration happens before anything, this middleware also applies to serving the swagger.json document.
-	// So this is a good place to plug in a panic handling middleware, logging and metrics
-	)
-
-	s.SetHandler(gmw(api.Serve(openapi.ChainMiddlewares(
-	// The middleware configuration is for the handler executors. These do not apply to the swagger.json document.
-	// The middleware executes after routing but before authentication, binding and validation
-	))))
-}
+// // Serve serve OpenAPI http server
+// func Serve(app *gobay.Application) error {
+// 	config := app.Config()
+// 
+// 	swaggerSpec, err := loads.Embedded(restapi.SwaggerJSON, restapi.FlatSwaggerJSON)
+// 	if err != nil {
+// 		return err
+// 	}
+// 
+// 	api := operations.New{{ $camelName }}API(swaggerSpec)
+// 	server := restapi.NewServer(api)
+// 	defer func() {
+// 		err := server.Shutdown()
+// 		if err != nil {
+// 			logrus.WithError(err).Fatalln("error when shutdown api server")
+// 		}
+// 	}()
+// 
+// 	server.Host = config.GetString("openapi_listen_host")
+// 	server.Port = config.GetInt("openapi_listen_port")
+// 
+// 	configureAPI(server, api, &{{ toLowerCamel $.Name }}Server{app: app})
+// 
+// 	if err := server.Serve(); err != nil {
+// 		return err
+// 	}
+// 
+// 	return nil
+// }
+// 
+// func configureAPI(s *restapi.Server, api *operations.{{ $camelName }}API, wcs *{{ $lowerCamelName }}Server) {
+// 	// 加载实现 server 的 api handler
+// 
+// 	gmw := openapi.ChainMiddlewares(
+// 	// The middleware configuration happens before anything, this middleware also applies to serving the swagger.json document.
+// 	// So this is a good place to plug in a panic handling middleware, logging and metrics
+// 	)
+// 
+// 	s.SetHandler(gmw(api.Serve(openapi.ChainMiddlewares(
+// 	// The middleware configuration is for the handler executors. These do not apply to the swagger.json document.
+// 	// The middleware executes after routing but before authentication, binding and validation
+// 	))))
+// }

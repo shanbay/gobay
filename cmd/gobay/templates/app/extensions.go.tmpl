@@ -2,8 +2,8 @@ package app
 
 import (
 	"context"
-	"{{ $.Url }}/gen/schema"
-	"github.com/facebookincubator/ent/dialect"
+	// "{{ $.Url }}/gen/schema"
+	// "github.com/facebookincubator/ent/dialect"
 	"github.com/go-redis/redis"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/shanbay/gobay"
@@ -28,12 +28,12 @@ func Extensions() map[gobay.Key]gobay.Extension {
 		"apm":   &esapmext.EsApmExt{},
 		"entext": &entext.EntExt{
 			NS: "db_",
-			NewClient: func(opt interface{}) entext.Client {
-				return schema.NewClient(opt.(schema.Option))
-			},
-			Driver: func(drv dialect.Driver) interface{} {
-				return schema.Driver(drv)
-			},
+			// NewClient: func(opt interface{}) entext.Client {
+			// 	return schema.NewClient(opt.(schema.Option))
+			// },
+			// Driver: func(drv dialect.Driver) interface{} {
+			// 	return schema.Driver(drv)
+			// },
 		},
 	}
 }
@@ -44,11 +44,11 @@ var (
 	Sentry    *sentryext.SentryExt
 	Cache     *cachext.CacheExt
 	ApmTracer *apm.Tracer
-	EntClient *schema.Client
+	// EntClient *schema.Client
 )
 
 func InitExts(app *gobay.Application) {
-	EntClient = app.Get("entext").Object().(*schema.Client)
+	// EntClient = app.Get("entext").Object().(*schema.Client)
 	Redis = app.Get("redis").Object().(*redis.Client)
 	Seqgen = app.Get("seqgen").Object().(*seqgenext.SequenceGeneratorExt)
 	Sentry = app.Get("sentry").Object().(*sentryext.SentryExt)

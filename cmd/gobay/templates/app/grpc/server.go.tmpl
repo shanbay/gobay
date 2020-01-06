@@ -14,14 +14,12 @@ import (
 	"google.golang.org/grpc"
 
 	myapp "{{ $.Url }}/app"
-	"{{ $.Url }}/app/models"
 	"go.elastic.co/apm/module/apmgrpc"
 )
 
 // Serve grpc server
 func Serve(app *gobay.Application) error {
 	myapp.InitExts(app)
-	models.InitCaches()
 
 	config := app.Config()
 
@@ -49,7 +47,7 @@ func Serve(app *gobay.Application) error {
 	// 根据参数创建 grpc server
 	server := grpc.NewServer(opts...)
 
-	protos.Register{{ toCamel $.Name }}Server(server, &{{ toLowerCamel $.Name}}Server{app: app})
+	// protos.Register{{ toCamel $.Name }}Server(server, &{{ toLowerCamel $.Name}}Server{app: app})
 
 	// 启动 grpc（支持 gracefulstop）
 	stopchan := make(chan os.Signal, 1)

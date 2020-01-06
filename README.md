@@ -3,6 +3,14 @@
 [![Build Status](https://travis-ci.org/shanbay/gobay.svg?branch=master)](https://travis-ci.org/shanbay/gobay)
 [![](https://img.shields.io/:license-mit-blue.svg?style=flat-square)](https://shanbay.mit-license.org)
 
+# 脚手架
+
+```bash
+gobay new github.com/me/mine_project
+```
+
+[详细说明](cmd/gobay/README.md)
+
 # 贡献代码
 
 ## 如何为gobay编写extension
