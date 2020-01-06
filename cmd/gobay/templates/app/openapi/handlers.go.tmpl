@@ -1,0 +1,10 @@
+package appopenapi
+
+import (
+	"github.com/go-openapi/runtime/middleware"
+	"github.com/shanbay/gobay"
+)
+
+type {{ toLowerCamel $.Name }}Server struct {
+	app *gobay.Application
+}

@@ -1,10 +1,11 @@
 package main
 
 import (
-	"io/ioutil"
 	"bytes"
+	"github.com/iancoleman/strcase"
 	"github.com/markbates/pkger"
 	"github.com/spf13/cobra"
+	"io/ioutil"
 	"log"
 	"os"
 	"path"
@@ -18,21 +19,23 @@ func main() {
 		Use: "new [projectURL]",
 		Run: func(cmd *cobra.Command, args []string) {
 			if len(args) != 1 {
-				cmd.Help()
+				check(cmd.Help())
 				return
 			}
 			url := args[0]
-			if projConfig.name == "" {
+			url = strings.TrimSuffix(url, "/")
+			projConfig.Url = url
+			if projConfig.Name == "" {
 				strs := strings.Split(url, "/")
-				projConfig.name = strs[len(strs)-1]
+				projConfig.Name = strs[len(strs)-1]
 			}
-			newProject(url)
+			newProject()
 		},
 		Short: "initialize new gobay project",
 		Long:  "Example: `gobay new github.com/shanbay/project`",
 	}
-	cmdNew.Flags().StringVar(&projConfig.name, "name", "", "specific project name")
-	cmdNew.Flags().StringSliceVar(&projConfig.skips, "skip", nil, "skip templates")
+	cmdNew.Flags().StringVar(&projConfig.Name, "name", "", "specific project name")
+	cmdNew.Flags().StringSliceVar(&projConfig.Skips, "skip", nil, "skip templates")
 
 	cmd.AddCommand(cmdNew)
 	if err := cmd.Execute(); err != nil {
@@ -40,9 +43,9 @@ func main() {
 	}
 }
 
-func newProject(url string) {
-	if err := os.Mkdir(projConfig.name, DIRMODE); os.IsExist(err) {
-		log.Fatalf("already exists: %v", projConfig.name)
+func newProject() {
+	if err := os.Mkdir(projConfig.Name, DIRMODE); os.IsExist(err) {
+		log.Fatalf("already exists: %v", projConfig.Name)
 	}
 
 	// load
@@ -62,10 +65,13 @@ func loadTemplates() error {
 	if err := pkger.Walk(
 		DIRPREFIX,
 		func(filePath string, info os.FileInfo, err error) error {
-			if err != nil || len(filePath) <= len(TRIMPREFIX) {
+			if err != nil || len(filePath) <= len(TRIMPREFIX) { // dir `templates`
 				return err
 			}
-			targetPath := path.Join(projConfig.name, filePath[len(TRIMPREFIX):])
+			targetPath := path.Join(
+				projConfig.Name,
+				strings.TrimPrefix(filePath, TRIMPREFIX),
+			)
 			// dir
 			if info.IsDir() {
 				projDirs = append(projDirs, _projDir{
@@ -76,6 +82,10 @@ func loadTemplates() error {
 			}
 
 			// file
+			if strings.Contains(targetPath, RAW_TMPL_DIR) { // enttmpl
+				projRawTmpl[filePath] = targetPath
+				return nil
+			}
 			file, err := pkger.Open(filePath)
 			if err != nil {
 				return err
@@ -86,7 +96,7 @@ func loadTemplates() error {
 			}
 			projTemplates = append(projTemplates, _projTemplate{
 				content: b,
-				dstPath: targetPath,
+				dstPath: strings.TrimSuffix(targetPath, TMPLSUFFIX),
 				mode:    info.Mode(),
 			})
 			return nil
@@ -99,14 +109,13 @@ func loadTemplates() error {
 
 func renderTemplates() {
 	// dir
-	log.Println(projDirs)
-	log.Println(projTemplates)
 	for _, dir := range projDirs {
-		os.MkdirAll(dir.dstPath, dir.mode)
+		check(os.MkdirAll(dir.dstPath, dir.mode))
 	}
 
 	// file
 	gobayTmpl := template.New("gobay")
+	gobayTmpl.Funcs(tmplFuncs)
 	for _, f := range projTemplates {
 		if f.skip {
 			continue
@@ -123,7 +132,23 @@ func renderTemplates() {
 }
 
 // copyTmplFiles copys .tpml file(like ent templates).
-func copyTmplFiles() {}
+func copyTmplFiles() {
+	for sourcePath, targetPath := range projRawTmpl {
+		file, err := pkger.Open(sourcePath)
+		if err != nil {
+			panic(err)
+		}
+		info, err := file.Stat()
+		if err != nil {
+			panic(err)
+		}
+		b := make([]byte, info.Size())
+		if _, err := file.Read(b); err != nil {
+			panic(err)
+		}
+		check(ioutil.WriteFile(targetPath, b, FILEMODE))
+	}
+}
 
 type _projTemplate struct {
 	content []byte
@@ -138,19 +163,35 @@ type _projDir struct {
 }
 
 type _projConfig struct {
-	url   string
-	name  string
-	skips []string
+	Url   string
+	Name  string
+	Skips []string
 }
 
 var (
 	projDirs      = []_projDir{}
 	projTemplates = []_projTemplate{}
 	projConfig    = _projConfig{}
+	projRawTmpl   = map[string]string{}
 )
 
 const (
-	DIRMODE    os.FileMode = os.ModeDir | 0755
-	DIRPREFIX              = "/cmd/gobay/templates/"
-	TRIMPREFIX             = "github.com/shanbay/gobay:/cmd/gobay/templates/"
+	TMPLSUFFIX               = ".tmpl"
+	RAW_TMPL_DIR             = "enttmpl"
+	DIRMODE      os.FileMode = os.ModeDir | 0755
+	FILEMODE     os.FileMode = 0644
+	DIRPREFIX                = "/cmd/gobay/templates/"
+	TRIMPREFIX               = "github.com/shanbay/gobay:/cmd/gobay/templates/"
 )
+
+var tmplFuncs = template.FuncMap{
+	"toCamel":      strcase.ToCamel,
+	"toLowerCamel": strcase.ToLowerCamel,
+	"toSnake":      strcase.ToSnake,
+}
+
+func check(err error) {
+	if err != nil {
+		panic(err)
+	}
+}

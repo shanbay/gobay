@@ -1,0 +1,67 @@
+package appgrpc
+
+import (
+	"net"
+	"os"
+	"os/signal"
+	"syscall"
+
+	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
+	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
+	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
+	"github.com/shanbay/gobay"
+	sentrygrpcmw "github.com/shanbay/gobay/sentryext/grpc"
+	"google.golang.org/grpc"
+
+	myapp "{{ $.Url }}/app"
+	"{{ $.Url }}/app/models"
+	"go.elastic.co/apm/module/apmgrpc"
+)
+
+// Serve grpc server
+func Serve(app *gobay.Application) error {
+	myapp.InitExts(app)
+	models.InitCaches()
+
+	config := app.Config()
+
+	host := config.GetString("grpc_listen_host")
+	port := config.GetString("grpc_listen_port")
+
+	lis, _ := net.Listen("tcp", net.JoinHostPort(host, port))
+	unaryInterceptors := []grpc.UnaryServerInterceptor{
+		grpc_recovery.UnaryServerInterceptor(sentrygrpcmw.GetOption(myapp.Sentry)),
+		grpc_prometheus.UnaryServerInterceptor,
+	}
+	if config.GetBool("elastic_apm_enable") {
+		unaryInterceptors = append(unaryInterceptors, apmgrpc.NewUnaryServerInterceptor(apmgrpc.WithTracer(myapp.ApmTracer)))
+	}
+
+	// 构建 gprc server的参数，包括 连接超时、middleware 等等
+	opts := []grpc.ServerOption{
+		grpc.ConnectionTimeout(config.GetDuration("grpc_conn_timeout")),
+		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(unaryInterceptors...)),
+		grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(
+			grpc_recovery.StreamServerInterceptor(),
+			grpc_prometheus.StreamServerInterceptor,
+		)),
+	}
+	// 根据参数创建 grpc server
+	server := grpc.NewServer(opts...)
+
+	protos.Register{{ toCamel $.Name }}Server(server, &{{ toLowerCamel $.Name}}Server{app: app})
+
+	// 启动 grpc（支持 gracefulstop）
+	stopchan := make(chan os.Signal, 1)
+	signal.Notify(stopchan, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM)
+
+	go func(c <-chan os.Signal) {
+		<-c
+		server.GracefulStop()
+	}(stopchan)
+
+	if err := server.Serve(lis); err != nil {
+		return err
+	}
+	return nil
+}

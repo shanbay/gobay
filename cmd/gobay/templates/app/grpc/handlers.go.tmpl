@@ -1,0 +1,11 @@
+package appgrpc
+
+import (
+	"context"
+	"errors"
+	"github.com/shanbay/gobay"
+)
+
+type {{ toLowerCamel $.Name }}Server struct{
+	app *gobay.Application
+}
