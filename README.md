@@ -6,6 +6,7 @@
 # 脚手架
 
 ```bash
+# go get github.com/shanbay/gobay/cmd/gobay
 gobay new github.com/me/mine_project
 ```
 
