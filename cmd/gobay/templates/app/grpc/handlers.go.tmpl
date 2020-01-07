@@ -1,0 +1,9 @@
+package appgrpc
+
+import (
+	"github.com/shanbay/gobay"
+)
+
+type {{ toLowerCamel $.Name }}Server struct{
+	app *gobay.Application
+}

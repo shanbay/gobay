@@ -1,0 +1,37 @@
+package cmd
+
+import (
+	"github.com/shanbay/gobay"
+	log "github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
+
+	"{{ $.Url }}/app"
+	appopenapi "{{ $.Url }}/app/openapi"
+)
+
+func RunHttpSvc(cmd *cobra.Command, args []string) {
+	env, err := cmd.Flags().GetString("env")
+	if err != nil {
+		log.WithError(err).Fatalln("get env failed")
+	}
+	root, err := cmd.Flags().GetString("root")
+	if err != nil {
+		log.WithError(err).Fatalln("get root failed")
+	}
+
+	bapp, err := gobay.CreateApp(root, env, app.Extensions())
+	if err != nil {
+		log.Fatalln("app init failed\n", err)
+	}
+	if err := appopenapi.Serve(bapp); err != nil {
+		log.Fatal("openapi serve failed\n", err)
+	}
+}
+
+func init() {
+	cmd := &cobra.Command{
+		Use: "httpsvc",
+		Run: RunHttpSvc,
+	}
+	rootCmd.AddCommand(cmd)
+}

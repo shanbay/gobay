@@ -1,0 +1,61 @@
+package app
+
+import (
+	"context"
+	// "{{ $.Url }}/gen/schema"
+	// "github.com/facebookincubator/ent/dialect"
+	"github.com/go-redis/redis"
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/shanbay/gobay"
+	"github.com/shanbay/gobay/cachext"
+	_ "github.com/shanbay/gobay/cachext/backend/redis"
+	"github.com/shanbay/gobay/entext"
+	"github.com/shanbay/gobay/esapmext"
+	"github.com/shanbay/gobay/redisext"
+	"github.com/shanbay/gobay/sentryext"
+	"github.com/shanbay/gobay/seqgenext"
+	"go.elastic.co/apm"
+	_ "go.elastic.co/apm/module/apmsql/mysql"
+)
+
+// Extensions defined Extensions to be used by init app
+func Extensions() map[gobay.Key]gobay.Extension {
+	return map[gobay.Key]gobay.Extension{
+		"redis":  &redisext.RedisExt{NS: "redis_"},
+		"seqgen": &seqgenext.SequenceGeneratorExt{NS: "seqgen_", RedisExtName: "redis"},
+		"sentry": &sentryext.SentryExt{NS: "sentry_"},
+		"cache": &cachext.CacheExt{NS: "cache_"},
+		"apm":   &esapmext.EsApmExt{},
+		"entext": &entext.EntExt{
+			NS: "db_",
+			// NewClient: func(opt interface{}) entext.Client {
+			// 	return schema.NewClient(opt.(schema.Option))
+			// },
+			// Driver: func(drv dialect.Driver) interface{} {
+			// 	return schema.Driver(drv)
+			// },
+		},
+	}
+}
+
+var (
+	Redis     *redis.Client
+	Seqgen    *seqgenext.SequenceGeneratorExt
+	Sentry    *sentryext.SentryExt
+	Cache     *cachext.CacheExt
+	ApmTracer *apm.Tracer
+	// EntClient *schema.Client
+)
+
+func InitExts(app *gobay.Application) {
+	// EntClient = app.Get("entext").Object().(*schema.Client)
+	Redis = app.Get("redis").Object().(*redis.Client)
+	Seqgen = app.Get("seqgen").Object().(*seqgenext.SequenceGeneratorExt)
+	Sentry = app.Get("sentry").Object().(*sentryext.SentryExt)
+	Cache = app.Get("cache").Object().(*cachext.CacheExt)
+	ApmTracer = app.Get("apm").Object().(*apm.Tracer)
+}
+
+func GetApmCache(ctx context.Context) *cachext.CacheExt {
+	return Cache.WithContext(ctx)
+}
