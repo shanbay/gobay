@@ -3,12 +3,13 @@ package cachext_test
 import (
 	"context"
 	"fmt"
-	"github.com/shanbay/gobay"
-	"github.com/shanbay/gobay/cachext"
-	_ "github.com/shanbay/gobay/cachext/backend/memory"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/shanbay/gobay"
+	"github.com/shanbay/gobay/extensions/cachext"
+	_ "github.com/shanbay/gobay/extensions/cachext/backend/memory"
 )
 
 func ExampleCacheExt_Set() {
@@ -16,7 +17,7 @@ func ExampleCacheExt_Set() {
 	exts := map[gobay.Key]gobay.Extension{
 		"cache": cache,
 	}
-	if _, err := gobay.CreateApp("../testdata/", "testing", exts); err != nil {
+	if _, err := gobay.CreateApp("../../testdata/", "testing", exts); err != nil {
 		fmt.Println(err)
 		return
 	}
@@ -37,7 +38,7 @@ func ExampleCacheExt_Cached() {
 	exts := map[gobay.Key]gobay.Extension{
 		"cache": cache,
 	}
-	if _, err := gobay.CreateApp("../testdata/", "testing", exts); err != nil {
+	if _, err := gobay.CreateApp("../../testdata/", "testing", exts); err != nil {
 		fmt.Println(err)
 		return
 	}
@@ -74,7 +75,7 @@ func ExampleCacheExt_SetMany() {
 	exts := map[gobay.Key]gobay.Extension{
 		"cache": cache,
 	}
-	if _, err := gobay.CreateApp("../testdata/", "testing", exts); err != nil {
+	if _, err := gobay.CreateApp("../../testdata/", "testing", exts); err != nil {
 		fmt.Println(err)
 		return
 	}
@@ -102,7 +103,7 @@ func TestCacheExt_Operation(t *testing.T) {
 	exts := map[gobay.Key]gobay.Extension{
 		"cache": cache,
 	}
-	if _, err := gobay.CreateApp("../testdata/", "testing", exts); err != nil {
+	if _, err := gobay.CreateApp("../../testdata/", "testing", exts); err != nil {
 		fmt.Println(err)
 		return
 	}
@@ -227,7 +228,7 @@ func TestCacheExt_Cached_Common(t *testing.T) {
 	exts := map[gobay.Key]gobay.Extension{
 		"cache": cache,
 	}
-	if _, err := gobay.CreateApp("../testdata/", "testing", exts); err != nil {
+	if _, err := gobay.CreateApp("../../testdata/", "testing", exts); err != nil {
 		fmt.Println(err)
 		return
 	}
@@ -416,7 +417,7 @@ func TestCacheExt_Cached_Struct(t *testing.T) {
 	exts := map[gobay.Key]gobay.Extension{
 		"cache": cache,
 	}
-	if _, err := gobay.CreateApp("../testdata/", "testing", exts); err != nil {
+	if _, err := gobay.CreateApp("../../testdata/", "testing", exts); err != nil {
 		fmt.Println(err)
 		return
 	}
@@ -465,7 +466,7 @@ func Benchmark_SetMany(b *testing.B) {
 	exts := map[gobay.Key]gobay.Extension{
 		"cache": cache,
 	}
-	if _, err := gobay.CreateApp("../testdata/", "testing", exts); err != nil {
+	if _, err := gobay.CreateApp("../../testdata/", "testing", exts); err != nil {
 		fmt.Println(err)
 		return
 	}
@@ -491,7 +492,7 @@ func Benchmark_GetMany(b *testing.B) {
 	exts := map[gobay.Key]gobay.Extension{
 		"cache": cache,
 	}
-	if _, err := gobay.CreateApp("../testdata/", "testing", exts); err != nil {
+	if _, err := gobay.CreateApp("../../testdata/", "testing", exts); err != nil {
 		fmt.Println(err)
 		return
 	}
@@ -534,7 +535,7 @@ func Benchmark_Cached(b *testing.B) {
 	exts := map[gobay.Key]gobay.Extension{
 		"cache": cache,
 	}
-	if _, err := gobay.CreateApp("../testdata/", "testing", exts); err != nil {
+	if _, err := gobay.CreateApp("../../testdata/", "testing", exts); err != nil {
 		fmt.Println(err)
 		return
 	}

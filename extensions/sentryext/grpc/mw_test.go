@@ -2,20 +2,22 @@ package sentrygrpcmw
 
 import (
 	"context"
+	"log"
+	"testing"
+
 	"github.com/grpc-ecosystem/go-grpc-middleware"
 	"github.com/grpc-ecosystem/go-grpc-middleware/recovery"
 	grpc_testing "github.com/grpc-ecosystem/go-grpc-middleware/testing"
 	pb_testproto "github.com/grpc-ecosystem/go-grpc-middleware/testing/testproto"
-	"github.com/shanbay/gobay"
-	"github.com/shanbay/gobay/sentryext"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"log"
-	"testing"
+
+	"github.com/shanbay/gobay"
+	"github.com/shanbay/gobay/extensions/sentryext"
 )
 
 var (

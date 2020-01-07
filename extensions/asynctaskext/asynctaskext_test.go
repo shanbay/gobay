@@ -19,7 +19,7 @@ func init() {
 	task = AsyncTaskExt{NS: "asynctask_"}
 
 	app, _ := gobay.CreateApp(
-		"../testdata",
+		"../../testdata",
 		"testing",
 		map[gobay.Key]gobay.Extension{
 			"asynctask": &task,

@@ -2,15 +2,17 @@ package stubext
 
 import (
 	"context"
-	"github.com/shanbay/gobay"
-	"github.com/shanbay/gobay/testdata/health_pb"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/metadata"
 	"log"
 	"net"
 	"strconv"
 	"testing"
 	"time"
+
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
+
+	"github.com/shanbay/gobay"
+	"github.com/shanbay/gobay/testdata/health_pb"
 )
 
 var (
@@ -30,7 +32,7 @@ func setupStub(env string) {
 	}
 
 	app, err := gobay.CreateApp(
-		"../testdata",
+		"../../testdata",
 		env,
 		map[gobay.Key]gobay.Extension{
 			"stubext": &stubext,

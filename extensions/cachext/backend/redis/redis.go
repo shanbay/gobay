@@ -2,11 +2,13 @@ package redis
 
 import (
 	"context"
+	"time"
+
 	"github.com/go-redis/redis"
-	"github.com/shanbay/gobay/cachext"
 	"github.com/spf13/viper"
 	"go.elastic.co/apm/module/apmgoredis"
-	"time"
+
+	"github.com/shanbay/gobay/extensions/cachext"
 )
 
 func init() {

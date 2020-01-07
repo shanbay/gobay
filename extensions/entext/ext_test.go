@@ -2,12 +2,14 @@ package entext
 
 import (
 	"context"
+	"testing"
+
 	"github.com/facebookincubator/ent/dialect"
 	_ "github.com/go-sql-driver/mysql"
+
 	"github.com/shanbay/gobay"
 	"github.com/shanbay/gobay/testdata/ent"
 	"github.com/shanbay/gobay/testdata/ent/user"
-	"testing"
 )
 
 var entclient *ent.Client
@@ -24,7 +26,7 @@ func setup() func() error {
 			},
 		},
 	}
-	app, err := gobay.CreateApp("../testdata", "testing", exts)
+	app, err := gobay.CreateApp("../../testdata", "testing", exts)
 	if err != nil {
 		panic(err)
 	}

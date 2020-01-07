@@ -4,11 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/RichardKnop/machinery/v1/log"
 	"net/url"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/RichardKnop/machinery/v1/log"
 )
 
 const Nil = cacheNil("cache result is nil")

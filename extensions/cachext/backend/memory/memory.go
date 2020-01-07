@@ -2,9 +2,11 @@ package memory
 
 import (
 	"context"
-	"github.com/shanbay/gobay/cachext"
-	"github.com/spf13/viper"
 	"time"
+
+	"github.com/spf13/viper"
+
+	"github.com/shanbay/gobay/extensions/cachext"
 )
 
 func init() {
