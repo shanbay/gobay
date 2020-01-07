@@ -13,6 +13,45 @@ import (
 	"text/template"
 )
 
+type _projTemplate struct {
+	content []byte
+	dstPath string
+	skip    bool
+	mode    os.FileMode
+}
+
+type _projDir struct {
+	dstPath string
+	mode    os.FileMode
+}
+
+type _projConfig struct {
+	Url   string
+	Name  string
+	Skips []string
+}
+
+var (
+	projDirs      = []_projDir{}
+	projTemplates = []_projTemplate{}
+	projConfig    = _projConfig{}
+	projRawTmpl   = map[string]string{}
+	tmplFuncs     = template.FuncMap{
+		"toCamel":      strcase.ToCamel,
+		"toLowerCamel": strcase.ToLowerCamel,
+		"toSnake":      strcase.ToSnake,
+	}
+)
+
+const (
+	TMPLSUFFIX               = ".tmpl"
+	RAW_TMPL_DIR             = "enttmpl"
+	DIRMODE      os.FileMode = os.ModeDir | 0755
+	FILEMODE     os.FileMode = 0644
+	DIRPREFIX                = "/cmd/gobay/templates/"
+	TRIMPREFIX               = "github.com/shanbay/gobay:/cmd/gobay/templates/"
+)
+
 func main() {
 	cmd := &cobra.Command{Use: "gobay"}
 	cmdNew := &cobra.Command{
@@ -148,46 +187,6 @@ func copyTmplFiles() {
 		}
 		check(ioutil.WriteFile(targetPath, b, FILEMODE))
 	}
-}
-
-type _projTemplate struct {
-	content []byte
-	dstPath string
-	skip    bool
-	mode    os.FileMode
-}
-
-type _projDir struct {
-	dstPath string
-	mode    os.FileMode
-}
-
-type _projConfig struct {
-	Url   string
-	Name  string
-	Skips []string
-}
-
-var (
-	projDirs      = []_projDir{}
-	projTemplates = []_projTemplate{}
-	projConfig    = _projConfig{}
-	projRawTmpl   = map[string]string{}
-)
-
-const (
-	TMPLSUFFIX               = ".tmpl"
-	RAW_TMPL_DIR             = "enttmpl"
-	DIRMODE      os.FileMode = os.ModeDir | 0755
-	FILEMODE     os.FileMode = 0644
-	DIRPREFIX                = "/cmd/gobay/templates/"
-	TRIMPREFIX               = "github.com/shanbay/gobay:/cmd/gobay/templates/"
-)
-
-var tmplFuncs = template.FuncMap{
-	"toCamel":      strcase.ToCamel,
-	"toLowerCamel": strcase.ToLowerCamel,
-	"toSnake":      strcase.ToSnake,
 }
 
 func check(err error) {
