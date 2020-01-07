@@ -3,11 +3,13 @@ package sentrygrpcmw
 import (
 	"context"
 	"errors"
+
 	"github.com/getsentry/sentry-go"
 	"github.com/grpc-ecosystem/go-grpc-middleware/recovery"
-	"github.com/shanbay/gobay/sentryext"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	"github.com/shanbay/gobay/extensions/sentryext"
 )
 
 func GetOption(d *sentryext.SentryExt) grpc_recovery.Option {

@@ -1,12 +1,13 @@
 package sentryopenapimw
 
 import (
-	"github.com/shanbay/gobay"
-	"github.com/shanbay/gobay/sentryext"
 	"log"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/shanbay/gobay"
+	"github.com/shanbay/gobay/extensions/sentryext"
 )
 
 var sentry_extension sentryext.SentryExt
@@ -19,7 +20,7 @@ func init() {
 	sentry_extension = sentryext.SentryExt{NS: "sentry_"}
 
 	app, err := gobay.CreateApp(
-		"../../testdata",
+		"../../../testdata",
 		"testing",
 		map[gobay.Key]gobay.Extension{
 			"sentry": &sentry_extension,

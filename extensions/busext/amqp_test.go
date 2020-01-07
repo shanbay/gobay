@@ -19,7 +19,7 @@ func init() {
 	bus = BusExt{NS: "bus_"}
 
 	app, _ = gobay.CreateApp(
-		"../testdata",
+		"../../testdata",
 		"testing",
 		map[gobay.Key]gobay.Extension{
 			"bus": &bus,
