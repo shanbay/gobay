@@ -33,7 +33,7 @@ type recoveryAssertService struct {
 func init() {
 	sentry_extension = sentryext.SentryExt{NS: "sentry_"}
 	app, err := gobay.CreateApp(
-		"../../testdata",
+		"../../../testdata",
 		"testing",
 		map[gobay.Key]gobay.Extension{
 			"sentry": &sentry_extension,
