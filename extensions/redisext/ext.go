@@ -1,6 +1,7 @@
 package redisext
 
 import (
+	"fmt"
 	"errors"
 	"github.com/go-redis/redis"
 	"github.com/shanbay/gobay"
@@ -11,7 +12,7 @@ type RedisExt struct {
 	NS     string
 	app    *gobay.Application
 	prefix string
-	client *redis.Client
+	*redis.Client
 }
 
 var _ gobay.Extension = (*RedisExt)(nil)
@@ -27,28 +28,28 @@ func (c *RedisExt) Init(app *gobay.Application) error {
 	password := config.GetString("password")
 	dbNum := config.GetInt("db")
 	c.prefix = config.GetString("prefix")
-	c.client = redis.NewClient(&redis.Options{
+	c.Client = redis.NewClient(&redis.Options{
 		Addr:     host,
 		Password: password,
 		DB:       dbNum,
 	})
-	_, err := c.client.Ping().Result()
+	_, err := c.Client.Ping().Result()
 	return err
 }
 
 // Object return redis client
 func (c *RedisExt) Object() interface{} {
-	return c.client
+	return c
 }
 
 // AddPrefix add prefix to a key
 func (c *RedisExt) AddPrefix(key string) string {
-	return c.prefix + key
+	return fmt.Sprintf("%s.%s", c.prefix, key)
 }
 
 // Close close redis client
 func (c *RedisExt) Close() error {
-	return c.client.Close()
+	return c.Client.Close()
 }
 
 // Application
