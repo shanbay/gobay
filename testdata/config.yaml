@@ -46,6 +46,11 @@ defaults: &defaults
   cache_host: "127.0.0.1:6379"
   cache_password: ""
   cache_db: 3
+
+  redis_host: '127.0.0.1:6379'
+  redis_password: ''
+  redis_db: 0
+  redis_prefix: 'github-redis'
 testing:
   <<: *defaults
   db_driver: mysql
