@@ -10,6 +10,7 @@ import (
 type RedisExt struct {
 	NS     string
 	app    *gobay.Application
+	prefix string
 	client *redis.Client
 }
 
@@ -25,6 +26,7 @@ func (c *RedisExt) Init(app *gobay.Application) error {
 	host := config.GetString("host")
 	password := config.GetString("password")
 	dbNum := config.GetInt("db")
+	c.prefix = config.GetString("prefix")
 	c.client = redis.NewClient(&redis.Options{
 		Addr:     host,
 		Password: password,
@@ -37,6 +39,11 @@ func (c *RedisExt) Init(app *gobay.Application) error {
 // Object return redis client
 func (c *RedisExt) Object() interface{} {
 	return c.client
+}
+
+// AddPrefix add prefix to a key
+func (c *RedisExt) AddPrefix(key string) string {
+	return c.prefix + key
 }
 
 // Close close redis client
