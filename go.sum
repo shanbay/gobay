@@ -23,6 +23,7 @@ github.com/CloudyKit/fastprinter v0.0.0-20170127035650-74b38d55f37a/go.mod h1:EF
 github.com/CloudyKit/jet v2.1.3-0.20180809161101-62edd43e4f88+incompatible/go.mod h1:HPYO+50pSWkPoj9Q/eq0aRGByCL6ScRlUmiEX5Zgm+w=
 github.com/DATA-DOG/go-sqlmock v1.3.3 h1:CWUqKXe0s8A2z6qCgkP4Kru7wC11YoAnoupUKFDnH08=
 github.com/DATA-DOG/go-sqlmock v1.3.3/go.mod h1:f/Ixk793poVmq4qj/V1dPUg2JEAKC73Q5eFN3EC/SaM=
+github.com/DATA-DOG/godog v0.7.13/go.mod h1:z2OZ6a3X0/YAKVqLfVzYBwFt3j6uSt3Xrqa7XTtcQE0=
 github.com/Joker/hpp v1.0.0/go.mod h1:8x5n+M1Hp5hC0g8okX3sR3vFQwynaX/UgSOM9MeBKzY=
 github.com/Joker/jade v1.0.1-0.20190614124447-d475f43051e7/go.mod h1:6E6s8o2AE4KhCrqr6GRJjdC/gNfTdxkIXvuGZZda2VM=
 github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAElWljhcU=
@@ -81,6 +82,8 @@ github.com/dustin/go-humanize v1.0.0/go.mod h1:HtrtbFcZ19U5GC7JDqmcUSB87Iq5E25Kn
 github.com/eknkc/amber v0.0.0-20171010120322-cdade1c07385/go.mod h1:0vRUJqYpeSZifjYj7uP3BG/gKcuzL9xWVV/Y+cK33KM=
 github.com/elastic/go-sysinfo v1.0.1 h1:lzGPX2sIXaETeMXitXL2XZU8K4B7k7JBhIKWxdOdUt8=
 github.com/elastic/go-sysinfo v1.0.1/go.mod h1:O/D5m1VpYLwGjCYzEt63g3Z1uO3jXfwyzzjiW90t8cY=
+github.com/elastic/go-sysinfo v1.1.1 h1:ZVlaLDyhVkDfjwPGU55CQRCRolNpc7P0BbyhhQZQmMI=
+github.com/elastic/go-sysinfo v1.1.1/go.mod h1:i1ZYdU10oLNfRzq4vq62BEwD2fH8KaWh6eh0ikPT9F0=
 github.com/elastic/go-windows v1.0.0 h1:qLURgZFkkrYyTTkvYpsZIgf83AUsdIHfvlJaqaZ7aSY=
 github.com/elastic/go-windows v1.0.0/go.mod h1:TsU0Nrp7/y3+VwE82FoZF8gC/XFg/Elz6CcloAxnPgU=
 github.com/envoyproxy/go-control-plane v0.9.1-0.20191026205805-5f8ba28d4473/go.mod h1:YTl/9mNaCwkRvm6d1a2C3ymFceY/DCBVvsKhRF0iEA4=
@@ -435,12 +438,18 @@ github.com/yudai/golcs v0.0.0-20170316035057-ecda9a501e82/go.mod h1:lgjkn3NuSvDf
 github.com/yudai/pp v2.0.1+incompatible/go.mod h1:PuxR/8QJ7cyCkFp/aUDS+JY727OFEZkTdatxwunjIkc=
 go.elastic.co/apm v1.6.0 h1:RzyNj9Qx2iXh4A8DIg/aMUdtwGFNw3R8sKO3/Hf4pqk=
 go.elastic.co/apm v1.6.0/go.mod h1:/VByR6FBtuNu1YnPHz7Gri7YiIqAoFBGVp+2xkSE8tI=
+go.elastic.co/apm v1.7.0 h1:vd4ncfZ/Y2GIsWW7aFR4uQdqmfUbuHfUhglqOqEwrUI=
+go.elastic.co/apm v1.7.0/go.mod h1:IYfi/330rWC5Kfns1rM+kY+RPkIdgUziRF6Cbm9qlxQ=
 go.elastic.co/apm/module/apmgoredis v1.6.0 h1:E/4nyzB8yo1zX1BduAzFpvs/45fq8csMXZyYB+7d3A0=
 go.elastic.co/apm/module/apmgoredis v1.6.0/go.mod h1:2A858ngLiX0/IqNEPPLoUVXT5v527UK0MD7JMEVrWJM=
 go.elastic.co/apm/module/apmgrpc v1.6.0 h1:LRJO/C2yxCTKSr3FW/0TxLzBW68dBQNm8XX/cq53OdU=
 go.elastic.co/apm/module/apmgrpc v1.6.0/go.mod h1:OnV9gT0x24g6R7w/eHIS8CFgRgJGvNUWRIrS3Qtd4Jk=
+go.elastic.co/apm/module/apmgrpc v1.7.0 h1:CE6zLPSOdSOjcn7AEDJQAULOG2ZT7W+e0i4JzYLSgeY=
+go.elastic.co/apm/module/apmgrpc v1.7.0/go.mod h1:fCqPNInjmGPbjOLXMPrDsGP9Ks39rcg/RDILJtHPwEI=
 go.elastic.co/apm/module/apmhttp v1.6.0 h1:Y67VwDNnUyq4akeiem8Wtpb222RbZCRfY3FBI0swoJk=
 go.elastic.co/apm/module/apmhttp v1.6.0/go.mod h1:pf6GS5vDxdrSF0Qy6wESRBZCRZqATSZpr658ehD5QA4=
+go.elastic.co/apm/module/apmhttp v1.7.0 h1:dwUkUHlGR6W7FSAxdsZvO3tz+IaLxlXSnwH7ABahJdc=
+go.elastic.co/apm/module/apmhttp v1.7.0/go.mod h1:70/fYU6lgIII213g7As10lm2Ca/ZkGixeJBoyfrGKes=
 go.elastic.co/apm/module/apmsql v1.6.0 h1:0vMQDYFtA7G6QgGai38CmYY5ki9Q6g/ub/jCQp8/7qU=
 go.elastic.co/apm/module/apmsql v1.6.0/go.mod h1:cmMxjn6l+tjYM9+/sYnlhyGOFcj5Ye+P2NW2yslp/N8=
 go.elastic.co/fastjson v1.0.0 h1:ooXV/ABvf+tBul26jcVViPT3sBir0PvXgibYB1IQQzg=
@@ -549,6 +558,9 @@ golang.org/x/sys v0.0.0-20191008105621-543471e840be h1:QAcqgptGM8IQBC9K/RC4o+O9Y
 golang.org/x/sys v0.0.0-20191008105621-543471e840be/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20191020212454-3e7259c5e7c2 h1:nq114VpM8lsSlP+lyUbANecYHYiFcSNFtqcBlxRV+gA=
 golang.org/x/sys v0.0.0-20191020212454-3e7259c5e7c2/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
+golang.org/x/sys v0.0.0-20191025021431-6c3a3bfe00ae/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
+golang.org/x/sys v0.0.0-20191204072324-ce4227a45e2e h1:9vRrk9YW2BTzLP0VCB9ZDjU4cPqkg+IDWL7XgxA1yxQ=
+golang.org/x/sys v0.0.0-20191204072324-ce4227a45e2e/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/text v0.3.0/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=
 golang.org/x/text v0.3.1-0.20180807135948-17ff2d5776d2/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=
 golang.org/x/text v0.3.2 h1:tW2bmiBqwgJj/UpqtC8EpXEZVYOwU0yG4iWbprSVAcs=
