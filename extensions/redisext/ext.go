@@ -1,8 +1,9 @@
 package redisext
 
 import (
-	"fmt"
+	"context"
 	"errors"
+	"fmt"
 	"github.com/go-redis/redis"
 	"github.com/shanbay/gobay"
 )
@@ -55,4 +56,8 @@ func (c *RedisExt) Close() error {
 // Application
 func (c *RedisExt) Application() *gobay.Application {
 	return c.app
+}
+
+func (c *RedisExt) WithContext(ctx context.Context) *RedisExt {
+	return &RedisExt{NS: c.NS, app: c.app, prefix: c.prefix, Client: c.Client.WithContext(ctx)}
 }
