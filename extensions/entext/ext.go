@@ -65,3 +65,8 @@ func (d *EntExt) Init(app *gobay.Application) error {
 }
 
 func (d *EntExt) Close() error { return d.client.Close() }
+
+// DB 获取数据库，ent目前还不够完善，某些场景下还需要执行sql
+func (d *EntExt) DB() *sql.DB {
+	return d.drv.DB()
+}
