@@ -10,7 +10,7 @@ require (
 	github.com/go-redis/redis v6.15.6+incompatible
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/golang/protobuf v1.3.3
-	github.com/grpc-ecosystem/go-grpc-middleware v1.1.0
+	github.com/grpc-ecosystem/go-grpc-middleware v1.2.0
 	github.com/iancoleman/strcase v0.0.0-20191112232945-16388991a334
 	github.com/markbates/pkger v0.14.0
 	github.com/mattn/go-sqlite3 v1.13.0
@@ -22,8 +22,8 @@ require (
 	github.com/streadway/amqp v0.0.0-20190827072141-edfb9018d271
 	github.com/stretchr/testify v1.4.0
 	github.com/vmihailenco/msgpack v4.0.4+incompatible
-	go.elastic.co/apm/module/apmgoredis v1.7.0
 	go.elastic.co/apm v1.7.0
+	go.elastic.co/apm/module/apmgoredis v1.7.0
 	go.elastic.co/apm/module/apmgrpc v1.7.0
 	go.elastic.co/apm/module/apmsql v1.7.0
 	golang.org/x/net v0.0.0-20191014212845-da9a3fd4c582 // indirect
