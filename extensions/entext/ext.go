@@ -23,6 +23,10 @@ type EntExt struct {
 	NewClient func(interface{}) Client
 	Driver    func(dialect.Driver) interface{}
 
+	IsNotFound        func(error) bool
+	IsConstraintError func(error) bool
+	IsNotSingular     func(error) bool
+
 	drv    *entsql.Driver
 	client Client
 	app    *gobay.Application
