@@ -3,14 +3,8 @@ package ent_mw
 import (
 	"context"
 	"github.com/shanbay/gobay/extensions/entext"
+	gobay_grpc "github.com/shanbay/gobay/grpc"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-)
-
-var (
-	NotFoundError      = status.Error(codes.NotFound, "Not Found")
-	AlreadyExistsError = status.Error(codes.AlreadyExists, "Already Exists")
 )
 
 func GetEntUnaryMw(e *entext.EntExt) grpc.UnaryServerInterceptor {
@@ -18,10 +12,10 @@ func GetEntUnaryMw(e *entext.EntExt) grpc.UnaryServerInterceptor {
 		resp, rpcerr := handler(ctx, req)
 		err := rpcerr
 		if e.IsNotFound != nil && err != nil && e.IsNotFound(rpcerr) {
-			err = NotFoundError
+			err = gobay_grpc.NotFoundError
 		}
 		if e.IsConstraintFailure != nil && err != nil && e.IsConstraintFailure(rpcerr) {
-			err = AlreadyExistsError
+			err = gobay_grpc.AlreadyExistsError
 		}
 		return resp, err
 	}
@@ -32,10 +26,10 @@ func GetEntStreamMw(e *entext.EntExt) grpc.StreamServerInterceptor {
 		rpcerr := handler(srv, ss)
 		err := rpcerr
 		if e.IsNotFound != nil && e.IsNotFound(rpcerr) {
-			err = NotFoundError
+			err = gobay_grpc.NotFoundError
 		}
 		if e.IsConstraintFailure != nil && e.IsConstraintFailure(rpcerr) {
-			err = AlreadyExistsError
+			err = gobay_grpc.AlreadyExistsError
 		}
 		return err
 	}

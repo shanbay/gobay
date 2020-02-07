@@ -1,4 +1,4 @@
-package errors
+package gobay_grpc
 
 import (
 	"google.golang.org/grpc/codes"
@@ -6,5 +6,7 @@ import (
 )
 
 var (
-	BadRequestError = status.Error(codes.InvalidArgument, "Invalid Argument")
+	NotFoundError      = status.Error(codes.NotFound, "Not Found")
+	AlreadyExistsError = status.Error(codes.AlreadyExists, "Already Exists")
+	BadRequestError    = status.Error(codes.InvalidArgument, "Invalid Argument")
 )
