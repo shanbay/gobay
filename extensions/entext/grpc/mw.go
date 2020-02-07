@@ -25,10 +25,10 @@ func GetEntStreamMw(e *entext.EntExt) grpc.StreamServerInterceptor {
 	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 		rpcerr := handler(srv, ss)
 		err := rpcerr
-		if e.IsNotFound != nil && e.IsNotFound(rpcerr) {
+		if e.IsNotFound != nil && err != nil && e.IsNotFound(rpcerr) {
 			err = gobay_grpc.NotFoundError
 		}
-		if e.IsConstraintFailure != nil && e.IsConstraintFailure(rpcerr) {
+		if e.IsConstraintFailure != nil && err != nil && e.IsConstraintFailure(rpcerr) {
 			err = gobay_grpc.AlreadyExistsError
 		}
 		return err
