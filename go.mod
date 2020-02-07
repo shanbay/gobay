@@ -28,5 +28,5 @@ require (
 	go.elastic.co/apm/module/apmsql v1.7.0
 	golang.org/x/net v0.0.0-20191014212845-da9a3fd4c582 // indirect
 	google.golang.org/genproto v0.0.0-20191009194640-548a555dbc03 // indirect
-	google.golang.org/grpc v1.27.0
+	google.golang.org/grpc v1.27.1
 )
