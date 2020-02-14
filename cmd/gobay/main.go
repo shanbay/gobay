@@ -48,8 +48,8 @@ const (
 	RAW_TMPL_DIR             = "enttmpl"
 	DIRMODE      os.FileMode = os.ModeDir | 0755
 	FILEMODE     os.FileMode = 0644
-	DIRPREFIX                = "/actions/gobay/templates/"
-	TRIMPREFIX               = "github.com/shanbay/gobay:/actions/gobay/templates/"
+	DIRPREFIX                = "/cmd/gobay/templates/"
+	TRIMPREFIX               = "github.com/shanbay/gobay:/cmd/gobay/templates/"
 )
 
 func main() {

@@ -18,7 +18,7 @@ services:
   - redis-server
   - mysql
 before_script:
-  - go install github.com/golangci/golangci-lint/actions/golangci-lint
+  - go install github.com/golangci/golangci-lint/cmd/golangci-lint
   - mysql -e 'CREATE DATABASE gobay DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;'
 script:
   - golangci-lint run --timeout=3m --skip-dirs=testdata --tests=false
