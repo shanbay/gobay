@@ -1,10 +1,10 @@
 package appopenapi
 
 import (
+    // "log"
 	// "github.com/go-openapi/loads"
 	"github.com/shanbay/gobay"
 	// "github.com/shanbay/gobay/openapi"
-	// "github.com/sirupsen/logrus"
 
 	// "{{ $.Url }}/gen/openapi/restapi"
 	// "{{ $.Url }}/gen/openapi/restapi/operations"
@@ -29,7 +29,7 @@ func Serve(app *gobay.Application) error { return nil }
 // 	defer func() {
 // 		err := server.Shutdown()
 // 		if err != nil {
-// 			logrus.WithError(err).Fatalln("error when shutdown api server")
+// 			log.Fatalf("error when shutdown api server: %v\n", err)
 // 		}
 // 	}()
 // 

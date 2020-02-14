@@ -50,7 +50,7 @@ clean:
 BIN ?= app
 
 # app main source file
-BIN_SRC ?= cmd/app/main.go
+BIN_SRC ?= cmd/main.go
 
 # build/test environment tag
 GOBAY_ENV ?= development

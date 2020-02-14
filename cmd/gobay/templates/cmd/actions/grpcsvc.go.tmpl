@@ -1,8 +1,8 @@
-package cmd
+package actions
 
 import (
 	"github.com/shanbay/gobay"
-	log "github.com/sirupsen/logrus"
+	"log"
 	"github.com/spf13/cobra"
 
 	"{{ $.Url }}/app"
@@ -12,19 +12,19 @@ import (
 func RunGrpcSvc(cmd *cobra.Command, args []string) {
 	env, err := cmd.Flags().GetString("env")
 	if err != nil {
-		log.WithError(err).Fatalln("get env failed")
+		log.Fatalf("get env failed: %v\n", err)
 	}
 	root, err := cmd.Flags().GetString("root")
 	if err != nil {
-		log.WithError(err).Fatalln("get root failed")
+		log.Fatalf("get root failed: %v\n", err)
 	}
 
 	bapp, err := gobay.CreateApp(root, env, app.Extensions())
 	if err != nil {
-		log.Fatalln("app init failed\n", err)
+		log.Fatalf("app init failed: %v\n", err)
 	}
 	if err := appgrpc.Serve(bapp); err != nil {
-		log.Fatal("grpc serve failed\n", err)
+		log.Fatalf("grpc serve failed: %v\n", err)
 	}
 }
 
