@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	log "github.com/sirupsen/logrus"
+	"log"
 	"github.com/spf13/cobra"
 )
 
@@ -22,7 +22,7 @@ func Execute() {
 func init() {
 	curdir, err := os.Getwd()
 	if err != nil {
-		log.WithError(err).Fatalln("get work dir failed")
+		log.Fatalf("get work dir failed: %v\n", err)
 	}
 	rootCmd.PersistentFlags().String("env", os.Getenv("GOBAY_ENV"), "environment. eg: development, production")
 	rootCmd.PersistentFlags().String("root", curdir, "Project root path")
