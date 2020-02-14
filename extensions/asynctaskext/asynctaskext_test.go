@@ -31,7 +31,7 @@ func init() {
 }
 
 func TestPushConsume(t *testing.T) {
-	if err := task.RegisterWorkerHandler("add", TaskAdd); err != nil {
+	if err := task.RegisterWorkerHandlers(map[string]interface{}{"add": TaskAdd}); err != nil {
 		t.Error(err)
 	}
 	go func() {

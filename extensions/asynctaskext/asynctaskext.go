@@ -60,9 +60,9 @@ func (t *AsyncTaskExt) Close() error {
 	return nil
 }
 
-//RegisterWorkerHandler add task handler to worker to process task messages
-func (t *AsyncTaskExt) RegisterWorkerHandler(name string, handler interface{}) error {
-	return t.server.RegisterTask(name, handler)
+//RegisterWorkerHandlers add task handlers to worker to process task messages
+func (t *AsyncTaskExt) RegisterWorkerHandlers(handlers map[string]interface{}) error {
+	return t.server.RegisterTasks(handlers)
 }
 
 //StartWorker start a worker that consume task messages for queue
