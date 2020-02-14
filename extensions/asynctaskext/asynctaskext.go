@@ -15,11 +15,11 @@ import (
 )
 
 type AsyncTaskExt struct {
-	NS      string
-	app     *gobay.Application
-	config  *machineryConfig.Config
-	server  *machinery.Server
-	workers []*machinery.Worker
+	NS     string
+	app    *gobay.Application
+	config *machineryConfig.Config
+	server *machinery.Server
+	worker *machinery.Worker
 }
 
 func (t *AsyncTaskExt) Object() interface{} {
@@ -54,10 +54,13 @@ func (t *AsyncTaskExt) Init(app *gobay.Application) error {
 }
 
 func (t *AsyncTaskExt) Close() error {
-	for _, worker := range t.workers {
-		worker.Quit()
-	}
+	t.worker.Quit()
 	return nil
+}
+
+//RegisterWorkerHandler add task handler to worker to process task messages
+func (t *AsyncTaskExt) RegisterWorkerHandler(name string, handler interface{}) error {
+	return t.server.RegisterTask(name, handler)
 }
 
 //RegisterWorkerHandlers add task handlers to worker to process task messages
@@ -66,15 +69,13 @@ func (t *AsyncTaskExt) RegisterWorkerHandlers(handlers map[string]interface{}) e
 }
 
 //StartWorker start a worker that consume task messages for queue
-func (t *AsyncTaskExt) StartWorker(queue string) error {
+func (t *AsyncTaskExt) StartWorker(concurrency int) error {
 	hostName, err := os.Hostname()
 	if err != nil {
 		log.ERROR.Printf("get host name failed: %v", err)
 	}
-	worker := t.server.NewWorker(hostName, 0)
-	worker.Queue = queue
-	t.workers = append(t.workers, worker)
-	return worker.Launch()
+	t.worker = t.server.NewWorker(hostName, concurrency)
+	return t.worker.Launch()
 }
 
 //SendTask publish task messages to broker

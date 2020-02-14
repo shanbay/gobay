@@ -31,11 +31,14 @@ func init() {
 }
 
 func TestPushConsume(t *testing.T) {
-	if err := task.RegisterWorkerHandlers(map[string]interface{}{"add": TaskAdd}); err != nil {
+	if err := task.RegisterWorkerHandler("add", TaskAdd); err != nil {
+		t.Error(err)
+	}
+	if err := task.RegisterWorkerHandlers(map[string]interface{}{"add3": TaskAdd}); err != nil {
 		t.Error(err)
 	}
 	go func() {
-		if err := task.StartWorker("gobay.task"); err != nil {
+		if err := task.StartWorker(0); err != nil {
 			t.Error(err)
 		}
 	}()
