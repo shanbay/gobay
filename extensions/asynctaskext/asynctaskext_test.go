@@ -35,7 +35,8 @@ func TestPushConsume(t *testing.T) {
 		t.Error(err)
 	}
 	go func() {
-		if err := task.StartWorker("gobay.task_add", 1); err != nil {
+		// use default queue
+		if err := task.StartWorker("", 1); err != nil {
 			t.Error(err)
 		}
 	}()
@@ -48,8 +49,7 @@ func TestPushConsume(t *testing.T) {
 	signs := []*tasks.Signature{
 		{
 			Name: "add",
-			RoutingKey: "gobay.task_add",
-			Args: []tasks.Arg{
+			Args: []tasks.Arg{ // use default queue
 				{
 					Type:  "int64",
 					Value: 1,
@@ -65,7 +65,7 @@ func TestPushConsume(t *testing.T) {
 			},
 		},
 		{
-			Name: "sub",
+			Name:       "sub",
 			RoutingKey: "gobay.task_sub",
 			Args: []tasks.Arg{
 				{
@@ -79,7 +79,7 @@ func TestPushConsume(t *testing.T) {
 			},
 		},
 	}
-	for _, sign := range(signs) {
+	for _, sign := range signs {
 		if asyncResult, err := task.SendTask(sign); err != nil {
 			t.Error(err)
 		} else if results, err := asyncResult.Get(time.Millisecond * 5); err != nil {

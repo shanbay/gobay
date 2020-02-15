@@ -2,8 +2,8 @@ package asynctaskext
 
 import (
 	"errors"
-	"os"
 	"fmt"
+	"os"
 
 	"github.com/RichardKnop/machinery/v1"
 	"github.com/RichardKnop/machinery/v1/backends/result"
@@ -11,7 +11,6 @@ import (
 	"github.com/RichardKnop/machinery/v1/log"
 	"github.com/RichardKnop/machinery/v1/tasks"
 	"github.com/mitchellh/mapstructure"
-	uuid "github.com/satori/go.uuid"
 	"github.com/shanbay/gobay"
 )
 
@@ -61,6 +60,11 @@ func (t *AsyncTaskExt) Close() error {
 	return nil
 }
 
+//RegisterWorkerHandler add task handler to worker to process task messages
+func (t *AsyncTaskExt) RegisterWorkerHandler(name string, handler interface{}) error {
+	return t.server.RegisterTask(name, handler)
+}
+
 //RegisterWorkerHandlers add task handlers to worker to process task messages
 func (t *AsyncTaskExt) RegisterWorkerHandlers(handlers map[string]interface{}) error {
 	return t.server.RegisterTasks(handlers)
@@ -72,7 +76,10 @@ func (t *AsyncTaskExt) StartWorker(queue string, concurrency int) error {
 	if err != nil {
 		log.ERROR.Printf("get host name failed: %v", err)
 	}
-	tag := fmt.Sprintf("%s-%s@%s", queue, uuid.NewV4().String()[:6],hostName)
+	if queue == "" {
+		queue = t.config.DefaultQueue
+	}
+	tag := fmt.Sprintf("%s@%s", queue, hostName)
 	worker := t.server.NewWorker(tag, concurrency)
 	worker.Queue = queue
 	t.workers = append(t.workers, worker)
