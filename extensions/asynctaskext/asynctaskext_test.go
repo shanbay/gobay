@@ -31,40 +31,63 @@ func init() {
 }
 
 func TestPushConsume(t *testing.T) {
-	if err := task.RegisterWorkerHandler("add", TaskAdd); err != nil {
+	if err := task.RegisterWorkerHandlers(map[string]interface{}{"add": TaskAdd, "sub": TaskSub}); err != nil {
 		t.Error(err)
 	}
 	go func() {
-		if err := task.StartWorker("gobay.task"); err != nil {
+		if err := task.StartWorker("gobay.task_add"); err != nil {
+			t.Error(err)
+		}
+	}()
+	go func() {
+		if err := task.StartWorker("gobay.task_sub"); err != nil {
 			t.Error(err)
 		}
 	}()
 
-	sign := &tasks.Signature{
-		Name: "add",
-		Args: []tasks.Arg{
-			{
-				Type:  "int64",
-				Value: 1,
+	signs := []*tasks.Signature{
+		{
+			Name: "add",
+			RoutingKey: "gobay.task_add",
+			Args: []tasks.Arg{
+				{
+					Type:  "int64",
+					Value: 1,
+				},
+				{
+					Type:  "int64",
+					Value: 2,
+				},
+				{
+					Type:  "int64",
+					Value: 3,
+				},
 			},
-			{
-				Type:  "int64",
-				Value: 2,
-			},
-			{
-				Type:  "int64",
-				Value: 3,
+		},
+		{
+			Name: "sub",
+			RoutingKey: "gobay.task_sub",
+			Args: []tasks.Arg{
+				{
+					Type:  "int64",
+					Value: 7,
+				},
+				{
+					Type:  "int64",
+					Value: 1,
+				},
 			},
 		},
 	}
-	if asyncResult, err := task.SendTask(sign); err != nil {
-		t.Error(err)
-	} else if results, err := asyncResult.Get(time.Millisecond * 5); err != nil {
-		t.Error(err)
-	} else if res, ok := results[0].Interface().(int64); !ok || res != 6 {
-		t.Error("result error")
+	for _, sign := range(signs) {
+		if asyncResult, err := task.SendTask(sign); err != nil {
+			t.Error(err)
+		} else if results, err := asyncResult.Get(time.Millisecond * 5); err != nil {
+			t.Error(err)
+		} else if res, ok := results[0].Interface().(int64); !ok || res != 6 {
+			t.Error("result error")
+		}
 	}
-
 }
 func TaskAdd(args ...int64) (int64, error) {
 	sum := int64(0)
@@ -72,4 +95,8 @@ func TaskAdd(args ...int64) (int64, error) {
 		sum += arg
 	}
 	return sum, nil
+}
+
+func TaskSub(arg1, arg2 int64) (int64, error) {
+	return arg1 - arg2, nil
 }
