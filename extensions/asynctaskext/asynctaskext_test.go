@@ -35,12 +35,12 @@ func TestPushConsume(t *testing.T) {
 		t.Error(err)
 	}
 	go func() {
-		if err := task.StartWorker("gobay.task_add"); err != nil {
+		if err := task.StartWorker("gobay.task_add", 1); err != nil {
 			t.Error(err)
 		}
 	}()
 	go func() {
-		if err := task.StartWorker("gobay.task_sub"); err != nil {
+		if err := task.StartWorker("gobay.task_sub", 1); err != nil {
 			t.Error(err)
 		}
 	}()

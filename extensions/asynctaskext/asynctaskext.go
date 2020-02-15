@@ -67,13 +67,13 @@ func (t *AsyncTaskExt) RegisterWorkerHandlers(handlers map[string]interface{}) e
 }
 
 //StartWorker start a worker that consume task messages for queue
-func (t *AsyncTaskExt) StartWorker(queue string) error {
+func (t *AsyncTaskExt) StartWorker(queue string, concurrency int) error {
 	hostName, err := os.Hostname()
 	if err != nil {
 		log.ERROR.Printf("get host name failed: %v", err)
 	}
 	tag := fmt.Sprintf("%s-%s@%s", queue, uuid.NewV4().String()[:6],hostName)
-	worker := t.server.NewWorker(tag, 0)
+	worker := t.server.NewWorker(tag, concurrency)
 	worker.Queue = queue
 	t.workers = append(t.workers, worker)
 	return worker.Launch()
