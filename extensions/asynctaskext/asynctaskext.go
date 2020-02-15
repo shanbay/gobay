@@ -3,6 +3,7 @@ package asynctaskext
 import (
 	"errors"
 	"os"
+	"fmt"
 
 	"github.com/RichardKnop/machinery/v1"
 	"github.com/RichardKnop/machinery/v1/backends/result"
@@ -10,7 +11,7 @@ import (
 	"github.com/RichardKnop/machinery/v1/log"
 	"github.com/RichardKnop/machinery/v1/tasks"
 	"github.com/mitchellh/mapstructure"
-
+	uuid "github.com/satori/go.uuid"
 	"github.com/shanbay/gobay"
 )
 
@@ -71,7 +72,8 @@ func (t *AsyncTaskExt) StartWorker(queue string) error {
 	if err != nil {
 		log.ERROR.Printf("get host name failed: %v", err)
 	}
-	worker := t.server.NewWorker(hostName, 0)
+	tag := fmt.Sprintf("%s-%s@%s", queue, uuid.NewV4().String()[:6],hostName)
+	worker := t.server.NewWorker(tag, 0)
 	worker.Queue = queue
 	t.workers = append(t.workers, worker)
 	return worker.Launch()
