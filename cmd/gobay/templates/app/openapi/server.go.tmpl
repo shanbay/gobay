@@ -74,7 +74,7 @@ func Serve(app *gobay.Application) error {
 
 }
 
-func configureAPI(s *restapi.Server, api *operations.{{ $camelName }}API, impls *{{ toLowerCamel $.Name }}Server) {
+func configureAPI(s *restapi.Server, api *operations.{{ toCamel $.Name }}API, impls *{{ toLowerCamel $.Name }}Server) {
 	// 加载实现 server 的 api handler
 	// api.SvcExampleHandler = impls.svcExampleHandler()
 
