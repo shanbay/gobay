@@ -59,7 +59,7 @@ func (s *sentryErrorLogger) Print(v ...interface{}) {
 }
 func (s *sentryErrorLogger) Printf(format string, v ...interface{}) {
 	errLocation := getCaller()
-	s.captureCustomException(errLocation, v...)
+	s.captureCustomException(errLocation, fmt.Sprintf(format, v...))
 	logIfaces := append([]interface{}{errLocation}, v...)
 	s.logger.Printf("%s"+format, logIfaces...)
 }
@@ -78,7 +78,7 @@ func (s *sentryErrorLogger) Fatal(v ...interface{}) {
 }
 func (s *sentryErrorLogger) Fatalf(format string, v ...interface{}) {
 	errLocation := getCaller()
-	s.captureCustomException(errLocation, v...)
+	s.captureCustomException(errLocation, fmt.Sprintf(format, v...))
 	logIfaces := append([]interface{}{errLocation}, v...)
 	s.logger.Fatalf("%s"+format, logIfaces...)
 }
