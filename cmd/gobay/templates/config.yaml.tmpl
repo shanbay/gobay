@@ -1,6 +1,6 @@
 defaults: &defaults
   db_driver: mysql
-  db_url: 'root:@(mysql:3306)/{{ $.Name }}?charset=utf8mb4&parseTime=true&interpolateParams=true'
+  db_url: 'root:@(mysql:3306)/{{ $.Name }}?charset=utf8mb4&parseTime=true&loc=UTC&interpolateParams=true'
 
   redis_host: 'redis:6379'
   redis_password: ''

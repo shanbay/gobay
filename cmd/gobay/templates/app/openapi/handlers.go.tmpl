@@ -1,10 +1,15 @@
 package appopenapi
 
 import (
-	// "github.com/go-openapi/runtime/middleware"
+	"github.com/go-openapi/runtime/middleware"
 	"github.com/shanbay/gobay"
 )
 
 type {{ toLowerCamel $.Name }}Server struct {
 	app *gobay.Application
 }
+
+// func (s *{{ toLowerCamel $.Name }}Server) svcExampleHandler() svc.ExampleHandler {
+// 	return svc.ExampleHandlerFunc(func(params svc.ExampleParams) middleware.Responder {
+// 	})
+// }
