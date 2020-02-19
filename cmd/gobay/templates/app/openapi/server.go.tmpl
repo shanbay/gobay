@@ -76,7 +76,7 @@ func Serve(app *gobay.Application) error {
 
 func configureAPI(s *restapi.Server, api *operations.{{ toCamel $.Name }}API, impls *{{ toLowerCamel $.Name }}Server) {
 	// 加载实现 server 的 api handler
-	// api.SvcExampleHandler = impls.svcExampleHandler()
+	api.HealthHealthCheckHandler = impls.healthCheckHealthHandler()
 
 	gmw := openapi.ChainMiddlewares(
 	// The middleware configuration happens before anything, this middleware also applies to serving the swagger.json document.

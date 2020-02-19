@@ -13,3 +13,19 @@ schemes:
 basePath: 
 definitions:
 paths:
+  /health:
+    get:
+      tags:
+        - health
+      operationId: healthCheck
+      summary: API health check
+      parameters:
+        - in: query
+          name: type
+          type: string
+          enum: ["liveness", "readiness"]
+      responses:
+        "200":
+          description: Success
+        "404":
+          description: "unknown check type"

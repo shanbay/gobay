@@ -2,6 +2,7 @@ package appopenapi
 
 import (
 	"github.com/go-openapi/runtime/middleware"
+	"{{ $.Url }}/gen/openapi/restapi/operations/health"
 	"github.com/shanbay/gobay"
 )
 
@@ -9,7 +10,16 @@ type {{ toLowerCamel $.Name }}Server struct {
 	app *gobay.Application
 }
 
-// func (s *{{ toLowerCamel $.Name }}Server) svcExampleHandler() svc.ExampleHandler {
-// 	return svc.ExampleHandlerFunc(func(params svc.ExampleParams) middleware.Responder {
-// 	})
-// }
+func (s *{{ toLowerCamel $.Name }}Server) healthCheckHealthHandler() health.HealthCheckHandler {
+	return health.HealthCheckHandlerFunc(func(params health.HealthCheckParams) middleware.Responder {
+		if params.Type == nil {
+                        return health.NewHealthCheckNotFound()
+		}
+                check_type := *params.Type
+		if check_type == "liveness" || check_type == "readiness" {
+                        return health.NewHealthCheckOK()
+		} else {
+                        return health.NewHealthCheckNotFound()
+		}
+	})
+}
