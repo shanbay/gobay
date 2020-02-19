@@ -1,0 +1,79 @@
+package actions
+
+import (
+	"context"
+
+	"log"
+	"net/http"
+
+	"github.com/spf13/cobra"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/health/grpc_health_v1"
+)
+
+func checkRPCHealth(service string) {
+	conn, err := grpc.Dial("127.0.0.1:6000", grpc.WithInsecure(), grpc.WithBlock())
+	if err != nil {
+		log.Fatalf("did not connect: %v\n", err)
+	}
+	defer func() {
+		if e := conn.Close(); e != nil {
+			log.Printf("failed to close connection: %v\n", e)
+		}
+	}()
+	c := grpc_health_v1.NewHealthClient(conn)
+
+	res, err := c.Check(
+		context.Background(),
+		&grpc_health_v1.HealthCheckRequest{Service: service})
+	if err != nil {
+		log.Fatalf("get health heck res failed: %v\n", err)
+	}
+	if res.Status != grpc_health_v1.HealthCheckResponse_SERVING {
+		log.Fatalf(" health check response status error: %v\n", res.Status)
+	} else {
+		log.Println("health check response success")
+	}
+}
+
+func checkAPIHealth(service string) {
+	healthAPI := "http://127.0.0.1:5000/YourBasePath/health?type=" + service
+	req, _ := http.NewRequest("GET", healthAPI, nil)
+
+	var resp *http.Response
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Fatalf("did not connect: %v\n", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		log.Fatalf("health check response status error: %v\n", resp.Status)
+	} else {
+		log.Println("health check response success")
+	}
+}
+
+func CheckHealth(cmd *cobra.Command, args []string) {
+	service, err := cmd.Flags().GetString("service")
+	if err != nil {
+		log.Fatalf("get service failed: %v\n", err)
+	}
+	SvcType, _ := cmd.Flags().GetString("svc_type")
+	if SvcType == "httpsvc" {
+		checkAPIHealth(service)
+	} else if SvcType == "grpcsvc" {
+		checkRPCHealth(service)
+	} else {
+		log.Fatalln("unknown svc type!")
+	}
+}
+
+func init() {
+	cmd := &cobra.Command{
+		Use: "checkhealth",
+		Run: CheckHealth,
+	}
+	cmd.Flags().String("service", "readiness", "health check type")
+	cmd.Flags().String("svc_type", "grpcsvc", "health check svc type; httpsvc or grpcsvc")
+	rootCmd.AddCommand(cmd)
+}

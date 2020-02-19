@@ -14,9 +14,10 @@ import (
 	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	sentrygrpcmw "github.com/shanbay/gobay/sentryext/grpc"
+	sentrygrpcmw "github.com/shanbay/gobay/extensions/sentryext/grpc"
 	"go.elastic.co/apm/module/apmgrpc"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/health/grpc_health_v1"
 
 	myapp "{{ $.Url }}/app"
 )
@@ -86,4 +87,5 @@ func Serve(app *gobay.Application) error {
 func configureAPI(s *grpc.Server, impls *{{ toLowerCamel $.Name}}Server) {
 	// 加载实现 server 的 api handler
 	// protos.Register{{ toCamel $.Name }}Server(s, impls)
+	grpc_health_v1.RegisterHealthServer(s, impls)
 }
