@@ -26,10 +26,20 @@ defaults: &defaults
 
   grpc_listen_host: 0.0.0.0
   grpc_conn_timeout: 1s
+
+  asynctask_concurrency: 10
+  asynctask_broker: "redis://redis:6379/8"
+  asynctask_default_queue: "gobay.task"
+  asynctask_result_backend: "redis://redis:6379/8"
+  asynctask_results_expire_in: 600
+  asynctask_redis: {}
+
 development:
   <<: *defaults
 testing:
   <<: *defaults
+  asynctask_broker: "redis://redis:6379/0"
+  asynctask_result_backend: "redis://redis:6379/0"
 integration: &integration
   <<: *defaults
   elastic_apm_enable: true
