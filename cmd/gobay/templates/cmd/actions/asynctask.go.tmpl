@@ -1,0 +1,39 @@
+package actions
+
+import (
+	"log"
+
+	"github.com/shanbay/gobay"
+	"github.com/spf13/cobra"
+
+	"{{ $.Url }}/app"
+	"{{ $.Url }}/app/asynctask"
+)
+
+func RunAsyncTaskWorker(cmd *cobra.Command, args []string) {
+	env, err := cmd.Flags().GetString("env")
+	if err != nil {
+		log.Fatalf("get env failed: %v\n", err)
+	}
+	root, err := cmd.Flags().GetString("root")
+	if err != nil {
+		log.Fatalf("get root failed: %v\n", err)
+	}
+
+	bapp, err := gobay.CreateApp(root, env, app.Extensions())
+	if err != nil {
+		log.Fatalln("app init failed\n", err)
+	}
+	defer bapp.Close()
+	if err := asynctask.Serve(bapp); err != nil {
+		log.Fatal("grpc serve failed\n", err)
+	}
+}
+
+func init() {
+	cmd := &cobra.Command{
+		Use: "asynctask",
+		Run: RunAsyncTaskWorker,
+	}
+	rootCmd.AddCommand(cmd)
+}

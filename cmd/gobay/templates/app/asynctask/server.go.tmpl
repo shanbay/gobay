@@ -1,0 +1,24 @@
+package asynctask
+
+import (
+	myapp "{{ $.Url }}/app"
+	"github.com/shanbay/gobay"
+)
+
+func Serve(app *gobay.Application) error {
+	myapp.InitExts(app)
+	RegisterAsyncTaskWorkerHandlers()
+
+	if err := myapp.AsyncTask.StartWorker("", 10); err != nil {
+		return err
+	}
+	return nil
+}
+
+func RegisterAsyncTaskWorkerHandlers() {
+	if err := myapp.AsyncTask.RegisterWorkerHandlers(map[string]interface{}{
+		// "ExampleTask": ExampleTask,
+	}); err != nil {
+		panic(err)
+	}
+}
