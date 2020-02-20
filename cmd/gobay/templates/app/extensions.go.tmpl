@@ -7,7 +7,9 @@ import (
 	"github.com/go-redis/redis"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/shanbay/gobay"
+{{- if not $.SkipAsyncTask }}
 	"github.com/shanbay/gobay/extensions/asynctaskext"
+{{- end }}
 	"github.com/shanbay/gobay/extensions/cachext"
 	_ "github.com/shanbay/gobay/extensions/cachext/backend/redis"
 	"github.com/shanbay/gobay/extensions/entext"
@@ -36,7 +38,9 @@ func Extensions() map[gobay.Key]gobay.Extension {
 			// 	return schema.Driver(drv)
 			// },
 		},
+{{- if not $.SkipAsyncTask }}
 		"asyncTask": &asynctaskext.AsyncTaskExt{NS: "asynctask_"},
+{{- end }}
 	}
 }
 
@@ -46,7 +50,9 @@ var (
 	Sentry    *sentryext.SentryExt
 	Cache     *cachext.CacheExt
 	ApmTracer *apm.Tracer
+{{- if not $.SkipAsyncTask }}
 	AsyncTask *asynctaskext.AsyncTaskExt
+{{- end }}
 	// EntClient *schema.Client
 )
 
@@ -57,7 +63,9 @@ func InitExts(app *gobay.Application) {
 	Sentry = app.Get("sentry").Object().(*sentryext.SentryExt)
 	Cache = app.Get("cache").Object().(*cachext.CacheExt)
 	ApmTracer = app.Get("apm").Object().(*apm.Tracer)
+{{- if not $.SkipAsyncTask }}
 	AsyncTask = app.Get("asyncTask").Object().(*asynctaskext.AsyncTaskExt)
+{{- end }}
 }
 
 func GetApmCache(ctx context.Context) *cachext.CacheExt {
