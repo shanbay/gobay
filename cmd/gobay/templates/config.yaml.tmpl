@@ -15,8 +15,10 @@ defaults: &defaults
   seqgen_sequence_base: 0
   seqgen_sequence_key: '{{ $.Name }}:global_id'
 
+{{- if not $.SkipSentry }}
   sentry_dsn: ''
   sentry_environment: 'development'
+{{- end }}
 
   elastic_apm_service_name: '{{ $.Name }}-rpc-go'
   elastic_apm_service_version: '1'
@@ -48,8 +50,10 @@ integration: &integration
   elastic_apm_enable: true
   redis_host: ${REDIS_HOST}
   redis_password: ${REDIS_PASSWORD}
+{{- if not $.SkipSentry }}
   sentry_dsn: ${SENTRY_DSN}
   sentry_environment: ${SENTRY_ENVIRONMENT}
+{{- end }}
   cache_host: ${CACHE_HOST}
   cache_password: ${CACHE_PASSWORD}
   db_url: ${DB_URL}

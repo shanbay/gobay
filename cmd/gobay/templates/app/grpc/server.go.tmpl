@@ -14,7 +14,9 @@ import (
 	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+{{- if not $.SkipSentry }}
 	sentrygrpcmw "github.com/shanbay/gobay/extensions/sentryext/grpc"
+{{- end }}
 	"go.elastic.co/apm/module/apmgrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health/grpc_health_v1"
@@ -35,7 +37,9 @@ func Serve(app *gobay.Application) error {
 
 	// 构建 gprc server的参数，包括 连接超时、middleware 等等
 	unaryInterceptors := []grpc.UnaryServerInterceptor{
+{{- if not $.SkipSentry }}
 		grpc_recovery.UnaryServerInterceptor(sentrygrpcmw.GetOption(myapp.Sentry)),
+{{- end }}
 		grpc_prometheus.UnaryServerInterceptor,
 	}
 	if config.GetBool("elastic_apm_enable") {
