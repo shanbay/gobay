@@ -1,3 +1,4 @@
+{{- if not $.SkipAsyncTask }}
 package asynctask
 
 import (
@@ -22,3 +23,4 @@ func RegisterAsyncTaskWorkerHandlers() {
 		panic(err)
 	}
 }
+{{- end }}

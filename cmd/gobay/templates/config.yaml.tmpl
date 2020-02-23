@@ -6,17 +6,21 @@ defaults: &defaults
   redis_password: ''
   redis_db: 0
 
+{{- if not $.SkipCache }}
   cache_backend: 'redis'
   cache_prefix: '{{ $.Name }}'
   cache_host: 'redis:6379'
   cache_password: ''
   cache_db: 0
+{{- end }}
 
   seqgen_sequence_base: 0
   seqgen_sequence_key: '{{ $.Name }}:global_id'
 
+{{- if not $.SkipSentry }}
   sentry_dsn: ''
   sentry_environment: 'development'
+{{- end }}
 
   elastic_apm_service_name: '{{ $.Name }}-rpc-go'
   elastic_apm_service_version: '1'
@@ -27,27 +31,35 @@ defaults: &defaults
   grpc_listen_host: 0.0.0.0
   grpc_conn_timeout: 1s
 
+{{- if not $.SkipAsyncTask }}
   asynctask_broker: "redis://redis:6379/8"
   asynctask_default_queue: "gobay.task"
   asynctask_result_backend: "redis://redis:6379/8"
   asynctask_results_expire_in: 600
   asynctask_redis: {}
+{{- end }}
 
 development:
   <<: *defaults
 testing:
   <<: *defaults
+{{- if not $.SkipAsyncTask }}
   asynctask_broker: "redis://redis:6379/0"
   asynctask_result_backend: "redis://redis:6379/0"
+{{- end }}
 integration: &integration
   <<: *defaults
   elastic_apm_enable: true
   redis_host: ${REDIS_HOST}
   redis_password: ${REDIS_PASSWORD}
+{{- if not $.SkipSentry }}
   sentry_dsn: ${SENTRY_DSN}
   sentry_environment: ${SENTRY_ENVIRONMENT}
+{{- end }}
+{{- if not $.SkipCache }}
   cache_host: ${CACHE_HOST}
   cache_password: ${CACHE_PASSWORD}
+{{- end }}
   db_url: ${DB_URL}
 staging: &staging
   <<: *integration

@@ -1,3 +1,4 @@
+{{- if not $.SkipAsyncTask }}
 package asynctask
 
 // import (
@@ -7,3 +8,4 @@ package asynctask
 // func ExampleTask(ctx context.Context, p params) error {
 // 	return nil
 // }
+{{- end }}

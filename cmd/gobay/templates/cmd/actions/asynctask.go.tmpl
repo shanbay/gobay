@@ -1,3 +1,4 @@
+{{- if not $.SkipAsyncTask }}
 package actions
 
 import (
@@ -37,3 +38,4 @@ func init() {
 	}
 	rootCmd.AddCommand(cmd)
 }
+{{- end }}
