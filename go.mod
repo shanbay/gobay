@@ -23,7 +23,7 @@ require (
 	github.com/vmihailenco/msgpack v4.0.4+incompatible
 	go.elastic.co/apm v1.7.0
 	go.elastic.co/apm/module/apmgoredis v1.7.0
-	go.elastic.co/apm/module/apmgrpc v1.7.0
+	go.elastic.co/apm/module/apmgrpc v1.7.1
 	go.elastic.co/apm/module/apmsql v1.7.0
 	golang.org/x/net v0.0.0-20191014212845-da9a3fd4c582 // indirect
 	google.golang.org/genproto v0.0.0-20191009194640-548a555dbc03 // indirect
