@@ -229,14 +229,10 @@ profile_all_stop: \
 STYLE_CHECK_DIRS = app cmd lib test
 
 fmt:
-	gofmt -d -s -w $(STYLE_CHECK_DIRS)
-
-style_check: $(DIR_TEST)
-	gofmt -s -e -d $(STYLE_CHECK_DIRS) | tee $(DIR_TEST)/fmt.out
-	grep -q 'diff' $(DIR_TEST)/fmt.out; test $$? -eq 1
+	$(GOFMT) -d -s -w $(STYLE_CHECK_DIRS)
 
 lint:
-	$(GOCI) run --skip-dirs=gen --tests=false
+	$(GOCI) run --skip-dirs=gen --tests=false --enable golint
 	swagger validate  $(SWAGGER_SPEC)
 
 #
