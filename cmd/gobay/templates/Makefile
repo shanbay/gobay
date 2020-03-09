@@ -223,16 +223,16 @@ profile_all_stop: \
 # Format
 #
 
-.PHONY: fmt style_check
+.PHONY: fmt lint
 
 # check code style in these directories
-STYLE_CHECK_DIRS = app cmd lib test
+FMT_DIRS = app cmd lib test
 
 fmt:
-	$(GOFMT) -d -s -w $(STYLE_CHECK_DIRS)
+	$(GOFMT) -d -s -w $(FMT_DIRS)
 
 lint:
-	$(GOCI) run --skip-dirs=gen --tests=false --enable golint
+	$(GOCI) run
 	swagger validate  $(SWAGGER_SPEC)
 
 #

@@ -76,10 +76,6 @@ debug模式运行代码
 
 format代码
 
-### make style_check
-
-代码格式检查
-
 ### make lint
 
 lint检查
