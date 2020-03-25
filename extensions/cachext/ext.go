@@ -32,17 +32,16 @@ var (
 
 type CacheBackend interface {
 	Init(*viper.Viper) error
-	Get(key string) ([]byte, error) // if record not exist, return (nil, nil)
-	Set(key string, value []byte, ttl time.Duration) error
-	SetMany(keyValues map[string][]byte, ttl time.Duration) error
-	GetMany(keys []string) [][]byte // if record not exist, use nil instead
-	Delete(key string) bool
-	DeleteMany(keys []string) bool
-	Expire(key string, ttl time.Duration) bool
-	TTL(key string) time.Duration
-	Exists(key string) bool
+	Get(context.Context, string) ([]byte, error) // if record not exist, return (nil, nil)
+	Set(context.Context, string, []byte, time.Duration) error
+	SetMany(context.Context, map[string][]byte, time.Duration) error
+	GetMany(context.Context, []string) [][]byte // if record not exist, use nil instead
+	Delete(context.Context, string) bool
+	DeleteMany(context.Context, []string) bool
+	Expire(context.Context, string, time.Duration) bool
+	TTL(context.Context, string) time.Duration
+	Exists(context.Context, string) bool
 	Close() error
-	WithContext(context.Context) CacheBackend
 }
 
 // Init init a cache extension
@@ -98,19 +97,6 @@ func (c *CacheExt) Object() interface{} {
 	return c
 }
 
-// WithContext used to allow mock
-func (c *CacheExt) WithContext(ctx context.Context) *CacheExt {
-	return &CacheExt{
-		NS:             c.NS,
-		app:            c.app,
-		backend:        c.backend.WithContext(ctx),
-		prefix:         c.prefix,
-		initialized:    c.initialized,
-		cachedFuncName: c.cachedFuncName,
-		enableApm:      c.enableApm,
-	}
-}
-
 // Application
 func (c *CacheExt) Application() *gobay.Application {
 	return c.app
@@ -121,9 +107,9 @@ func (c *CacheExt) transKey(key string) string {
 }
 
 // Get
-func (c *CacheExt) Get(key string, m interface{}) (bool, error) {
+func (c *CacheExt) Get(ctx context.Context, key string, m interface{}) (bool, error) {
 	transedKey := c.transKey(key)
-	data, err := c.backend.Get(transedKey)
+	data, err := c.backend.Get(ctx, transedKey)
 	if data == nil {
 		return false, err
 	}
@@ -131,17 +117,17 @@ func (c *CacheExt) Get(key string, m interface{}) (bool, error) {
 }
 
 // Set
-func (c *CacheExt) Set(key string, value interface{}, ttl time.Duration) error {
+func (c *CacheExt) Set(ctx context.Context, key string, value interface{}, ttl time.Duration) error {
 	transedKey := c.transKey(key)
 	encodedValue, err := encode(value)
 	if err != nil {
 		return err
 	}
-	return c.backend.Set(transedKey, encodedValue, ttl)
+	return c.backend.Set(ctx, transedKey, encodedValue, ttl)
 }
 
 // SetMany
-func (c *CacheExt) SetMany(keyValues map[string]interface{}, ttl time.Duration) error {
+func (c *CacheExt) SetMany(ctx context.Context, keyValues map[string]interface{}, ttl time.Duration) error {
 	transedMap := make(map[string][]byte)
 	for key, value := range keyValues {
 		if encodedValue, err := encode(value); err != nil {
@@ -150,11 +136,11 @@ func (c *CacheExt) SetMany(keyValues map[string]interface{}, ttl time.Duration) 
 			transedMap[c.transKey(key)] = encodedValue
 		}
 	}
-	return c.backend.SetMany(transedMap, ttl)
+	return c.backend.SetMany(ctx, transedMap, ttl)
 }
 
 // GetMany out map[string]*someStruct
-func (c *CacheExt) GetMany(out map[string]interface{}) error {
+func (c *CacheExt) GetMany(ctx context.Context, out map[string]interface{}) error {
 	transedKeys := []string{}
 	transedKey2key := make(map[string]string)
 	for key := range out {
@@ -162,7 +148,7 @@ func (c *CacheExt) GetMany(out map[string]interface{}) error {
 		transedKeys = append(transedKeys, transedKey)
 		transedKey2key[transedKey] = key
 	}
-	for i, value := range c.backend.GetMany(transedKeys) {
+	for i, value := range c.backend.GetMany(ctx, transedKeys) {
 		key := transedKey2key[transedKeys[i]]
 		if value != nil {
 			if err := decode(value, out[key]); err != nil {
@@ -174,32 +160,32 @@ func (c *CacheExt) GetMany(out map[string]interface{}) error {
 }
 
 // Delete
-func (c *CacheExt) Delete(key string) bool {
-	return c.backend.Delete(c.transKey(key))
+func (c *CacheExt) Delete(ctx context.Context, key string) bool {
+	return c.backend.Delete(ctx, c.transKey(key))
 }
 
 // DeleteMany
-func (c *CacheExt) DeleteMany(keys ...string) bool {
+func (c *CacheExt) DeleteMany(ctx context.Context, keys ...string) bool {
 	transedKeys := make([]string, len(keys))
 	for i, key := range keys {
 		transedKeys[i] = c.transKey(key)
 	}
-	return c.backend.DeleteMany(transedKeys)
+	return c.backend.DeleteMany(ctx, transedKeys)
 }
 
 // Expire
-func (c *CacheExt) Expire(key string, ttl time.Duration) bool {
-	return c.backend.Expire(c.transKey(key), ttl)
+func (c *CacheExt) Expire(ctx context.Context, key string, ttl time.Duration) bool {
+	return c.backend.Expire(ctx, c.transKey(key), ttl)
 }
 
 // TTL
-func (c *CacheExt) TTL(key string) time.Duration {
-	return c.backend.TTL(c.transKey(key))
+func (c *CacheExt) TTL(ctx context.Context, key string) time.Duration {
+	return c.backend.TTL(ctx, c.transKey(key))
 }
 
 // Exists
-func (c *CacheExt) Exists(key string) bool {
-	return c.backend.Exists(c.transKey(key))
+func (c *CacheExt) Exists(ctx context.Context, key string) bool {
+	return c.backend.Exists(ctx, c.transKey(key))
 }
 
 func encode(value interface{}) ([]byte, error) {
