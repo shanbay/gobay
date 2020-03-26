@@ -13,7 +13,7 @@ require (
 	github.com/golang/protobuf v1.3.4
 	github.com/grpc-ecosystem/go-grpc-middleware v1.2.0
 	github.com/iancoleman/strcase v0.0.0-20191112232945-16388991a334
-	github.com/markbates/pkger v0.14.1
+	github.com/markbates/pkger v0.15.0
 	github.com/mattn/go-sqlite3 v1.13.0
 	github.com/mitchellh/mapstructure v1.1.2
 	github.com/satori/go.uuid v1.2.0
