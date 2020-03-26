@@ -23,10 +23,10 @@ func ExampleCacheExt_Set() {
 	}
 
 	var key = "cache_key"
-	err := cache.Set(key, "hello", 10*time.Second)
+	err := cache.Set(context.Background(), key, "hello", 10*time.Second)
 	fmt.Println(err)
 	var res string
-	exists, err := cache.Get(key, &res)
+	exists, err := cache.Get(context.Background(), key, &res)
 	fmt.Println(exists, res, err)
 	// Output:
 	// <nil>
@@ -83,7 +83,7 @@ func ExampleCacheExt_SetMany() {
 	many_map := make(map[string]interface{})
 	many_map["1"] = "hello"
 	many_map["2"] = []bool{true, true}
-	err := cache.SetMany(many_map, 10*time.Second)
+	err := cache.SetMany(context.Background(), many_map, 10*time.Second)
 	fmt.Println(err)
 
 	many_res := make(map[string]interface{})
@@ -92,7 +92,7 @@ func ExampleCacheExt_SetMany() {
 	val2 := []bool{}
 	many_res["1"] = &str1
 	many_res["2"] = &val2
-	err = cache.GetMany(many_res)
+	err = cache.GetMany(context.Background(), many_res)
 	fmt.Println(err, *(many_res["1"].(*string)), *(many_res["2"].(*[]bool)))
 	// Output: <nil>
 	// <nil> hello [true true]
@@ -109,11 +109,11 @@ func TestCacheExt_Operation(t *testing.T) {
 	}
 
 	// Get Set
-	if err := cache.Set("cache_key_1", "100", 10*time.Second); err != nil {
+	if err := cache.Set(context.Background(), "cache_key_1", "100", 10*time.Second); err != nil {
 		t.Errorf("Cache Set Key Failed")
 	}
 	var cache_val string
-	if exists, err := cache.Get("cache_key_1", &cache_val); exists == false || err != nil || cache_val != "100" {
+	if exists, err := cache.Get(context.Background(), "cache_key_1", &cache_val); exists == false || err != nil || cache_val != "100" {
 		t.Log(exists, cache_val, err)
 		t.Errorf("Cache Get Key Failed")
 	}
@@ -131,12 +131,12 @@ func TestCacheExt_Operation(t *testing.T) {
 	mydata.Value1 = 100
 	mydata.Value2 = "thre si a verty conplex data {}{}"
 	mydata.Value3 = []node{node{"这是第一个node", []string{"id1", "id2", "id3"}}, node{"这是第二个node", []string{"id4", "id5", "id6"}}}
-	if err := cache.Set("cache_key_2", mydata, 10*time.Second); err != nil {
+	if err := cache.Set(context.Background(), "cache_key_2", mydata, 10*time.Second); err != nil {
 		t.Log(err)
 		t.Errorf("Cache Set Failed")
 	}
 	val := &myData{}
-	if exist, err := cache.Get("cache_key_2", val); (*val).Value2 != mydata.Value2 || err != nil || exist == false {
+	if exist, err := cache.Get(context.Background(), "cache_key_2", val); (*val).Value2 != mydata.Value2 || err != nil || exist == false {
 		t.Log(exist, err, *val)
 		t.Errorf("Cache Get Failed")
 	}
@@ -145,7 +145,7 @@ func TestCacheExt_Operation(t *testing.T) {
 	many_map["m1"] = "hello"
 	many_map["m2"] = "100"
 	many_map["m3"] = "true"
-	if err := cache.SetMany(many_map, 10*time.Second); err != nil {
+	if err := cache.SetMany(context.Background(), many_map, 10*time.Second); err != nil {
 		t.Log(err)
 		t.Errorf("Cache SetMany Failed")
 	}
@@ -156,7 +156,7 @@ func TestCacheExt_Operation(t *testing.T) {
 	many_res["m1"] = &str1
 	many_res["m2"] = &str2
 	many_res["m3"] = &str3
-	if err := cache.GetMany(many_res); err != nil ||
+	if err := cache.GetMany(context.Background(), many_res); err != nil ||
 		*(many_res["m1"].(*string)) != "hello" ||
 		*(many_res["m2"].(*string)) != "100" ||
 		*(many_res["m3"].(*string)) != "true" {
@@ -164,59 +164,59 @@ func TestCacheExt_Operation(t *testing.T) {
 		t.Errorf("Cache GetMany Failed")
 	}
 	// Delete Exists
-	if err := cache.Set("cache_key_3", "golang", 10*time.Second); err != nil {
+	if err := cache.Set(context.Background(), "cache_key_3", "golang", 10*time.Second); err != nil {
 		t.Errorf("Cache set Failed")
 	}
-	if err := cache.Set("cache_key_4", "gobay", 10*time.Second); err != nil {
+	if err := cache.Set(context.Background(), "cache_key_4", "gobay", 10*time.Second); err != nil {
 		t.Errorf("Cache set Failed")
 	}
-	if res := cache.Exists("cache_key_3"); res != true {
+	if res := cache.Exists(context.Background(), "cache_key_3"); res != true {
 		t.Log(res)
 		t.Errorf("Cache Exists Failed")
 	}
-	if res := cache.Delete("cache_key_3"); res != true {
+	if res := cache.Delete(context.Background(), "cache_key_3"); res != true {
 		t.Log(res)
 		t.Errorf("Cache Delete Failed")
 	}
-	if res := cache.Exists("cache_key_3"); res != false {
+	if res := cache.Exists(context.Background(), "cache_key_3"); res != false {
 		t.Log(res)
 		t.Errorf("Cache Exists Failed")
 	}
-	if res := cache.Delete("cache_key_3"); res != false {
+	if res := cache.Delete(context.Background(), "cache_key_3"); res != false {
 		t.Log(res)
 		t.Errorf("Cache Delete Failed")
 	}
 	// DeleteMany
 	keys := []string{"cache_key_3", "cache_key_4"}
-	if res := cache.Exists("cache_key_4"); res != true {
+	if res := cache.Exists(context.Background(), "cache_key_4"); res != true {
 		t.Log(res)
 		t.Errorf("Cache Exists Failed")
 	}
-	if res := cache.DeleteMany(keys...); res != true {
+	if res := cache.DeleteMany(context.Background(), keys...); res != true {
 		t.Log(res)
 		t.Errorf("Cache DeleteMany Failed")
 	}
-	if res := cache.Exists("cache_key_4"); res != false {
+	if res := cache.Exists(context.Background(), "cache_key_4"); res != false {
 		t.Log(res)
 		t.Errorf("Cache Exists Failed")
 	}
-	if res := cache.DeleteMany(keys...); res != false {
+	if res := cache.DeleteMany(context.Background(), keys...); res != false {
 		t.Log(res)
 		t.Errorf("Cache DeleteMany Failed")
 	}
 	// Expire TTL
-	if err := cache.Set("cache_key_4", "hello", 10*time.Second); err != nil {
+	if err := cache.Set(context.Background(), "cache_key_4", "hello", 10*time.Second); err != nil {
 		t.Errorf("Cache set Failed")
 	}
-	if res := cache.TTL("cache_key_4"); res < 9*time.Second || res > 10*time.Second {
+	if res := cache.TTL(context.Background(), "cache_key_4"); res < 9*time.Second || res > 10*time.Second {
 		t.Log(res)
 		t.Errorf("Cache TTL Failed")
 	}
-	if res := cache.Expire("cache_key_4", 20*time.Second); res != true {
+	if res := cache.Expire(context.Background(), "cache_key_4", 20*time.Second); res != true {
 		t.Log(res)
 		t.Errorf("Cache Expire Failed")
 	}
-	if res := cache.TTL("cache_key_4"); res < 19*time.Second || res > 20*time.Second {
+	if res := cache.TTL(context.Background(), "cache_key_4"); res < 19*time.Second || res > 20*time.Second {
 		t.Log(res)
 		t.Errorf("Cache TTL Failed")
 	}
@@ -245,7 +245,7 @@ func TestCacheExt_Cached_Common(t *testing.T) {
 	}
 	c_f_strs := cache.Cached("f_strs", f_strs, cachext.WithTTL(10*time.Second))
 	cache_key := c_f_strs.MakeCacheKey([]string{"hello", "world"}, []int64{12})
-	cache.Delete(cache_key)
+	cache.Delete(context.Background(), cache_key)
 	call_times = 0
 	str_list := make([]string, 2)
 
@@ -261,7 +261,7 @@ func TestCacheExt_Cached_Common(t *testing.T) {
 		t.Errorf("Cache str_list failed")
 	}
 	// make cache key
-	cache.Delete(cache_key)
+	cache.Delete(context.Background(), cache_key)
 	if err := c_f_strs.GetResult(context.Background(), &str_list, []string{"hello", "world"}, []int64{12}); call_times != 2 {
 		t.Log(str_list, err, call_times)
 		t.Errorf("Cache str_list failed")
@@ -480,7 +480,7 @@ func Benchmark_SetMany(b *testing.B) {
 	many_map["4"].(map[string]int)["2"] = 900
 	many_map["4"].(map[string]int)["3"] = 1200
 	for i := 0; i < b.N; i++ {
-		err := cache.SetMany(many_map, 10*time.Second)
+		err := cache.SetMany(context.Background(), many_map, 10*time.Second)
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -506,7 +506,7 @@ func Benchmark_GetMany(b *testing.B) {
 	many_map["6"].(map[string]int)["1"] = 200
 	many_map["6"].(map[string]int)["2"] = 900
 	many_map["6"].(map[string]int)["3"] = 1200
-	if err := cache.SetMany(many_map, 10*time.Second); err != nil {
+	if err := cache.SetMany(context.Background(), many_map, 10*time.Second); err != nil {
 		fmt.Println(err)
 	}
 	for i := 0; i < b.N; i++ {
@@ -524,7 +524,7 @@ func Benchmark_GetMany(b *testing.B) {
 		many_res["5"] = &val5
 		val6 := make(map[string]interface{})
 		many_res["6"] = &val6
-		if err := cache.GetMany(many_res); err != nil {
+		if err := cache.GetMany(context.Background(), many_res); err != nil {
 			fmt.Println(err)
 		}
 	}
