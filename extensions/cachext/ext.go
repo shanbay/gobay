@@ -21,7 +21,6 @@ type CacheExt struct {
 	prefix         string
 	initialized    bool
 	cachedFuncName map[string]void
-	enableApm      bool
 }
 
 var (
@@ -47,7 +46,7 @@ type CacheBackend interface {
 // Init init a cache extension
 func (c *CacheExt) Init(app *gobay.Application) error {
 	if c.NS == "" {
-		return errors.New("lack of NS")
+		return errors.New("cachext: lack of NS")
 	}
 	mu.Lock()
 	defer mu.Unlock()
@@ -58,7 +57,6 @@ func (c *CacheExt) Init(app *gobay.Application) error {
 	c.app = app
 	c.cachedFuncName = make(map[string]void)
 	config := app.Config()
-	c.enableApm = config.GetBool("elastic_apm_enable")
 	config = gobay.GetConfigByPrefix(config, c.NS, true)
 	c.prefix = config.GetString("prefix")
 	backendConfig := config.GetString("backend")
