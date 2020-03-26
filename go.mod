@@ -7,7 +7,7 @@ require (
 	github.com/RichardKnop/machinery v1.7.3
 	github.com/facebookincubator/ent v0.0.0-20191218131918-1bbe460259f9
 	github.com/getsentry/sentry-go v0.5.1
-	github.com/go-openapi/runtime v0.19.12
+	github.com/go-openapi/runtime v0.19.14
 	github.com/go-redis/redis v6.15.7+incompatible
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/golang/protobuf v1.3.5
