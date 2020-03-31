@@ -75,7 +75,3 @@ func InitExts(app *gobay.Application) {
 	AsyncTask = app.Get("asyncTask").Object().(*asynctaskext.AsyncTaskExt)
 {{- end }}
 }
-
-func GetApmCache(ctx context.Context) *cachext.CacheExt {
-	return Cache.WithContext(ctx)
-}

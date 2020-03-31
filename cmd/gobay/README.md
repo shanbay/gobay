@@ -24,19 +24,20 @@ gobay new github.com/shanbay/my_proj
 
 ### app目录
 
-核心代码
+核心代码，包含各个server的启动和handler代码。以及models等部分的代码。大部分场景下你需要在这个目录下编写代码。
 
 ### cmd目录
 
-程序入口
+程序入口，`gobay` 可以通过参数指定运行 `grpc openapi asynctask` 等多种 server 中的一个
+如果需要增加新的server类型，请在`cmd`目录下增加新的入口。
 
 ### spec目录
 
-各种定义（proto/openapi/ent schema/ent tmpl）
+一些扩展会生成一部分代码，这些扩展依赖某些源文件（如protobuf的proto文件、openapi的yaml文件、ent的tmpl sehema文件等）。作为约定，这些源文件统一放在`spec`目录下。
 
 ### gen目录
 
-生成的代码，不应该改动
+一些扩展会生成一部分代码，比如`openapi, protobuf, ent`等，作为约定这些生成的代码统一保存在`gen`目录里。如果用到这些扩展需要使用相应的`openapi, grpc, ent`工具来生成。
 
 ## 生成测试
 
