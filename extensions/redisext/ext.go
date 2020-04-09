@@ -3,7 +3,8 @@ package redisext
 import (
 	"context"
 	"errors"
-	"fmt"
+	"strings"
+
 	"github.com/go-redis/redis"
 	"github.com/shanbay/gobay"
 )
@@ -45,7 +46,10 @@ func (c *RedisExt) Object() interface{} {
 
 // AddPrefix add prefix to a key
 func (c *RedisExt) AddPrefix(key string) string {
-	return fmt.Sprintf("%s.%s", c.prefix, key)
+	if c.prefix == "" {
+		return key
+	}
+	return strings.Join([]string{c.prefix, key}, ".")
 }
 
 // Close close redis client
