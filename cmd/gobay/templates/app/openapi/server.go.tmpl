@@ -74,7 +74,7 @@ func Serve(app *gobay.Application) error {
 
 }
 
-func configureAPI(s *restapi.Server, api *operations.{{ toCamel $.Name }}API, impls *{{ toLowerCamel $.Name }}Server) {
+func configureAPI(s *restapi.Server, api *operations.{{ toCamel $.Name }}API, impls *{{ toLowerCamel $.Name }}Server, enableApm bool) {
 	// 加载实现 server 的 api handler
 	api.HealthHealthCheckHandler = impls.healthCheckHealthHandler()
 
