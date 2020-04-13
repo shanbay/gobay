@@ -41,4 +41,9 @@ func ExampleRedisExt_AddPrefix() {
 	prefixKey := redis.AddPrefix("testRawKey")
 	fmt.Println(prefixKey)
 	// Output: github-redis.testRawKey
+
+	redis.NS = ""
+	prefixKey = redis.AddPrefix("testNoPrefixKey")
+	fmt.Println(prefixKey)
+	// Output: testNoPrefixKey
 }

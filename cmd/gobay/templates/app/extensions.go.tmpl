@@ -49,7 +49,7 @@ func Extensions() map[gobay.Key]gobay.Extension {
 }
 
 var (
-	Redis     *redis.Client
+	Redis     *redisext.RedisExt
 	Seqgen    *seqgenext.SequenceGeneratorExt
 {{- if not $.SkipSentry }}
 	Sentry    *sentryext.SentryExt
@@ -64,7 +64,7 @@ var (
 
 func InitExts(app *gobay.Application) {
 	// EntClient = app.Get("entext").Object().(*schema.Client)
-	Redis = app.Get("redis").Object().(*redis.Client)
+	Redis = app.Get("redis").Object().(*redisext.RedisExt)
 	Seqgen = app.Get("seqgen").Object().(*seqgenext.SequenceGeneratorExt)
 {{- if not $.SkipSentry }}
 	Sentry = app.Get("sentry").Object().(*sentryext.SentryExt)
