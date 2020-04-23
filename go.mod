@@ -4,7 +4,7 @@ go 1.13
 
 require (
 	github.com/RichardKnop/logging v0.0.0-20190827224416-1a693bdd4fae
-	github.com/RichardKnop/machinery v1.7.3
+	github.com/RichardKnop/machinery v1.7.6
 	github.com/facebookincubator/ent v0.0.0-20191218131918-1bbe460259f9
 	github.com/getsentry/sentry-go v0.6.0
 	github.com/go-openapi/runtime v0.19.15
