@@ -7,14 +7,18 @@ import (
 
 	"github.com/go-redis/redis"
 	"github.com/shanbay/gobay"
+	"go.elastic.co/apm/module/apmgoredis"
 )
 
 // RedisExt redis扩展，处理client的初始化工作
 type RedisExt struct {
-	NS     string
-	app    *gobay.Application
-	prefix string
-	*redis.Client
+	NS          string
+	app         *gobay.Application
+	prefix      string
+	redisclient *redis.Client
+
+	apmEnable      bool
+	apmredisclient apmgoredis.Client
 }
 
 var _ gobay.Extension = (*RedisExt)(nil)
@@ -30,12 +34,16 @@ func (c *RedisExt) Init(app *gobay.Application) error {
 	password := config.GetString("password")
 	dbNum := config.GetInt("db")
 	c.prefix = config.GetString("prefix")
-	c.Client = redis.NewClient(&redis.Options{
+	c.redisclient = redis.NewClient(&redis.Options{
 		Addr:     host,
 		Password: password,
 		DB:       dbNum,
 	})
-	_, err := c.Client.Ping().Result()
+	if app.Config().GetBool("elastic_apm_enable") {
+		c.apmEnable = true
+		c.apmredisclient = apmgoredis.Wrap(c.redisclient)
+	}
+	_, err := c.redisclient.Ping().Result()
 	return err
 }
 
@@ -54,7 +62,7 @@ func (c *RedisExt) AddPrefix(key string) string {
 
 // Close close redis client
 func (c *RedisExt) Close() error {
-	return c.Client.Close()
+	return c.redisclient.Close()
 }
 
 // Application
@@ -62,6 +70,9 @@ func (c *RedisExt) Application() *gobay.Application {
 	return c.app
 }
 
-func (c *RedisExt) WithContext(ctx context.Context) *RedisExt {
-	return &RedisExt{NS: c.NS, app: c.app, prefix: c.prefix, Client: c.Client.WithContext(ctx)}
+func (c *RedisExt) Client(ctx context.Context) *redis.Client {
+	if c.apmEnable {
+		return c.apmredisclient.WithContext(ctx).RedisClient()
+	}
+	return c.redisclient.WithContext(ctx)
 }
