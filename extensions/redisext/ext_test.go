@@ -3,6 +3,7 @@ package redisext_test
 import (
 	"fmt"
 	"time"
+	"context"
 
 	"github.com/shanbay/gobay"
 	"github.com/shanbay/gobay/extensions/redisext"
@@ -19,9 +20,9 @@ func ExampleRedisExt_Set() {
 	}
 
 	var key = "redisKey"
-	err := redis.Set(key, "hello", 10*time.Second).Err()
+	err := redis.Client(context.Background()).Set(key, "hello", 10*time.Second).Err()
 	fmt.Println(err)
-	res, err := redis.Get("redisKey").Result()
+	res, err := redis.Client(context.Background()).Get("redisKey").Result()
 	fmt.Println(res, err)
 	// Output:
 	// <nil>
