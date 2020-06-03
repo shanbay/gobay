@@ -7,12 +7,13 @@
 gobay new github.com/shanbay/my_proj
 ```
 
-## 可能需要安装的一些二进制
+## 需要安装的一些二进制
 
 - openapi工具: [go-swagger](https://github.com/go-swagger/go-swagger/releases)
 - grpc/protobuf工具: [grpc-go](https://github.com/grpc/grpc-go) [protobuf](https://github.com/golang/protobuf)
 - lint工具: [golangci-lint](https://github.com/golangci/golangci-lint#binary)
 - orm代码生成(ent): [ent](https://github.com/shanbay/ent)
+- gocovmerge: [gocovmerge](https://github.com/wadey/gocovmerge)
 - pre-commit: [pre-commit](https://pre-commit.com/#installation)
 - gotests: [gotests](https://github.com/cweill/gotests)
 
@@ -67,7 +68,7 @@ debug模式运行代码
 
 ### make coverage
 
-运行测试并查看覆盖率文件
+运行测试并查看覆盖率网页
 
 ### make coverage_fail
 
