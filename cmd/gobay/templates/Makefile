@@ -8,11 +8,6 @@ GOCI = golangci-lint
 GIT = git
 DOCKER = docker
 PROTOC = protoc
-SED = sed
-
-ifeq ($(shell uname -s),Darwin)
-	SED = gsed
-endif
 
 #
 # Temporary dirs
@@ -62,9 +57,6 @@ COMMAND ?=
 ARGS ?=
 # packages to run test/benchmark
 PKG ?= ./...
-
-# regexp to exclude files/packages when generating coverage report
-IGNORED_COVERAGE_PATTERN = \<gen\>
 
 .PHONY: build_debug build_release run
 
@@ -130,17 +122,20 @@ COVERAGE_FAIL_UNDER ?= 30
 TEST_FLAGS := \
 	-v -race -failfast -p=1 \
 	-covermode=atomic \
-	-coverprofile=$(FILE_COVERAGE) \
 
 test: $(DIR_TEST)
-	GOBAY_ENV=testing $(GO) test $(TEST_FLAGS) -run=$(RUN) $(PKG) -args $(ARGS)
+	for package in $$(go list ./... | grep -v gen); do \
+		coverfile="$(DIR_TEST)/$$(echo $$package | tr / -).cover"; \
+		$(GO) test $(TEST_FLAGS) -coverprofile="$$coverfile" -coverpkg=./app/... "$$package"; \
+	done
+	gocovmerge $(DIR_TEST)/*.cover > $(FILE_COVERAGE)
+
 
 # Open up a browser to view coverage report
 coverage: test
 	$(GO) tool cover -html=$(FILE_COVERAGE)
 
 coverage_fail: test
-	$(SED) -E -i '/$(IGNORED_COVERAGE_PATTERN)/d' $(FILE_COVERAGE)
 	$(GO) tool cover -func $(FILE_COVERAGE) | tee $(DIR_TEST)/cover.txt
 	GOBAY_ENV=testing test `tail -1 $(DIR_TEST)/cover.txt | cut -d\) -f2 | tr -d '[:space:]|%' | cut -d. -f1` -ge $(COVERAGE_FAIL_UNDER)
 
