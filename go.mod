@@ -15,7 +15,7 @@ require (
 	github.com/iancoleman/strcase v0.0.0-20191112232945-16388991a334
 	github.com/markbates/pkger v0.17.0
 	github.com/mattn/go-sqlite3 v1.13.0
-	github.com/mitchellh/mapstructure v1.3.0
+	github.com/mitchellh/mapstructure v1.3.1
 	github.com/satori/go.uuid v1.2.0
 	github.com/spf13/cobra v0.0.7
 	github.com/spf13/viper v1.7.0
