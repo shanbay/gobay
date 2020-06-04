@@ -210,7 +210,10 @@ func (c *{{ $client }}) CreateManyOnConflict(ctx context.Context, objs []*{{ $n.
 	sql, args := inserter.Query()
 	sql = sql + " " + extra
 	if err := tx.Exec(ctx, sql, args, &res); err != nil {
-		return tx.Rollback()
+		if err_roll := tx.Rollback(); err_roll != nil {
+			return errors.New(err.Error() + "\n" + err_roll.Error())
+		}
+		return err
 	}
 	return tx.Commit()
 }
