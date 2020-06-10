@@ -227,7 +227,7 @@ fmt:
 	$(GOFMT) -d -s -w $(FMT_DIRS)
 
 lint:
-	$(GOCI) run
+	$(GOCI) run --timeout=3m --skip-dirs=gen
 	swagger validate  $(SWAGGER_SPEC)
 
 #
