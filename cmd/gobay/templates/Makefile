@@ -126,7 +126,7 @@ TEST_FLAGS := \
 test: $(DIR_TEST)
 	for package in $$(go list ./... | grep -v gen); do \
 		coverfile="$(DIR_TEST)/$$(echo $$package | tr / -).cover"; \
-		$(GO) test $(TEST_FLAGS) -coverprofile="$$coverfile" -coverpkg=./app/... "$$package"; \
+		$(GO) test $(TEST_FLAGS) -coverprofile="$$coverfile" -coverpkg=./app/... "$$package" || exit 1;\
 	done
 	gocovmerge $(DIR_TEST)/*.cover > $(FILE_COVERAGE)
 
