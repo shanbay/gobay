@@ -5,8 +5,10 @@ import (
 	"log"
 	"testing"
 	"time"
+	"context"
 
 	"github.com/shanbay/gobay"
+	"github.com/shanbay/gobay/extensions/sentryext/asynctask"
 )
 
 var (
@@ -18,6 +20,7 @@ var (
 func init() {
 	bus = BusExt{NS: "bus_"}
 
+	bus.logger = asynctask.NewSentryErrorLogger()
 	app, _ = gobay.CreateApp(
 		"../../testdata",
 		"testing",
@@ -104,7 +107,7 @@ func (o *OCPaid) ParsePayload(args []byte, kwargs []byte) (err error) {
 	return nil
 }
 
-func (o *OCPaid) Run() error {
+func (o *OCPaid) Run(context.Context) error {
 	result = append(result, o)
 	return nil
 }

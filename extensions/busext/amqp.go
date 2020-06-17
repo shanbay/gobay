@@ -1,6 +1,7 @@
 package busext
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -10,8 +11,6 @@ import (
 
 	"github.com/spf13/viper"
 	"github.com/streadway/amqp"
-
-	"log"
 
 	"github.com/shanbay/gobay"
 )
@@ -29,6 +28,13 @@ const (
 	defaultPrefetch       = 100
 	defaultPublishRetry   = 3
 )
+
+type customLoggerInterface interface {
+	Printf(string, ...interface{})
+	Println(...interface{})
+	Fatal(...interface{})
+	Fatalf(string, ...interface{})
+}
 
 type BusExt struct {
 	NS              string
@@ -48,6 +54,7 @@ type BusExt struct {
 	resendDelay     time.Duration
 	reconnectDelay  time.Duration
 	reinitDelay     time.Duration
+	logger          customLoggerInterface
 }
 
 func (b *BusExt) Object() interface{} {
@@ -82,7 +89,7 @@ func (b *BusExt) Init(app *gobay.Application) error {
 			break
 		}
 	}
-	log.Println("BusExt init done")
+	b.logger.Println("BusExt init done")
 	return nil
 }
 
@@ -91,33 +98,33 @@ func (b *BusExt) Close() error {
 		return errAlreadyClosed
 	}
 	if err := b.channel.Close(); err != nil {
-		log.Printf("close channel failed: %v\n", err)
+		b.logger.Fatalf("close channel failed: %v\n", err)
 		return err
 	}
 	if err := b.connection.Close(); err != nil {
-		log.Printf("close connection failed: %v\n", err)
+		b.logger.Fatalf("close connection failed: %v\n", err)
 		return err
 	}
 	close(b.done)
 	b.isReady = false
-	log.Println("BusExt closed")
+	b.logger.Println("BusExt closed")
 	return nil
 }
 
 func (b *BusExt) Push(exchange, routingKey string, data amqp.Publishing) error {
-	log.Printf("Trying to publish: %+v\n", data)
+	b.logger.Printf("Trying to publish: %+v\n", data)
 	if !b.isReady {
 		err := errors.New("BusExt is not ready")
-		log.Printf("Can not publish message: %v\n", err)
+		b.logger.Fatalf("Can not publish message: %v\n", err)
 		return err
 	}
 	for i := 0; i < b.publishRetry; i++ {
 		err := b.UnsafePush(exchange, routingKey, data)
 		if err != nil {
-			log.Printf("UnsafePush failed: %v\n", err)
+			b.logger.Fatalf("UnsafePush failed: %v\n", err)
 			select {
 			case <-b.done:
-				log.Println("BusExt closed during publishing message")
+				b.logger.Println("BusExt closed during publishing message")
 				return errShutdown
 			case <-time.After(b.resendDelay):
 			}
@@ -126,17 +133,17 @@ func (b *BusExt) Push(exchange, routingKey string, data amqp.Publishing) error {
 		select {
 		case confirm := <-b.notifyConfirm:
 			if confirm.Ack {
-				log.Println("Publish confirmed!")
+				b.logger.Println("Publish confirmed!")
 				return nil
 			}
 		case <-time.After(b.resendDelay):
 		}
-		log.Printf("Publish not confirmed after %f seconds. Retrying...\n",
+		b.logger.Printf("Publish not confirmed after %f seconds. Retrying...\n",
 			b.resendDelay.Seconds())
 	}
 	err := fmt.Errorf(
 		"publishing message failed after retry %d times", b.publishRetry)
-	log.Println(err)
+	b.logger.Fatal(err)
 	return err
 }
 
@@ -159,15 +166,15 @@ func (b *BusExt) Register(routingKey string, handler Handler) {
 
 func (b *BusExt) Consume() error {
 	if !b.isReady {
-		log.Println("can not consume. BusExt is not ready")
+		b.logger.Fatal("can not consume. BusExt is not ready")
 		return errNotConnected
 	}
 	if err := b.channel.Qos(b.prefetch, 0, false); err != nil {
-		log.Printf("set qos failed: %v\n", err)
+		b.logger.Fatalf("set qos failed: %v\n", err)
 	}
 	hostName, err := os.Hostname()
 	if err != nil {
-		log.Printf("get host name failed: %v\n", err)
+		b.logger.Fatalf("get host name failed: %v\n", err)
 	}
 	for _, queue := range b.config.GetStringSlice("queues") {
 		ch, err := b.channel.Consume(
@@ -180,7 +187,7 @@ func (b *BusExt) Consume() error {
 			nil,
 		)
 		if err != nil {
-			log.Printf("StartWorker queue: %v failed: %v\n", queue, err)
+			b.logger.Fatalf("StartWorker queue: %v failed: %v\n", queue, err)
 			return err
 		}
 		b.consumeChannels[queue] = ch
@@ -197,28 +204,28 @@ func (b *BusExt) Consume() error {
 				case <-b.done:
 					return
 				case delivery := <-channel:
-					deliveryAck(delivery)
-					log.Printf("Receive delivery: %+v from queue: %v\n",
+					b.deliveryAck(delivery)
+					b.logger.Printf("Receive delivery: %+v from queue: %v\n",
 						delivery, chName)
 					var handler Handler
 					var ok bool
 					if delivery.Headers == nil {
-						log.Println("Not support v1 celery protocol yet")
+						b.logger.Fatal("Not support v1 celery protocol yet")
 					} else if delivery.ContentType != "application/json" {
-						log.Println("Only json encoding is allowed")
+						b.logger.Fatal("Only json encoding is allowed")
 					} else if delivery.ContentEncoding != "utf-8" {
-						log.Println("Unsupported content encoding")
+						b.logger.Fatal("Unsupported content encoding")
 					} else if handler, ok = b.consumers[delivery.RoutingKey]; !ok {
-						log.Println("Receive unregistered message")
+						b.logger.Fatal("Receive unregistered message")
 					} else {
 						var payload []json.RawMessage
 						if err := json.Unmarshal(delivery.Body, &payload); err != nil {
-							log.Printf("json decode error: %v\n", err)
+							b.logger.Fatalf("json decode error: %v\n", err)
 						} else if err := handler.ParsePayload(payload[0],
 							payload[1]); err != nil {
-							log.Printf("handler parse payload error: %v\n", err)
-						} else if err := handler.Run(); err != nil {
-							log.Printf("handler run task failed: %v\n", err)
+							b.logger.Fatalf("handler parse payload error: %v\n", err)
+						} else if err := handler.Run(context.Background()); err != nil {
+							b.logger.Fatalf("handler run task failed: %v\n", err)
 						}
 					}
 				}
@@ -232,12 +239,12 @@ func (b *BusExt) Consume() error {
 func (b *BusExt) handleReconnect(brokerUrl string) {
 	for {
 		b.isReady = false
-		log.Printf("Attempting to connect to %v\n", brokerUrl)
+		b.logger.Printf("Attempting to connect to %v\n", brokerUrl)
 
 		conn, err := b.connect(brokerUrl)
 
 		if err != nil {
-			log.Printf("Failed to connect: %v. Retrying...\n", err)
+			b.logger.Fatalf("Failed to connect: %v. Retrying...\n", err)
 			select {
 			case <-b.done:
 				return
@@ -260,7 +267,7 @@ func (b *BusExt) connect(brokerUrl string) (*amqp.Connection, error) {
 	}
 
 	b.changeConnection(conn)
-	log.Println("Connected!")
+	b.logger.Println("Connected!")
 	return conn, nil
 }
 
@@ -271,7 +278,7 @@ func (b *BusExt) handleReInit(conn *amqp.Connection) bool {
 		err := b.init(conn)
 
 		if err != nil {
-			log.Printf("Failed to initialize channel: %v. Retrying...\n", err)
+			b.logger.Fatalf("Failed to initialize channel: %v. Retrying...\n", err)
 
 			select {
 			case <-b.done:
@@ -285,10 +292,10 @@ func (b *BusExt) handleReInit(conn *amqp.Connection) bool {
 		case <-b.done:
 			return true
 		case <-b.notifyConnClose:
-			log.Println("Connection closed. Reconnecting...")
+			b.logger.Println("Connection closed. Reconnecting...")
 			return false
 		case <-b.notifyChanClose:
-			log.Println("channel closed. Rerunning init...")
+			b.logger.Println("channel closed. Rerunning init...")
 		}
 	}
 }
@@ -297,14 +304,14 @@ func (b *BusExt) init(conn *amqp.Connection) error {
 	ch, err := conn.Channel()
 
 	if err != nil {
-		log.Printf("create channel failed: %v\n", err)
+		b.logger.Fatalf("create channel failed: %v\n", err)
 		return err
 	}
 
 	err = ch.Confirm(false)
 
 	if err != nil {
-		log.Printf("change to confirm mod failed: %v\n", err)
+		b.logger.Fatalf("change to confirm mod failed: %v\n", err)
 		return err
 	}
 
@@ -319,10 +326,10 @@ func (b *BusExt) init(conn *amqp.Connection) error {
 			nil)
 
 		if err != nil {
-			log.Printf("declare exchange: %v failed: %v\n", exchange, err)
+			b.logger.Fatalf("declare exchange: %v failed: %v\n", exchange, err)
 			return err
 		}
-		log.Printf("declare exchange: %v succeeded\n", exchange)
+		b.logger.Printf("declare exchange: %v succeeded\n", exchange)
 	}
 
 	for _, queue := range b.config.GetStringSlice("queues") {
@@ -336,15 +343,15 @@ func (b *BusExt) init(conn *amqp.Connection) error {
 		)
 
 		if err != nil {
-			log.Printf("declare queue: %v failed: %v\n", queue, err)
+			b.logger.Fatalf("declare queue: %v failed: %v\n", queue, err)
 			return err
 		}
-		log.Printf("declare queue: %v succeeded\n", queue)
+		b.logger.Printf("declare queue: %v succeeded\n", queue)
 	}
 
 	var bs []map[string]string
 	if err := b.config.UnmarshalKey("bindings", &bs); err != nil {
-		log.Printf("unmarshal bindings failed: %v\n", err)
+		b.logger.Fatalf("unmarshal bindings failed: %v\n", err)
 		return err
 	}
 	for _, binding := range bs {
@@ -354,10 +361,10 @@ func (b *BusExt) init(conn *amqp.Connection) error {
 			binding["exchange"],
 			false,
 			nil); err != nil {
-			log.Printf("declare binding: %v failed: %v\n", binding, err)
+			b.logger.Fatalf("declare binding: %v failed: %v\n", binding, err)
 			return err
 		}
-		log.Printf("declare binding: %v succeeded\n", binding)
+		b.logger.Printf("declare binding: %v succeeded\n", binding)
 	}
 
 	b.changeChannel(ch)
@@ -367,11 +374,11 @@ func (b *BusExt) init(conn *amqp.Connection) error {
 		go func() {
 			err := b.Consume()
 			if err != nil {
-				log.Printf("errors occur when consume: %v\n", err)
+				b.logger.Fatalf("errors occur when consume: %v\n", err)
 			}
 		}()
 	}
-	log.Println("init finished")
+	b.logger.Println("init finished")
 
 	return nil
 }
@@ -380,7 +387,7 @@ func (b *BusExt) changeConnection(connection *amqp.Connection) {
 	b.connection = connection
 	b.notifyConnClose = make(chan *amqp.Error)
 	b.connection.NotifyClose(b.notifyConnClose)
-	log.Println("connection changed")
+	b.logger.Println("connection changed")
 
 }
 
@@ -390,10 +397,10 @@ func (b *BusExt) changeChannel(channel *amqp.Channel) {
 	b.notifyConfirm = make(chan amqp.Confirmation, 1)
 	b.channel.NotifyClose(b.notifyChanClose)
 	b.channel.NotifyPublish(b.notifyConfirm)
-	log.Println("channel changed")
+	b.logger.Println("channel changed")
 }
 
-func deliveryAck(delivery amqp.Delivery) {
+func (b *BusExt) deliveryAck(delivery amqp.Delivery) {
 	var err error
 	for retryCount := 3; retryCount > 0; retryCount-- {
 		if err = delivery.Ack(false); err == nil {
@@ -401,7 +408,7 @@ func deliveryAck(delivery amqp.Delivery) {
 		}
 	}
 	if err != nil {
-		log.Printf("failed to ack delivery: %+v"+
+		b.logger.Fatalf("failed to ack delivery: %+v"+
 			": %+v\n",
 			delivery.MessageId, err)
 	}
