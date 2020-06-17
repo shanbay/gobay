@@ -8,7 +8,7 @@ import (
 	"context"
 
 	"github.com/shanbay/gobay"
-	"github.com/shanbay/gobay/extensions/sentryext/asynctask"
+	"github.com/shanbay/gobay/extensions/sentryext/custom_logger"
 )
 
 var (
@@ -20,7 +20,7 @@ var (
 func init() {
 	bus = BusExt{NS: "bus_"}
 
-	bus.logger = asynctask.NewSentryErrorLogger()
+	bus.ErrorLogger = asynctask.NewSentryErrorLogger()
 	app, _ = gobay.CreateApp(
 		"../../testdata",
 		"testing",
