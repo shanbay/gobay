@@ -32,8 +32,6 @@ const (
 type customLoggerInterface interface {
 	Printf(string, ...interface{})
 	Println(...interface{})
-	Fatal(...interface{})
-	Fatalf(string, ...interface{})
 }
 
 type BusExt struct {
@@ -98,11 +96,11 @@ func (b *BusExt) Close() error {
 		return errAlreadyClosed
 	}
 	if err := b.channel.Close(); err != nil {
-		b.logger.Fatalf("close channel failed: %v\n", err)
+		b.logger.Printf("close channel failed: %v\n", err)
 		return err
 	}
 	if err := b.connection.Close(); err != nil {
-		b.logger.Fatalf("close connection failed: %v\n", err)
+		b.logger.Printf("close connection failed: %v\n", err)
 		return err
 	}
 	close(b.done)
@@ -115,13 +113,13 @@ func (b *BusExt) Push(exchange, routingKey string, data amqp.Publishing) error {
 	b.logger.Printf("Trying to publish: %+v\n", data)
 	if !b.isReady {
 		err := errors.New("BusExt is not ready")
-		b.logger.Fatalf("Can not publish message: %v\n", err)
+		b.logger.Printf("Can not publish message: %v\n", err)
 		return err
 	}
 	for i := 0; i < b.publishRetry; i++ {
 		err := b.UnsafePush(exchange, routingKey, data)
 		if err != nil {
-			b.logger.Fatalf("UnsafePush failed: %v\n", err)
+			b.logger.Printf("UnsafePush failed: %v\n", err)
 			select {
 			case <-b.done:
 				b.logger.Println("BusExt closed during publishing message")
@@ -143,7 +141,7 @@ func (b *BusExt) Push(exchange, routingKey string, data amqp.Publishing) error {
 	}
 	err := fmt.Errorf(
 		"publishing message failed after retry %d times", b.publishRetry)
-	b.logger.Fatal(err)
+	b.logger.Println(err)
 	return err
 }
 
@@ -166,15 +164,15 @@ func (b *BusExt) Register(routingKey string, handler Handler) {
 
 func (b *BusExt) Consume() error {
 	if !b.isReady {
-		b.logger.Fatal("can not consume. BusExt is not ready")
+		b.logger.Println("can not consume. BusExt is not ready")
 		return errNotConnected
 	}
 	if err := b.channel.Qos(b.prefetch, 0, false); err != nil {
-		b.logger.Fatalf("set qos failed: %v\n", err)
+		b.logger.Printf("set qos failed: %v\n", err)
 	}
 	hostName, err := os.Hostname()
 	if err != nil {
-		b.logger.Fatalf("get host name failed: %v\n", err)
+		b.logger.Printf("get host name failed: %v\n", err)
 	}
 	for _, queue := range b.config.GetStringSlice("queues") {
 		ch, err := b.channel.Consume(
@@ -187,7 +185,7 @@ func (b *BusExt) Consume() error {
 			nil,
 		)
 		if err != nil {
-			b.logger.Fatalf("StartWorker queue: %v failed: %v\n", queue, err)
+			b.logger.Printf("StartWorker queue: %v failed: %v\n", queue, err)
 			return err
 		}
 		b.consumeChannels[queue] = ch
@@ -210,22 +208,22 @@ func (b *BusExt) Consume() error {
 					var handler Handler
 					var ok bool
 					if delivery.Headers == nil {
-						b.logger.Fatal("Not support v1 celery protocol yet")
+						b.logger.Println("Not support v1 celery protocol yet")
 					} else if delivery.ContentType != "application/json" {
-						b.logger.Fatal("Only json encoding is allowed")
+						b.logger.Println("Only json encoding is allowed")
 					} else if delivery.ContentEncoding != "utf-8" {
-						b.logger.Fatal("Unsupported content encoding")
+						b.logger.Println("Unsupported content encoding")
 					} else if handler, ok = b.consumers[delivery.RoutingKey]; !ok {
-						b.logger.Fatal("Receive unregistered message")
+						b.logger.Println("Receive unregistered message")
 					} else {
 						var payload []json.RawMessage
 						if err := json.Unmarshal(delivery.Body, &payload); err != nil {
-							b.logger.Fatalf("json decode error: %v\n", err)
+							b.logger.Printf("json decode error: %v\n", err)
 						} else if err := handler.ParsePayload(payload[0],
 							payload[1]); err != nil {
-							b.logger.Fatalf("handler parse payload error: %v\n", err)
+							b.logger.Printf("handler parse payload error: %v\n", err)
 						} else if err := handler.Run(context.Background()); err != nil {
-							b.logger.Fatalf("handler run task failed: %v\n", err)
+							b.logger.Printf("handler run task failed: %v\n", err)
 						}
 					}
 				}
@@ -244,7 +242,7 @@ func (b *BusExt) handleReconnect(brokerUrl string) {
 		conn, err := b.connect(brokerUrl)
 
 		if err != nil {
-			b.logger.Fatalf("Failed to connect: %v. Retrying...\n", err)
+			b.logger.Printf("Failed to connect: %v. Retrying...\n", err)
 			select {
 			case <-b.done:
 				return
@@ -278,7 +276,7 @@ func (b *BusExt) handleReInit(conn *amqp.Connection) bool {
 		err := b.init(conn)
 
 		if err != nil {
-			b.logger.Fatalf("Failed to initialize channel: %v. Retrying...\n", err)
+			b.logger.Printf("Failed to initialize channel: %v. Retrying...\n", err)
 
 			select {
 			case <-b.done:
@@ -304,14 +302,14 @@ func (b *BusExt) init(conn *amqp.Connection) error {
 	ch, err := conn.Channel()
 
 	if err != nil {
-		b.logger.Fatalf("create channel failed: %v\n", err)
+		b.logger.Printf("create channel failed: %v\n", err)
 		return err
 	}
 
 	err = ch.Confirm(false)
 
 	if err != nil {
-		b.logger.Fatalf("change to confirm mod failed: %v\n", err)
+		b.logger.Printf("change to confirm mod failed: %v\n", err)
 		return err
 	}
 
@@ -326,7 +324,7 @@ func (b *BusExt) init(conn *amqp.Connection) error {
 			nil)
 
 		if err != nil {
-			b.logger.Fatalf("declare exchange: %v failed: %v\n", exchange, err)
+			b.logger.Printf("declare exchange: %v failed: %v\n", exchange, err)
 			return err
 		}
 		b.logger.Printf("declare exchange: %v succeeded\n", exchange)
@@ -343,7 +341,7 @@ func (b *BusExt) init(conn *amqp.Connection) error {
 		)
 
 		if err != nil {
-			b.logger.Fatalf("declare queue: %v failed: %v\n", queue, err)
+			b.logger.Printf("declare queue: %v failed: %v\n", queue, err)
 			return err
 		}
 		b.logger.Printf("declare queue: %v succeeded\n", queue)
@@ -351,7 +349,7 @@ func (b *BusExt) init(conn *amqp.Connection) error {
 
 	var bs []map[string]string
 	if err := b.config.UnmarshalKey("bindings", &bs); err != nil {
-		b.logger.Fatalf("unmarshal bindings failed: %v\n", err)
+		b.logger.Printf("unmarshal bindings failed: %v\n", err)
 		return err
 	}
 	for _, binding := range bs {
@@ -361,7 +359,7 @@ func (b *BusExt) init(conn *amqp.Connection) error {
 			binding["exchange"],
 			false,
 			nil); err != nil {
-			b.logger.Fatalf("declare binding: %v failed: %v\n", binding, err)
+			b.logger.Printf("declare binding: %v failed: %v\n", binding, err)
 			return err
 		}
 		b.logger.Printf("declare binding: %v succeeded\n", binding)
@@ -374,7 +372,7 @@ func (b *BusExt) init(conn *amqp.Connection) error {
 		go func() {
 			err := b.Consume()
 			if err != nil {
-				b.logger.Fatalf("errors occur when consume: %v\n", err)
+				b.logger.Printf("errors occur when consume: %v\n", err)
 			}
 		}()
 	}
@@ -408,7 +406,7 @@ func (b *BusExt) deliveryAck(delivery amqp.Delivery) {
 		}
 	}
 	if err != nil {
-		b.logger.Fatalf("failed to ack delivery: %+v"+
+		b.logger.Printf("failed to ack delivery: %+v"+
 			": %+v\n",
 			delivery.MessageId, err)
 	}
