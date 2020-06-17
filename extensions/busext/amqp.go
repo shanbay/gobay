@@ -1,7 +1,6 @@
 package busext
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -223,7 +222,7 @@ func (b *BusExt) Consume() error {
 						} else if err := handler.ParsePayload(payload[0],
 							payload[1]); err != nil {
 							b.ErrorLogger.Printf("handler parse payload error: %v\n", err)
-						} else if err := handler.Run(context.Background()); err != nil {
+						} else if err := handler.Run(); err != nil {
 							b.ErrorLogger.Printf("handler run task failed: %v\n", err)
 						}
 					}

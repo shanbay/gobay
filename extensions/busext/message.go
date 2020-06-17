@@ -1,7 +1,6 @@
 package busext
 
 import (
-	"context"
 	"encoding/json"
 
 	uuid "github.com/satori/go.uuid"
@@ -11,7 +10,7 @@ import (
 type Handler interface {
 	ParsePayload(args []byte, kwargs []byte) error
 
-	Run(ctx context.Context) error
+	Run() error
 }
 
 type Body struct {

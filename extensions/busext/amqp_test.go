@@ -1,7 +1,6 @@
 package busext
 
 import (
-	"context"
 	"encoding/json"
 	"log"
 	"testing"
@@ -107,7 +106,7 @@ func (o *OCPaid) ParsePayload(args []byte, kwargs []byte) (err error) {
 	return nil
 }
 
-func (o *OCPaid) Run(context.Context) error {
+func (o *OCPaid) Run() error {
 	result = append(result, o)
 	return nil
 }
