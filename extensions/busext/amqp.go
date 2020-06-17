@@ -5,10 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"sync"
 	"time"
-	"log"
 
 	"github.com/spf13/viper"
 	"github.com/streadway/amqp"
@@ -53,7 +53,7 @@ type BusExt struct {
 	resendDelay     time.Duration
 	reconnectDelay  time.Duration
 	reinitDelay     time.Duration
-	ErrorLogger          customLoggerInterface
+	ErrorLogger     customLoggerInterface
 }
 
 func (b *BusExt) Object() interface{} {

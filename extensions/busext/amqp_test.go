@@ -1,11 +1,11 @@
 package busext
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 	"testing"
 	"time"
-	"context"
 
 	"github.com/shanbay/gobay"
 	"github.com/shanbay/gobay/extensions/sentryext/custom_logger"
