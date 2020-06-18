@@ -1,4 +1,4 @@
-package asynctask
+package custom_logger
 
 import (
 	"bytes"
@@ -10,8 +10,7 @@ import (
 
 func Test_logger(t *testing.T) {
 	assert := assert.New(t)
-	projectName := "this is the Project Name"
-	logger := NewSentryErrorLogger(projectName)
+	logger := NewSentryErrorLogger()
 
 	var buf bytes.Buffer
 	commonLogger, _ := logger.logger.(*log.Logger)

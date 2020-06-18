@@ -1,16 +1,17 @@
-package asynctask
+package custom_logger
 
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/RichardKnop/logging"
-	"github.com/getsentry/sentry-go"
-	"github.com/shanbay/gobay/extensions/sentryext/custom_err"
 	"log"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strconv"
+
+	"github.com/RichardKnop/logging"
+	"github.com/getsentry/sentry-go"
+	"github.com/shanbay/gobay/extensions/sentryext/custom_err"
 )
 
 var _ logging.LoggerInterface = (*sentryErrorLogger)(nil)
@@ -29,15 +30,27 @@ func getCaller() string {
 	return fmt.Sprintf("%s:%d ", filepath.Base(fn), line)
 }
 
-type sentryErrorLogger struct {
-	name   string
-	logger logging.LoggerInterface
+type customLoggerInterface interface {
+	Print(...interface{})
+	Printf(string, ...interface{})
+	Println(...interface{})
+
+	Fatal(...interface{})
+	Fatalf(string, ...interface{})
+	Fatalln(...interface{})
+
+	Panic(...interface{})
+	Panicf(string, ...interface{})
+	Panicln(...interface{})
 }
 
-func NewSentryErrorLogger(projectName string) *sentryErrorLogger {
+type sentryErrorLogger struct {
+	logger customLoggerInterface
+}
+
+func NewSentryErrorLogger() *sentryErrorLogger {
 	return &sentryErrorLogger{
 		logger: log.New(os.Stderr, "ERROR: ", flag),
-		name:   fmt.Sprintf("Go AsyncTask: %s has Error ", projectName),
 	}
 }
 
@@ -48,7 +61,7 @@ func (s *sentryErrorLogger) captureCustomException(err string, extras ...interfa
 			extraMap[strconv.Itoa(i)] = string(val)
 		}
 	}
-	sentry.CaptureException(&custom_err.CustomComplexError{Message: s.name + err, MoreData: extraMap})
+	sentry.CaptureException(&custom_err.CustomComplexError{Message: err, MoreData: extraMap})
 }
 
 func (s *sentryErrorLogger) Print(v ...interface{}) {

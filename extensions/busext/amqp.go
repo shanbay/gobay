@@ -4,14 +4,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"sync"
 	"time"
 
 	"github.com/spf13/viper"
 	"github.com/streadway/amqp"
-
-	"log"
 
 	"github.com/shanbay/gobay"
 )
@@ -29,6 +28,11 @@ const (
 	defaultPrefetch       = 100
 	defaultPublishRetry   = 3
 )
+
+type customLoggerInterface interface {
+	Printf(string, ...interface{})
+	Println(...interface{})
+}
 
 type BusExt struct {
 	NS              string
@@ -48,6 +52,7 @@ type BusExt struct {
 	resendDelay     time.Duration
 	reconnectDelay  time.Duration
 	reinitDelay     time.Duration
+	ErrorLogger     customLoggerInterface
 }
 
 func (b *BusExt) Object() interface{} {
@@ -91,11 +96,11 @@ func (b *BusExt) Close() error {
 		return errAlreadyClosed
 	}
 	if err := b.channel.Close(); err != nil {
-		log.Printf("close channel failed: %v\n", err)
+		b.ErrorLogger.Printf("close channel failed: %v\n", err)
 		return err
 	}
 	if err := b.connection.Close(); err != nil {
-		log.Printf("close connection failed: %v\n", err)
+		b.ErrorLogger.Printf("close connection failed: %v\n", err)
 		return err
 	}
 	close(b.done)
@@ -108,16 +113,16 @@ func (b *BusExt) Push(exchange, routingKey string, data amqp.Publishing) error {
 	log.Printf("Trying to publish: %+v\n", data)
 	if !b.isReady {
 		err := errors.New("BusExt is not ready")
-		log.Printf("Can not publish message: %v\n", err)
+		b.ErrorLogger.Printf("Can not publish message: %v\n", err)
 		return err
 	}
 	for i := 0; i < b.publishRetry; i++ {
 		err := b.UnsafePush(exchange, routingKey, data)
 		if err != nil {
-			log.Printf("UnsafePush failed: %v\n", err)
+			b.ErrorLogger.Printf("UnsafePush failed: %v\n", err)
 			select {
 			case <-b.done:
-				log.Println("BusExt closed during publishing message")
+				b.ErrorLogger.Println("BusExt closed during publishing message")
 				return errShutdown
 			case <-time.After(b.resendDelay):
 			}
@@ -136,7 +141,7 @@ func (b *BusExt) Push(exchange, routingKey string, data amqp.Publishing) error {
 	}
 	err := fmt.Errorf(
 		"publishing message failed after retry %d times", b.publishRetry)
-	log.Println(err)
+	b.ErrorLogger.Println(err)
 	return err
 }
 
@@ -159,15 +164,15 @@ func (b *BusExt) Register(routingKey string, handler Handler) {
 
 func (b *BusExt) Consume() error {
 	if !b.isReady {
-		log.Println("can not consume. BusExt is not ready")
+		b.ErrorLogger.Println("can not consume. BusExt is not ready")
 		return errNotConnected
 	}
 	if err := b.channel.Qos(b.prefetch, 0, false); err != nil {
-		log.Printf("set qos failed: %v\n", err)
+		b.ErrorLogger.Printf("set qos failed: %v\n", err)
 	}
 	hostName, err := os.Hostname()
 	if err != nil {
-		log.Printf("get host name failed: %v\n", err)
+		b.ErrorLogger.Printf("get host name failed: %v\n", err)
 	}
 	for _, queue := range b.config.GetStringSlice("queues") {
 		ch, err := b.channel.Consume(
@@ -180,7 +185,7 @@ func (b *BusExt) Consume() error {
 			nil,
 		)
 		if err != nil {
-			log.Printf("StartWorker queue: %v failed: %v\n", queue, err)
+			b.ErrorLogger.Printf("StartWorker queue: %v failed: %v\n", queue, err)
 			return err
 		}
 		b.consumeChannels[queue] = ch
@@ -197,28 +202,28 @@ func (b *BusExt) Consume() error {
 				case <-b.done:
 					return
 				case delivery := <-channel:
-					deliveryAck(delivery)
-					log.Printf("Receive delivery: %+v from queue: %v\n",
+					b.deliveryAck(delivery)
+					b.ErrorLogger.Printf("Receive delivery: %+v from queue: %v\n",
 						delivery, chName)
 					var handler Handler
 					var ok bool
 					if delivery.Headers == nil {
-						log.Println("Not support v1 celery protocol yet")
+						b.ErrorLogger.Println("Not support v1 celery protocol yet")
 					} else if delivery.ContentType != "application/json" {
-						log.Println("Only json encoding is allowed")
+						b.ErrorLogger.Println("Only json encoding is allowed")
 					} else if delivery.ContentEncoding != "utf-8" {
-						log.Println("Unsupported content encoding")
+						b.ErrorLogger.Println("Unsupported content encoding")
 					} else if handler, ok = b.consumers[delivery.RoutingKey]; !ok {
-						log.Println("Receive unregistered message")
+						b.ErrorLogger.Println("Receive unregistered message")
 					} else {
 						var payload []json.RawMessage
 						if err := json.Unmarshal(delivery.Body, &payload); err != nil {
-							log.Printf("json decode error: %v\n", err)
+							b.ErrorLogger.Printf("json decode error: %v\n", err)
 						} else if err := handler.ParsePayload(payload[0],
 							payload[1]); err != nil {
-							log.Printf("handler parse payload error: %v\n", err)
+							b.ErrorLogger.Printf("handler parse payload error: %v\n", err)
 						} else if err := handler.Run(); err != nil {
-							log.Printf("handler run task failed: %v\n", err)
+							b.ErrorLogger.Printf("handler run task failed: %v\n", err)
 						}
 					}
 				}
@@ -237,7 +242,7 @@ func (b *BusExt) handleReconnect(brokerUrl string) {
 		conn, err := b.connect(brokerUrl)
 
 		if err != nil {
-			log.Printf("Failed to connect: %v. Retrying...\n", err)
+			b.ErrorLogger.Printf("Failed to connect: %v. Retrying...\n", err)
 			select {
 			case <-b.done:
 				return
@@ -271,7 +276,7 @@ func (b *BusExt) handleReInit(conn *amqp.Connection) bool {
 		err := b.init(conn)
 
 		if err != nil {
-			log.Printf("Failed to initialize channel: %v. Retrying...\n", err)
+			b.ErrorLogger.Printf("Failed to initialize channel: %v. Retrying...\n", err)
 
 			select {
 			case <-b.done:
@@ -297,14 +302,14 @@ func (b *BusExt) init(conn *amqp.Connection) error {
 	ch, err := conn.Channel()
 
 	if err != nil {
-		log.Printf("create channel failed: %v\n", err)
+		b.ErrorLogger.Printf("create channel failed: %v\n", err)
 		return err
 	}
 
 	err = ch.Confirm(false)
 
 	if err != nil {
-		log.Printf("change to confirm mod failed: %v\n", err)
+		b.ErrorLogger.Printf("change to confirm mod failed: %v\n", err)
 		return err
 	}
 
@@ -319,10 +324,10 @@ func (b *BusExt) init(conn *amqp.Connection) error {
 			nil)
 
 		if err != nil {
-			log.Printf("declare exchange: %v failed: %v\n", exchange, err)
+			b.ErrorLogger.Printf("declare exchange: %v failed: %v\n", exchange, err)
 			return err
 		}
-		log.Printf("declare exchange: %v succeeded\n", exchange)
+		b.ErrorLogger.Printf("declare exchange: %v succeeded\n", exchange)
 	}
 
 	for _, queue := range b.config.GetStringSlice("queues") {
@@ -336,7 +341,7 @@ func (b *BusExt) init(conn *amqp.Connection) error {
 		)
 
 		if err != nil {
-			log.Printf("declare queue: %v failed: %v\n", queue, err)
+			b.ErrorLogger.Printf("declare queue: %v failed: %v\n", queue, err)
 			return err
 		}
 		log.Printf("declare queue: %v succeeded\n", queue)
@@ -344,7 +349,7 @@ func (b *BusExt) init(conn *amqp.Connection) error {
 
 	var bs []map[string]string
 	if err := b.config.UnmarshalKey("bindings", &bs); err != nil {
-		log.Printf("unmarshal bindings failed: %v\n", err)
+		b.ErrorLogger.Printf("unmarshal bindings failed: %v\n", err)
 		return err
 	}
 	for _, binding := range bs {
@@ -354,7 +359,7 @@ func (b *BusExt) init(conn *amqp.Connection) error {
 			binding["exchange"],
 			false,
 			nil); err != nil {
-			log.Printf("declare binding: %v failed: %v\n", binding, err)
+			b.ErrorLogger.Printf("declare binding: %v failed: %v\n", binding, err)
 			return err
 		}
 		log.Printf("declare binding: %v succeeded\n", binding)
@@ -367,7 +372,7 @@ func (b *BusExt) init(conn *amqp.Connection) error {
 		go func() {
 			err := b.Consume()
 			if err != nil {
-				log.Printf("errors occur when consume: %v\n", err)
+				b.ErrorLogger.Printf("errors occur when consume: %v\n", err)
 			}
 		}()
 	}
@@ -393,7 +398,7 @@ func (b *BusExt) changeChannel(channel *amqp.Channel) {
 	log.Println("channel changed")
 }
 
-func deliveryAck(delivery amqp.Delivery) {
+func (b *BusExt) deliveryAck(delivery amqp.Delivery) {
 	var err error
 	for retryCount := 3; retryCount > 0; retryCount-- {
 		if err = delivery.Ack(false); err == nil {
@@ -401,7 +406,7 @@ func deliveryAck(delivery amqp.Delivery) {
 		}
 	}
 	if err != nil {
-		log.Printf("failed to ack delivery: %+v"+
+		b.ErrorLogger.Printf("failed to ack delivery: %+v"+
 			": %+v\n",
 			delivery.MessageId, err)
 	}
