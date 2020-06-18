@@ -19,7 +19,7 @@ var (
 func init() {
 	bus = BusExt{NS: "bus_"}
 
-	bus.ErrorLogger = asynctask.NewSentryErrorLogger()
+	bus.ErrorLogger = custom_logger.NewSentryErrorLogger()
 	app, _ = gobay.CreateApp(
 		"../../testdata",
 		"testing",
