@@ -53,6 +53,8 @@ type BusExt struct {
 	reconnectDelay  time.Duration
 	reinitDelay     time.Duration
 	ErrorLogger     customLoggerInterface
+
+	mocked bool
 }
 
 func (b *BusExt) Object() interface{} {
@@ -79,7 +81,14 @@ func (b *BusExt) Init(app *gobay.Application) error {
 	b.reconnectDelay = b.config.GetDuration("reconnect_delay")
 	b.reinitDelay = b.config.GetDuration("reinit_delay")
 	brokerUrl := b.config.GetString("broker_url")
-	go b.handleReconnect(brokerUrl)
+
+	b.mocked = b.config.GetBool("mocked")
+	if !b.mocked {
+		go b.handleReconnect(brokerUrl)
+	} else {
+		b.isReady = true
+	}
+
 	for {
 		if !b.isReady {
 			continue
@@ -110,6 +119,9 @@ func (b *BusExt) Close() error {
 }
 
 func (b *BusExt) Push(exchange, routingKey string, data amqp.Publishing) error {
+	if b.mocked {
+		return nil
+	}
 	log.Printf("Trying to publish: %+v\n", data)
 	if !b.isReady {
 		err := errors.New("BusExt is not ready")
