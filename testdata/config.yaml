@@ -2,7 +2,7 @@ defaults: &defaults
   bus_broker_url: "amqp://guest:guest@127.0.0.1:5672/"
   bus_reconnect_delay: "2s"
   bus_reinit_delay: "1s"
-  bus_exhanges:
+  bus_exchanges:
     - sbay-exchange
   bus_queues:
     - test
