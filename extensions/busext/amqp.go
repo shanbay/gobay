@@ -215,8 +215,7 @@ func (b *BusExt) Consume() error {
 					return
 				case delivery := <-channel:
 					b.deliveryAck(delivery)
-					b.ErrorLogger.Printf("Receive delivery: %+v from queue: %v\n",
-						delivery, chName)
+					log.Printf("Receive delivery: %+v from queue: %v\n", delivery, chName)
 					var handler Handler
 					var ok bool
 					if delivery.Headers == nil {
@@ -325,7 +324,7 @@ func (b *BusExt) init(conn *amqp.Connection) error {
 		return err
 	}
 
-	for _, exchange := range b.config.GetStringSlice("exhanges") {
+	for _, exchange := range b.config.GetStringSlice("exchanges") {
 		err = ch.ExchangeDeclare(
 			exchange,
 			amqp.ExchangeTopic,
@@ -339,7 +338,7 @@ func (b *BusExt) init(conn *amqp.Connection) error {
 			b.ErrorLogger.Printf("declare exchange: %v failed: %v\n", exchange, err)
 			return err
 		}
-		b.ErrorLogger.Printf("declare exchange: %v succeeded\n", exchange)
+		log.Printf("declare exchange: %v succeeded\n", exchange)
 	}
 
 	for _, queue := range b.config.GetStringSlice("queues") {
