@@ -79,6 +79,11 @@ func TestPushConsume(t *testing.T) {
 	if len(result) != 100 {
 		t.Error("consume length doesn't match publish'")
 	}
+
+	err := app.Close()
+	if err != nil {
+		t.Error("close busext failed")
+	}
 }
 
 type OCPaid struct {
