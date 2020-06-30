@@ -23,7 +23,7 @@ type CustomComplexError struct {
 }
 
 func (e *CustomComplexError) Error() string {
-	return "CustomComplexError: " + e.Message
+	return e.Message
 }
 func (e *CustomComplexError) GimmeMoreData() map[string]string {
 	return e.MoreData

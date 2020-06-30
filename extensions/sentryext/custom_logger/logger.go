@@ -1,113 +1,67 @@
 package custom_logger
 
 import (
-	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"os"
-	"path/filepath"
-	"runtime"
-	"strconv"
 
 	"github.com/RichardKnop/logging"
 	"github.com/getsentry/sentry-go"
-	"github.com/shanbay/gobay/extensions/sentryext/custom_err"
 )
 
 var _ logging.LoggerInterface = (*sentryErrorLogger)(nil)
 
 const (
-	flag  = log.Ldate | log.Ltime
-	depth = 3
+	flag = log.Ldate | log.Ltime
 )
 
-func getCaller() string {
-	_, fn, line, ok := runtime.Caller(depth)
-	if !ok {
-		fn = "???"
-		line = 1
-	}
-	return fmt.Sprintf("%s:%d ", filepath.Base(fn), line)
-}
-
-type customLoggerInterface interface {
-	Print(...interface{})
-	Printf(string, ...interface{})
-	Println(...interface{})
-
-	Fatal(...interface{})
-	Fatalf(string, ...interface{})
-	Fatalln(...interface{})
-
-	Panic(...interface{})
-	Panicf(string, ...interface{})
-	Panicln(...interface{})
-}
-
 type sentryErrorLogger struct {
-	logger customLoggerInterface
+	*log.Logger
 }
 
 func NewSentryErrorLogger() *sentryErrorLogger {
 	return &sentryErrorLogger{
-		logger: log.New(os.Stderr, "ERROR: ", flag),
+		log.New(os.Stderr, "ERROR: ", flag),
 	}
-}
-
-func (s *sentryErrorLogger) captureCustomException(err string, extras ...interface{}) {
-	extraMap := map[string]string{}
-	for i, extra := range extras {
-		if val, err := json.Marshal(extra); err == nil {
-			extraMap[strconv.Itoa(i)] = string(val)
-		}
-	}
-	sentry.CaptureException(&custom_err.CustomComplexError{Message: err, MoreData: extraMap})
 }
 
 func (s *sentryErrorLogger) Print(v ...interface{}) {
-	errLocation := getCaller()
-	s.captureCustomException(errLocation, v...)
-	logIfaces := append([]interface{}{errLocation}, v...)
-	s.logger.Print(logIfaces...)
+	sentry.CaptureException(errors.New(fmt.Sprint(v...)))
+	s.Logger.Print(v...)
 }
+
 func (s *sentryErrorLogger) Printf(format string, v ...interface{}) {
-	errLocation := getCaller()
-	s.captureCustomException(errLocation, fmt.Sprintf(format, v...))
-	logIfaces := append([]interface{}{errLocation}, v...)
-	s.logger.Printf("%s"+format, logIfaces...)
+	sentry.CaptureException(errors.New(fmt.Sprintf(format, v...)))
+	s.Logger.Printf(format, v...)
 }
 func (s *sentryErrorLogger) Println(v ...interface{}) {
-	errLocation := getCaller()
-	s.captureCustomException(errLocation, v...)
-	logIfaces := append([]interface{}{errLocation}, v...)
-	s.logger.Println(logIfaces...)
+	sentry.CaptureException(errors.New(fmt.Sprintln(v...)))
+	s.Logger.Println(v...)
 }
 
 func (s *sentryErrorLogger) Fatal(v ...interface{}) {
-	errLocation := getCaller()
-	s.captureCustomException(errLocation, v...)
-	logIfaces := append([]interface{}{errLocation}, v...)
-	s.logger.Fatal(logIfaces...)
+	sentry.CaptureException(errors.New(fmt.Sprint(v...)))
+	s.Logger.Fatal(v...)
 }
 func (s *sentryErrorLogger) Fatalf(format string, v ...interface{}) {
-	errLocation := getCaller()
-	s.captureCustomException(errLocation, fmt.Sprintf(format, v...))
-	logIfaces := append([]interface{}{errLocation}, v...)
-	s.logger.Fatalf("%s"+format, logIfaces...)
+	sentry.CaptureException(errors.New(fmt.Sprintf(format, v...)))
+	s.Logger.Fatalf(format, v...)
 }
 func (s *sentryErrorLogger) Fatalln(v ...interface{}) {
-	errLocation := getCaller()
-	s.captureCustomException(errLocation, v...)
-	logIfaces := append([]interface{}{errLocation}, v...)
-	s.logger.Fatalln(logIfaces...)
+	sentry.CaptureException(errors.New(fmt.Sprintln(v...)))
+	s.Logger.Fatalln(v...)
 }
 
 func (s *sentryErrorLogger) Panic(v ...interface{}) {
-	s.Fatal(v...)
+	sentry.CaptureException(errors.New(fmt.Sprint(v...)))
+	s.Logger.Panic(v...)
 }
 func (s *sentryErrorLogger) Panicf(format string, v ...interface{}) {
-	s.Fatalf(format, v...)
+	sentry.CaptureException(errors.New(fmt.Sprintf(format, v...)))
+	s.Logger.Panicf(format, v...)
 }
 func (s *sentryErrorLogger) Panicln(v ...interface{}) {
-	s.Fatalln(v...)
+	sentry.CaptureException(errors.New(fmt.Sprintln(v...)))
+	s.Logger.Panicln(v...)
 }

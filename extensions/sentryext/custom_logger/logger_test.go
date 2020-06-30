@@ -3,7 +3,6 @@ package custom_logger
 import (
 	"bytes"
 	"github.com/stretchr/testify/assert"
-	"log"
 	"testing"
 	"time"
 )
@@ -13,8 +12,7 @@ func Test_logger(t *testing.T) {
 	logger := NewSentryErrorLogger()
 
 	var buf bytes.Buffer
-	commonLogger, _ := logger.logger.(*log.Logger)
-	commonLogger.SetOutput(&buf)
+	logger.SetOutput(&buf)
 
 	str1 := "This is a error"
 	logger.Print(str1)
