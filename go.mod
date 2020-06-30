@@ -26,5 +26,5 @@ require (
 	go.elastic.co/apm/module/apmgoredis v1.8.0
 	go.elastic.co/apm/module/apmgrpc v1.8.0
 	go.elastic.co/apm/module/apmsql v1.8.0
-	google.golang.org/grpc v1.30.0
+	google.golang.org/grpc v1.29.1
 )
