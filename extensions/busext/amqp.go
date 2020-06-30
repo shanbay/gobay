@@ -81,6 +81,7 @@ func (b *BusExt) Init(app *gobay.Application) error {
 	b.reconnectDelay = b.config.GetDuration("reconnect_delay")
 	b.reinitDelay = b.config.GetDuration("reinit_delay")
 	brokerUrl := b.config.GetString("broker_url")
+	b.done = make(chan bool)
 
 	b.mocked = b.config.GetBool("mocked")
 	if !b.mocked {
@@ -112,8 +113,10 @@ func (b *BusExt) Close() error {
 		b.ErrorLogger.Printf("close connection failed: %v\n", err)
 		return err
 	}
+
 	close(b.done)
 	b.isReady = false
+
 	log.Println("BusExt closed")
 	return nil
 }
