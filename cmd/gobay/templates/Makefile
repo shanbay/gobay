@@ -253,6 +253,7 @@ SWAGGER_SPEC ?= spec/openapi/main.yml
 SWAGGER_TARGET ?= gen/openapi
 
 genswagger:
+	mkdir -p $(SWAGGER_TARGET)
 	swagger generate server -f $(SWAGGER_SPEC) -A $(APP) -t $(SWAGGER_TARGET) --exclude-main
 
 # ent
