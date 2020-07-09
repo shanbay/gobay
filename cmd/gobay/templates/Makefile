@@ -261,7 +261,7 @@ genswagger:
 .PHONY: entdesc
 
 DIR_SCHEMA = ./spec/schema/
-DIR_SCHEMA_GEN = ./gen/schema/
+DIR_SCHEMA_GEN = ./gen/entschema/
 DIR_SCHEMA_TMPL = ./spec/enttmpl
 EMPTY_SCHEMA_NAME = schema.go
 EMPTY_SCHEMA_PATH = $(DIR_SCHEMA_GEN)$(EMPTY_SCHEMA_NAME)
@@ -273,7 +273,7 @@ $(DIR_SCHEMA_GEN):
 	mkdir -p $(DIR_SCHEMA_GEN)
 
 $(EMPTY_SCHEMA_PATH): $(DIR_SCHEMA_GEN)
-	echo "package schema" > $(EMPTY_SCHEMA_PATH)
+	echo "package entschema" > $(EMPTY_SCHEMA_PATH)
 
 entinit:
 	entc init --target $(DIR_SCHEMA) $(ARGS)
