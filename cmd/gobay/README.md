@@ -12,7 +12,7 @@ gobay new github.com/shanbay/my_proj
 - openapi工具: [go-swagger](https://github.com/go-swagger/go-swagger/releases)
 - grpc/protobuf工具: [grpc-go](https://github.com/grpc/grpc-go) [protobuf](https://github.com/golang/protobuf)
 - lint工具: [golangci-lint](https://github.com/golangci/golangci-lint#binary)
-- orm代码生成(ent): [ent](https://github.com/shanbay/ent)
+- orm代码生成(ent): [ent](https://github.com/shanbay/ent) 请安装这个版本的 entc `go get github.com/facebookincubator/ent/cmd/entc@v0.2.5`
 - gocovmerge: [gocovmerge](https://github.com/wadey/gocovmerge)
 - pre-commit: [pre-commit](https://pre-commit.com/#installation)
 - gotests: [gotests](https://github.com/cweill/gotests)

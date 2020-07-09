@@ -1,0 +1,503 @@
+{{/*
+Copyright 2019-present Facebook Inc. All rights reserved.
+This source code is licensed under the Apache 2.0 license found
+in the LICENSE file in the root directory of this source tree.
+*/}}
+
+{{ define "query" }}
+{{ $pkg := base $.Config.Package }}
+
+{{ template "header" $ }}
+
+{{ template "import" $ }}
+
+import (
+	{{- range $path := $.SiblingImports }}
+		"{{ $path }}"
+	{{- end }}
+)
+
+
+{{ $builder := $.QueryName }}
+{{ $receiver := receiver $builder }}
+
+// {{ $builder }} is the builder for querying {{ pascal $.Name }} entities.
+type {{ $builder }} struct {
+	config
+	limit		*int
+	offset		*int
+	order		[]OrderFunc
+	unique		[]string
+	predicates 	[]predicate.{{ $.Name }}
+	{{- with $.Edges }}
+		// eager-loading edges.
+		{{- range $e := . }}
+			with{{ pascal $e.Name }} *{{ $e.Type.QueryName }}
+		{{- end }}
+	{{- end }}
+	{{- /* Additional fields to add to the builder. */}}
+	{{- $tmpl := printf "dialect/%s/query/fields" $.Storage }}
+	{{- if hasTemplate $tmpl }}
+		{{- xtemplate $tmpl . }}
+	{{- end }}
+	// intermediate query (i.e. traversal path).
+	{{ $.Storage }} {{ $.Storage.Builder }}
+	path func(context.Context) ({{ $.Storage.Builder }}, error)
+}
+
+// Where adds a new predicate for the builder.
+func ({{ $receiver }} *{{ $builder }}) Where(ps ...predicate.{{ $.Name }}) *{{ $builder }} {
+	{{ $receiver}}.predicates = append({{ $receiver }}.predicates, ps...)
+	return {{ $receiver }}
+}
+
+// Limit adds a limit step to the query.
+func ({{ $receiver }} *{{ $builder }}) Limit(limit int) *{{ $builder }} {
+	{{ $receiver }}.limit = &limit
+	return {{ $receiver }}
+}
+
+// Offset adds an offset step to the query.
+func ({{ $receiver }} *{{ $builder }}) Offset(offset int) *{{ $builder }} {
+	{{ $receiver }}.offset = &offset
+	return {{ $receiver }}
+}
+
+// Order adds an order step to the query.
+func ({{ $receiver }} *{{ $builder }}) Order(o ...OrderFunc) *{{ $builder }} {
+	{{ $receiver }}.order = append({{ $receiver }}.order, o...)
+	return {{ $receiver }}
+}
+
+{{/* this code has similarity with edge queries in client.tmpl */}}
+{{ range $_, $e := $.Edges }}
+	{{ $edge_builder := print (pascal $e.Type.Name) "Query" }}
+	// Query{{ pascal $e.Name }} chains the current query on the {{ $e.Name }} edge.
+	func ({{ $receiver }} *{{ $builder }}) Query{{ pascal $e.Name }}() *{{ $edge_builder }} {
+		query := &{{ $edge_builder }}{config: {{ $receiver }}.config}
+		query.path = func(ctx context.Context) (fromU {{ $.Storage.Builder }}, err error) {
+			if err := {{ $receiver }}.prepareQuery(ctx); err != nil {
+				return nil, err
+			}
+			{{- with extend $ "Receiver" $receiver "Edge" $e "Ident" "fromU" -}}
+				{{ $tmpl := printf "dialect/%s/query/path" $.Storage }}
+				{{- xtemplate $tmpl . }}
+			{{- end -}}
+			return fromU, nil
+		}
+		return query
+	}
+{{ end }}
+
+// First returns the first {{ $.Name }} entity in the query. Returns *NotFoundError when no {{ lower $.Name }} was found.
+func ({{ $receiver }} *{{ $builder }}) First(ctx context.Context) (*{{ $.Name }}, error) {
+	{{ plural $.Receiver }}, err := {{ $receiver }}.Limit(1).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if len({{ plural $.Receiver }}) == 0 {
+		return nil, &NotFoundError{ {{ $.Package }}.Label}
+	}
+	return {{ plural $.Receiver }}[0], nil
+}
+
+// FirstX is like First, but panics if an error occurs.
+func ({{ $receiver }} *{{ $builder }}) FirstX(ctx context.Context) *{{ $.Name }} {
+	{{ $.Receiver }}, err := {{ $receiver }}.First(ctx)
+	if err != nil && !IsNotFound(err) {
+		panic(err)
+	}
+	return {{ $.Receiver }}
+}
+
+// FirstID returns the first {{ $.Name }} id in the query. Returns *NotFoundError when no id was found.
+func ({{ $receiver }} *{{ $builder }}) FirstID(ctx context.Context) (id {{ $.ID.Type }}, err error) {
+	var ids []{{ $.ID.Type }}
+	if ids, err = {{ $receiver }}.Limit(1).IDs(ctx); err != nil {
+		return
+	}
+	if len(ids) == 0 {
+		err = &NotFoundError{ {{ $.Package }}.Label}
+		return
+	}
+	return ids[0], nil
+}
+
+// FirstXID is like FirstID, but panics if an error occurs.
+func ({{ $receiver }} *{{ $builder }}) FirstXID(ctx context.Context) {{ $.ID.Type }} {
+	id, err := {{ $receiver }}.FirstID(ctx)
+	if err != nil && !IsNotFound(err) {
+		panic(err)
+	}
+	return id
+}
+
+// Only returns the only {{ $.Name }} entity in the query, returns an error if not exactly one entity was returned.
+func ({{ $receiver }} *{{ $builder }}) Only(ctx context.Context) (*{{ $.Name }}, error) {
+	{{ plural $.Receiver }}, err := {{ $receiver }}.Limit(2).All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	switch len({{ plural $.Receiver }}) {
+	case 1:
+		return {{ plural $.Receiver }}[0], nil
+	case 0:
+		return nil, &NotFoundError{ {{ $.Package }}.Label}
+	default:
+		return nil, &NotSingularError{ {{ $.Package }}.Label}
+	}
+}
+
+// OnlyX is like Only, but panics if an error occurs.
+func ({{ $receiver }} *{{ $builder }}) OnlyX(ctx context.Context) *{{ $.Name }} {
+	{{ $.Receiver }}, err := {{ $receiver }}.Only(ctx)
+	if err != nil {
+		panic(err)
+	}
+	return {{ $.Receiver }}
+}
+
+// OnlyID returns the only {{ $.Name }} id in the query, returns an error if not exactly one id was returned.
+func ({{ $receiver }} *{{ $builder }}) OnlyID(ctx context.Context) (id {{ $.ID.Type }}, err error) {
+	var ids []{{ $.ID.Type }}
+	if ids, err = {{ $receiver }}.Limit(2).IDs(ctx); err != nil {
+		return
+	}
+	switch len(ids) {
+	case 1:
+		id = ids[0]
+	case 0:
+		err = &NotFoundError{ {{ $.Package }}.Label}
+	default:
+		err = &NotSingularError{ {{ $.Package }}.Label}
+	}
+	return
+}
+
+// OnlyXID is like OnlyID, but panics if an error occurs.
+func ({{ $receiver }} *{{ $builder }}) OnlyXID(ctx context.Context) {{ $.ID.Type }} {
+	id, err := {{ $receiver }}.OnlyID(ctx)
+	if err != nil {
+		panic(err)
+	}
+	return id
+}
+
+// All executes the query and returns a list of {{ plural $.Name }}.
+func ({{ $receiver }} *{{ $builder }}) All(ctx context.Context) ([]*{{ $.Name }}, error) {
+	if err := {{ $receiver }}.prepareQuery(ctx); err != nil {
+		return nil, err
+	}
+	return {{ $receiver }}.{{ $.Storage }}All(ctx)
+}
+
+// AllX is like All, but panics if an error occurs.
+func ({{ $receiver }} *{{ $builder }}) AllX(ctx context.Context) []*{{ $.Name }} {
+	{{ plural $.Receiver }}, err := {{ $receiver }}.All(ctx)
+	if err != nil {
+		panic(err)
+	}
+	return {{ plural $.Receiver }}
+}
+
+// IDs executes the query and returns a list of {{ $.Name }} ids.
+func ({{ $receiver }} *{{ $builder }}) IDs(ctx context.Context) ([]{{ $.ID.Type }}, error) {
+	var ids []{{ $.ID.Type }}
+	if err := {{ $receiver }}.Select({{ $.Package }}.FieldID).Scan(ctx, &ids); err != nil {
+		return nil, err
+	}
+	return ids, nil
+}
+
+// IDsX is like IDs, but panics if an error occurs.
+func ({{ $receiver }} *{{ $builder }}) IDsX(ctx context.Context) []{{ $.ID.Type }} {
+	ids, err := {{ $receiver }}.IDs(ctx)
+	if err != nil {
+		panic(err)
+	}
+	return ids
+}
+
+// Count returns the count of the given query.
+func ({{ $receiver }} *{{ $builder }}) Count(ctx context.Context) (int, error) {
+	if err := {{ $receiver }}.prepareQuery(ctx); err != nil {
+		return 0, err
+	}
+	return {{ $receiver }}.{{ $.Storage }}Count(ctx)
+}
+
+// CountX is like Count, but panics if an error occurs.
+func ({{ $receiver }} *{{ $builder }}) CountX(ctx context.Context) int {
+	count, err := {{ $receiver }}.Count(ctx)
+	if err != nil {
+		panic(err)
+	}
+	return count
+}
+
+// Exist returns true if the query has elements in the graph.
+func ({{ $receiver }} *{{ $builder }}) Exist(ctx context.Context) (bool, error) {
+	if err := {{ $receiver }}.prepareQuery(ctx); err != nil {
+		return false, err
+	}
+	return {{ $receiver }}.{{ $.Storage }}Exist(ctx)
+}
+
+// ExistX is like Exist, but panics if an error occurs.
+func ({{ $receiver }} *{{ $builder }}) ExistX(ctx context.Context) bool {
+	exist, err := {{ $receiver }}.Exist(ctx)
+	if err != nil {
+		panic(err)
+	}
+	return exist
+}
+
+// Clone returns a duplicate of the query builder, including all associated steps. It can be
+// used to prepare common query builders and use them differently after the clone is made.
+func ({{ $receiver }} *{{ $builder }}) Clone() *{{ $builder }} {
+	return &{{ $builder }}{
+		config: 	{{ $receiver }}.config,
+		limit: 		{{ $receiver }}.limit,
+		offset: 	{{ $receiver }}.offset,
+		order: 		append([]OrderFunc{}, {{ $receiver }}.order...),
+		unique: 	append([]string{}, {{ $receiver }}.unique...),
+		predicates: append([]predicate.{{ $.Name }}{}, {{ $receiver }}.predicates...),
+		// clone intermediate query.
+		{{ $.Storage }}: {{ $receiver }}.{{ $.Storage }}.Clone(),
+		path: {{ $receiver }}.path,
+	}
+}
+
+{{- range $e := $.Edges }}
+	{{ $ebuilder := $e.Type.QueryName }}
+	//  With{{ pascal $e.Name }} tells the query-builder to eager-loads the nodes that are connected to
+	// the "{{ $e.Name }}" edge. The optional arguments used to configure the query builder of the edge.
+	func ({{ $receiver }} *{{ $builder }}) With{{ pascal $e.Name }}(opts ...func(*{{ $ebuilder }})) *{{ $builder }} {
+		query := &{{ $ebuilder }}{config: {{ $receiver }}.config}
+		for _, opt := range opts {
+			opt(query)
+		}
+		{{ $receiver }}.with{{ pascal $e.Name }} = query
+		return {{ $receiver }}
+	}
+{{- end }}
+
+{{ $groupBuilder := pascal $.Name | printf "%sGroupBy" }}
+
+// GroupBy used to group vertices by one or more fields/columns.
+// It is often used with aggregate functions, like: {{ join (keys aggregate) ", " }}.
+{{- with len $.Fields }}
+{{- $f := index $.Fields 0 }}
+//
+// Example:
+//
+//	var v []struct {
+//		{{ $f.StructField }} {{ $f.Type }} `{{ $f.StructTag }}`
+//		Count int `json:"count,omitempty"`
+//	}
+//
+//	client.{{ pascal $.Name }}.Query().
+//		GroupBy({{ $.Package }}.{{ $f.Constant }}).
+//		Aggregate({{ $pkg }}.Count()).
+//		Scan(ctx, &v)
+//
+{{- end }}
+func ({{ $receiver }} *{{ $builder }}) GroupBy(field string, fields ...string) *{{ $groupBuilder }} {
+	group := &{{ $groupBuilder }}{config: {{ $receiver }}.config}
+	group.fields = append([]string{field}, fields...)
+	group.path = func(ctx context.Context) (prev {{ $.Storage.Builder }}, err error) {
+		if err := {{ $receiver }}.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		return {{ $receiver }}.{{ $.Storage }}Query(), nil
+	}
+	return group
+}
+
+{{ $selectBuilder := pascal $.Name | printf "%sSelect" }}
+
+// Select one or more fields from the given query.
+{{- with len $.Fields }}
+{{- $f := index $.Fields 0 }}
+//
+// Example:
+//
+//	var v []struct {
+//		{{ $f.StructField }} {{ $f.Type }} `{{ $f.StructTag }}`
+//	}
+//
+//	client.{{ pascal $.Name }}.Query().
+//		Select({{ $.Package }}.{{ $f.Constant }}).
+//		Scan(ctx, &v)
+//
+{{- end }}
+func ({{ $receiver }} *{{ $builder }}) Select(field string, fields ...string) *{{ $selectBuilder }} {
+	selector := &{{ $selectBuilder }}{config: {{ $receiver }}.config}
+	selector.fields = append([]string{field}, fields...)
+	selector.path = func(ctx context.Context) (prev {{ $.Storage.Builder }}, err error) {
+		if err := {{ $receiver }}.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		return {{ $receiver }}.{{ $.Storage }}Query(), nil
+	}
+	return selector
+}
+
+func ({{ $receiver }} *{{ $builder }}) prepareQuery(ctx context.Context) error {
+	if {{ $receiver }}.path != nil {
+		prev, err := {{ $receiver }}.path(ctx)
+		if err != nil {
+			return err
+		}
+		{{ $receiver }}.{{ $.Storage }} = prev
+	}
+	{{- if $.HasPolicy }}
+		if err := {{ $.Package }}.Policy.EvalQuery(ctx, {{ $receiver }}); err != nil {
+			return err
+		}
+	{{- end }}
+	return nil
+}
+
+{{ with extend $ "Builder" $builder "Package" $pkg }}
+	{{ $tmpl := printf "dialect/%s/query" $.Storage }}
+	{{ xtemplate $tmpl . }}
+{{ end }}
+
+{{/* groupby builder */}}
+
+{{ $groupReceiver := receiver $groupBuilder }}
+
+// {{ $groupBuilder }} is the builder for group-by {{ pascal $.Name }} entities.
+type {{ $groupBuilder }} struct {
+	config
+	fields []string
+	fns    []AggregateFunc
+	// intermediate query (i.e. traversal path).
+	{{ $.Storage }} {{ $.Storage.Builder }}
+	path func(context.Context) ({{ $.Storage.Builder }}, error)
+}
+
+// Aggregate adds the given aggregation functions to the group-by query.
+func ({{ $groupReceiver }} *{{ $groupBuilder }}) Aggregate(fns ...AggregateFunc) *{{ $groupBuilder }} {
+	{{ $groupReceiver }}.fns = append({{ $groupReceiver }}.fns, fns...)
+	return {{ $groupReceiver }}
+}
+
+// Scan applies the group-by query and scan the result into the given value.
+func ({{ $groupReceiver }} *{{ $groupBuilder }}) Scan(ctx context.Context, v interface{}) error {
+	query, err := {{ $groupReceiver }}.path(ctx)
+	if err != nil {
+		return err
+	}
+	{{ $groupReceiver }}.{{ $.Storage }} = query
+	return {{ $groupReceiver }}.{{ $.Storage }}Scan(ctx, v)
+}
+
+// ScanX is like Scan, but panics if an error occurs.
+func ({{ $groupReceiver }} *{{ $groupBuilder }}) ScanX(ctx context.Context, v interface{}) {
+	if err := {{ $groupReceiver }}.Scan(ctx, v); err != nil {
+		panic(err)
+	}
+}
+
+{{ range $_, $t := primitives }}
+	{{ $f := pascal $t | plural }}
+	// {{ $f }} returns list of {{ plural $t }} from group-by. It is only allowed when querying group-by with one field.
+	func ({{ $groupReceiver }} *{{ $groupBuilder }}) {{ $f }}(ctx context.Context) ([]{{ $t }}, error) {
+		if len({{ $groupReceiver }}.fields) > 1 {
+			return nil, errors.New("{{ $pkg }}: {{ $groupBuilder }}.{{ $f }} is not achievable when grouping more than 1 field")
+		}
+		var v []{{ $t }}
+		if err := {{ $groupReceiver }}.Scan(ctx, &v); err != nil {
+			return nil, err
+		}
+		return v, nil
+	}
+
+	// {{ $f }}X is like {{ $f }}, but panics if an error occurs.
+	func ({{ $groupReceiver }} *{{ $groupBuilder }}) {{ $f }}X(ctx context.Context) []{{ $t }} {
+		v, err := {{ $groupReceiver }}.{{ $f }}(ctx)
+		if err != nil {
+			panic(err)
+		}
+		return v
+	}
+{{ end }}
+
+{{ with extend $ "Builder" $groupBuilder }}
+	{{ $tmpl := printf "dialect/%s/group" $.Storage }}
+	{{ xtemplate $tmpl . }}
+{{ end }}
+
+{{/* select builder */}}
+
+{{ $selectReceiver := receiver $selectBuilder }}
+
+// {{ $selectBuilder }} is the builder for select fields of {{ pascal $.Name }} entities.
+type {{ $selectBuilder }} struct {
+	config
+	fields []string
+	// intermediate query (i.e. traversal path).
+	{{ $.Storage }} {{ $.Storage.Builder }}
+	path func(context.Context) ({{ $.Storage.Builder }}, error)
+
+	distinct bool
+}
+
+
+// Scan applies the selector query and scan the result into the given value.
+func ({{ $selectReceiver }} *{{ $selectBuilder }}) Scan(ctx context.Context, v interface{}) error {
+	query, err := {{ $selectReceiver }}.path(ctx)
+	if err != nil {
+		return err
+	}
+	{{ $selectReceiver }}.{{ $.Storage }} = query
+	if {{ $selectReceiver }}.distinct {
+		{{ $selectReceiver }}.{{ $.Storage }}.Distinct()
+	}
+	return {{ $selectReceiver }}.{{ $.Storage }}Scan(ctx, v)
+}
+
+func ({{ $selectReceiver }} *{{ $selectBuilder }}) Distinct() *{{ $selectBuilder }} {
+	{{ $selectReceiver }}.distinct = true
+	return {{ $selectReceiver }}
+}
+
+// ScanX is like Scan, but panics if an error occurs.
+func ({{ $selectReceiver }} *{{ $selectBuilder }}) ScanX(ctx context.Context, v interface{}) {
+	if err := {{ $selectReceiver }}.Scan(ctx, v); err != nil {
+		panic(err)
+	}
+}
+
+{{ range $_, $t := primitives }}
+	{{ $f := pascal $t | plural }}
+	// {{ $f }} returns list of {{ plural $t }} from selector. It is only allowed when selecting one field.
+	func ({{ $selectReceiver }} *{{ $selectBuilder }}) {{ $f }}(ctx context.Context) ([]{{ $t }}, error) {
+		if len({{ $selectReceiver }}.fields) > 1 {
+			return nil, errors.New("{{ $pkg }}: {{ $selectBuilder }}.{{ $f }} is not achievable when selecting more than 1 field")
+		}
+		var v []{{ $t }}
+		if err := {{ $selectReceiver }}.Scan(ctx, &v); err != nil {
+			return nil, err
+		}
+		return v, nil
+	}
+
+	// {{ $f }}X is like {{ $f }}, but panics if an error occurs.
+	func ({{ $selectReceiver }} *{{ $selectBuilder }}) {{ $f }}X(ctx context.Context) []{{ $t }} {
+		v, err := {{ $selectReceiver }}.{{ $f }}(ctx)
+		if err != nil {
+			panic(err)
+		}
+		return v
+	}
+{{ end }}
+
+{{ with extend $ "Builder" $selectBuilder }}
+	{{ $tmpl := printf "dialect/%s/select" $.Storage }}
+	{{ xtemplate $tmpl . }}
+{{ end }}
+
+{{ end }}

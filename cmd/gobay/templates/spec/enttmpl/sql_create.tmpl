@@ -7,11 +7,12 @@ in the LICENSE file in the root directory of this source tree.
 {{ define "dialect/sql/create" }}
 {{ $builder := pascal $.Scope.Builder }}
 {{ $receiver := receiver $builder }}
+{{ $mutation := print $receiver ".mutation"  }}
 
 func ({{ $receiver }} *{{ $builder }}) getObjAndSpec() (*{{ $.Name }}, *sqlgraph.CreateSpec) {
 	var (
 		{{ $.Receiver }} = &{{ $.Name }}{config: {{ $receiver }}.config}
-		spec = &sqlgraph.CreateSpec{
+		_spec = &sqlgraph.CreateSpec{
 			Table: {{ $.Package }}.Table,
 			ID: &sqlgraph.FieldSpec{
 				Type: field.{{ $.ID.Type.ConstName }},
@@ -20,35 +21,35 @@ func ({{ $receiver }} *{{ $builder }}) getObjAndSpec() (*{{ $.Name }}, *sqlgraph
 		}
 	)
 	{{- if $.ID.UserDefined }}
-		if value := {{ $receiver }}.{{ $.ID.BuilderField }}; value != nil {
-			{{ $.Receiver }}.ID = *value
-			spec.ID.Value = *value
+		if id, ok := {{ $mutation }}.{{ $.ID.MutationGet }}(); ok {
+			{{ $.Receiver }}.ID = id
+			_spec.ID.Value = id
 		}
 	{{- end }}
 	{{- range $_, $f := $.Fields }}
-		if value := {{ $receiver }}.{{ $f.BuilderField }}; value != nil {
-			spec.Fields = append(spec.Fields, &sqlgraph.FieldSpec{
+		if value, ok := {{ $mutation }}.{{ $f.MutationGet }}(); ok {
+			_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
 				Type: field.{{ $f.Type.ConstName }},
-				Value: *value,
+				Value: value,
 				Column: {{ $.Package }}.{{ $f.Constant }},
 			})
-			{{ $.Receiver }}.{{ $f.StructField }} = {{ if not $f.Nillable }}*{{ end }}value
+			{{ $.Receiver }}.{{ $f.StructField }} = {{ if $f.Nillable }}&{{ end }}value
 		}
 	{{- end }}
 	{{- range $_, $e := $.Edges }}
-		if nodes := {{ $receiver }}.{{ $e.BuilderField }}; len(nodes) > 0 {
+		if nodes := {{ $mutation }}.{{ $e.StructField }}IDs(); len(nodes) > 0 {
 			{{- with extend $ "Edge" $e "Nodes" true "Zero" "nil" }}
 				{{ template "dialect/sql/defedge" . }}{{/* defined in sql/update.tmpl */}}
 			{{- end }}
-			spec.Edges = append(spec.Edges, edge)
+			_spec.Edges = append(_spec.Edges, edge)
 		}
 	{{- end }}
-	return {{ $.Receiver }}, spec
+	return {{ $.Receiver }}, _spec
 }
 
 func ({{ $receiver }} *{{ $builder }}) sqlSave(ctx context.Context) (*{{ $.Name }}, error) {
-	{{ $.Receiver }}, spec := {{ $receiver }}.getObjAndSpec()
-	if err := sqlgraph.CreateNode(ctx, {{ $receiver }}.driver, spec); err != nil {
+	{{ $.Receiver }}, _spec := {{ $receiver }}.getObjAndSpec()
+	if err := sqlgraph.CreateNode(ctx, {{ $receiver }}.driver, _spec); err != nil {
 		if cerr, ok := isSQLConstraintError(err); ok {
 			err = cerr
 		}
@@ -60,9 +61,9 @@ func ({{ $receiver }} *{{ $builder }}) sqlSave(ctx context.Context) (*{{ $.Name 
 		{{- if $.ID.UserDefined }}
 			if {{ $.Receiver }}.ID == 0 {
 		{{- end }}
-			id := spec.ID.Value.(int64)
-			{{ $.Receiver }}.ID = {{ if $.ID.IsString }}strconv.FormatInt(id, 10){{ else }}{{ $.ID.Type }}(id){{ end }}
-		{{- if and $.ID.UserDefined }}
+			id := _spec.ID.Value.(int64)
+			{{ $.Receiver }}.ID = {{ $.ID.Type }}(id)
+		{{- if $.ID.UserDefined }}
 			}
 		{{- end }}
 	{{- end }}
