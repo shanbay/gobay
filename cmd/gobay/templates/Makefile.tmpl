@@ -102,7 +102,7 @@ build_debug: $(DIR_BUILD)
 	$(GO) build $(DEBUG_FLAGS) -o $(FILE_DEBUG_BIN) $(BIN_SRC)
 
 run: build_debug
-	./$(FILE_DEBUG_BIN) $(COMMAND) $(ARGS)
+	./$(FILE_DEBUG_BIN) $(COMMAND) $(ARGS) --env $(GOBAY_ENV) --root $(RUN)
 
 build_release: $(DIR_DIST)
 	$(GO) build $(RELEASE_FLAGS) -o $(FILE_RELEASE_BIN) $(BIN_SRC)
@@ -248,7 +248,7 @@ ensure:
 
 .PHONY: genswagger
 
-APP ?= $(BIN)
+APP ?= {{ $.Name }}
 SWAGGER_SPEC ?= spec/openapi/main.yml
 SWAGGER_TARGET ?= gen/openapi
 
