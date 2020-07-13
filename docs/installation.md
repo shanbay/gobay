@@ -28,6 +28,17 @@ brew install go-swagger
 go get -u google.golang.org/grpc
 ```
 
+- [protobuf tool](https://github.com/golang/protobuf) [(probably official)installation guide](http://google.github.io/proto-lens/installing-protoc.html)
+
+```sh
+# install protobuf (or at least protobuf-compiler)
+# mac:
+brew install protobuf
+
+go get -u github.com/gogo/protobuf/protoc-gen-gofast
+go get -u github.com/golang/mock/mockgen
+```
+
 - [lint tool: golangci-lint](https://golangci-lint.run/usage/install/#local-installation)
 
 ```sh
