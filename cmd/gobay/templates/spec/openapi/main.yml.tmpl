@@ -5,13 +5,20 @@ info:
   description: ""
   version: 1.0.0
 consumes:
-- application/json
+  - application/json
 produces:
-- application/json
+  - application/json
 schemes:
-- http
-basePath: 
+  - http
+basePath: /{{ $.Name }}
 definitions:
+  BaseDefaultRes:
+    type: object
+  BadRequestRes:
+    type: object
+    properties:
+      msg:
+        type: string
 paths:
   /health:
     get:
