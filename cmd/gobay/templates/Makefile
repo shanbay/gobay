@@ -256,6 +256,26 @@ genswagger:
 	mkdir -p $(SWAGGER_TARGET)
 	swagger generate server -f $(SWAGGER_SPEC) -A $(APP) -t $(SWAGGER_TARGET) --exclude-main
 
+# grpc proto
+.PHONY: genproto genprotomock
+
+PROTO_SPEC ?= spec/grpc
+PROTO_TARGET ?= gen/grpc
+
+genproto:
+	mkdir -p ${PROTO_TARGET}
+	for protofile in $$(find ${PROTO_SPEC} -maxdepth 10 -type f -iname "*.proto"); do \
+		protoc -I ${PROTO_SPEC} --gofast_out=plugins=grpc:${PROTO_TARGET} $$protofile; \
+	done
+	
+genprotomock:
+	TEMP_CURR_DIR=${pwd}
+	cd ${PROTO_TARGET}
+	for file in $$(find ./ -type f -iname "*.go" -not -path "./mocks/*"); do \
+		mockgen -source=$$file -destination=./mocks/$$file; \
+	done
+	cd ${TEMP_CURR_DIR}
+
 # ent
 
 .PHONY: entdesc
