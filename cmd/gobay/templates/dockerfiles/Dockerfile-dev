@@ -1,0 +1,46 @@
+FROM quay.io/goswagger/swagger AS swagger
+RUN which swagger
+
+FROM golangci/golangci-lint AS lint
+RUN which golangci-lint
+
+FROM golang:1.14-buster
+
+# chinese mirror for linux
+COPY sources.list /etc/apt/sources.list
+
+ENV CGO_ENABLED=0
+
+# lint
+COPY --from=lint /usr/bin/golangci-lint /go/bin/golangci-lint
+
+# swagger
+COPY --from=swagger /usr/bin/swagger /go/bin/swagger
+
+# chinese mirror for go packages
+RUN go env -w GOPROXY=https://goproxy.cn,direct
+
+# debugger tool
+RUN go get -u github.com/go-delve/delve/cmd/dlv
+
+ENV GO111MODULE=on
+
+# gobay
+RUN go get github.com/shanbay/gobay/cmd/gobay
+
+# ent orm
+RUN go get github.com/facebookincubator/ent/cmd/entc@v0.2.5
+
+# grpc
+RUN go get -u google.golang.org/grpc
+
+# tests
+RUN go get -u github.com/cweill/gotests/
+
+# test coverage
+RUN go get github.com/wadey/gocovmerge
+RUN go get github.com/axw/gocov/...
+RUN go get github.com/AlekSi/gocov-xml
+
+WORKDIR /go/src/app
+
