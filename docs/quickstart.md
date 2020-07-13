@@ -27,6 +27,25 @@ then `grpc.health.v1.health/check` is available on port 6000.
 
 ### Add more GRPC handlers
 
+1. Create your GRPC proto files into `spec/grpc` directory, i.e. `spec/grpc/helloworld.proto`
+
+```proto
+syntax = "proto3";
+
+package helloworld;
+option go_package = "github.com/com/example/helloworld";
+
+service Greeter {
+  rpc SayHello (HelloRequest) returns (HelloReply) {}
+}
+message HelloRequest {
+  string name = 1;
+}
+message HelloReply {
+  string message = 1;
+}
+```
+
 1. Generate code for protos
 
 ```sh

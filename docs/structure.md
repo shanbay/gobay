@@ -38,7 +38,7 @@
     │   ├── client.tmpl
     │   └── sql_create.tmpl
     ├── schema # schema directory for (ent) db models
-    ├── grpc
+    ├── grpc # proto files here
     ├── openapi
     │   └── main.yml # openapi (swagger) spec
     # ...add more if needed here
