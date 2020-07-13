@@ -8,6 +8,7 @@ FROM golang:1.14-buster
 
 # chinese mirror for linux
 COPY sources.list /etc/apt/sources.list
+RUN apt-get update
 
 ENV CGO_ENABLED=0
 
@@ -32,7 +33,10 @@ RUN go get github.com/shanbay/gobay/cmd/gobay
 RUN go get github.com/facebookincubator/ent/cmd/entc@v0.2.5
 
 # grpc
+RUN apt-get install protobuf-compiler -y
 RUN go get -u google.golang.org/grpc
+RUN go get -u github.com/gogo/protobuf/protoc-gen-gofast
+RUN go get -u github.com/golang/mock/mockgen
 
 # tests
 RUN go get -u github.com/cweill/gotests/
