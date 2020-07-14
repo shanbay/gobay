@@ -10,7 +10,7 @@ import (
 )
 
 func init() {
-	if err := cachext.RegisteBackend("memory", &memoryBackend{}); err != nil {
+	if err := cachext.RegisteBackend("memory", func() cachext.CacheBackend { return &memoryBackend{} }); err != nil {
 		panic("MemoryBackend Init error")
 	}
 }
