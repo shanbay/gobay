@@ -1,7 +1,7 @@
 # Documents
 
-- [中文](about)
+- [中文](about.md)
 
-- [Installation](installation)
-- [Quickstart](quickstart)
-- [Structure](structure)
+- [Installation](installation.md)
+- [Quickstart](quickstart.md)
+- [Structure](structure.md)
