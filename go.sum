@@ -60,8 +60,6 @@ github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578 h1:d+Bc7a5rLufV
 github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578/go.mod h1:uGdkoq3SwY9Y+13GIhn11/XLaGBb4BfwItxLd5jeuXE=
 github.com/RichardKnop/logging v0.0.0-20190827224416-1a693bdd4fae h1:DcFpTQBYQ9Ct2d6sC7ol0/ynxc2pO1cpGUM+f4t5adg=
 github.com/RichardKnop/logging v0.0.0-20190827224416-1a693bdd4fae/go.mod h1:rJJ84PyA/Wlmw1hO+xTzV2wsSUon6J5ktg0g8BF2PuU=
-github.com/RichardKnop/machinery v1.8.7 h1:9I8JNHyWNKkGT0PnpL08PvpNKiKRfOCERo6Q78EmwwM=
-github.com/RichardKnop/machinery v1.8.7/go.mod h1:oZSPaqhblRMsR6WEhk8TSnW6Z6SuKjM+JxyS1FDXGoc=
 github.com/RichardKnop/machinery v1.8.8 h1:9T6ACnBT083vlfhhtZ2oGEe7E+vKuJ72qPVkfGw/c7k=
 github.com/RichardKnop/machinery v1.8.8/go.mod h1:oZSPaqhblRMsR6WEhk8TSnW6Z6SuKjM+JxyS1FDXGoc=
 github.com/RichardKnop/redsync v1.2.0 h1:gK35hR3zZkQigHKm8wOGb9MpJ9BsrW6MzxezwjTcHP0=
