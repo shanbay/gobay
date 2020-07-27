@@ -17,6 +17,7 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.0
 	github.com/mitchellh/mapstructure v1.3.2
 	github.com/satori/go.uuid v1.2.0
+	github.com/segmentio/kafka-go v0.3.7
 	github.com/spf13/cobra v0.0.7
 	github.com/spf13/viper v1.7.0
 	github.com/streadway/amqp v1.0.0

@@ -51,6 +51,9 @@ defaults: &defaults
   redis_password: ''
   redis_db: 0
   redis_prefix: 'github-redis'
+
+  kafka_broker: '127.0.0.1:9092'
+  kafka_topic: 'kafka-test'
 testing:
   <<: *defaults
   db_driver: mysql
