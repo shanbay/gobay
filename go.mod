@@ -18,7 +18,7 @@ require (
 	github.com/mitchellh/mapstructure v1.3.3
 	github.com/satori/go.uuid v1.2.0
 	github.com/spf13/cobra v0.0.7
-	github.com/spf13/viper v1.7.0
+	github.com/spf13/viper v1.7.1
 	github.com/streadway/amqp v1.0.0
 	github.com/stretchr/testify v1.6.1
 	github.com/vmihailenco/msgpack v4.0.4+incompatible
