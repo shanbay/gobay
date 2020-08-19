@@ -21,6 +21,10 @@ services:
 before_script:
   - go install github.com/golangci/golangci-lint/cmd/golangci-lint
   - mysql -e 'CREATE DATABASE gobay DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;'
+  - wget https://mirrors.tuna.tsinghua.edu.cn/apache/kafka/2.5.0/kafka_2.13-2.5.0.tgz -O /tmp/kafka_2.13-2.5.0.tgz
+  - tar zxvf /tmp/kafka_2.13-2.5.0.tgz -C /tmp/
+  - /tmp/kafka_2.13-2.5.0/bin/zookeeper-server-start.sh -daemon /tmp/kafka_2.13-2.5.0/config/zookeeper.properties
+  - /tmp/kafka_2.13-2.5.0/bin/kafka-server-start.sh -daemon /tmp/kafka_2.13-2.5.0/config/server.properties
 script:
   - golangci-lint run --timeout=3m --skip-dirs=testdata --tests=false
   - go test -v -count=1 ./...
