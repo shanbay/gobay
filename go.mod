@@ -11,7 +11,7 @@ require (
 	github.com/go-redis/redis v6.15.8+incompatible
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/golang/protobuf v1.4.2
-	github.com/grpc-ecosystem/go-grpc-middleware v1.2.0
+	github.com/grpc-ecosystem/go-grpc-middleware v1.2.1
 	github.com/iancoleman/strcase v0.0.0-20191112232945-16388991a334
 	github.com/markbates/pkger v0.17.0
 	github.com/mattn/go-sqlite3 v1.14.0
