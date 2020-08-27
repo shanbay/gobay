@@ -5,7 +5,7 @@ go 1.13
 require (
 	github.com/RichardKnop/logging v0.0.0-20190827224416-1a693bdd4fae
 	github.com/RichardKnop/machinery v1.9.1
-	github.com/facebookincubator/ent v0.0.0-20191218131918-1bbe460259f9
+	github.com/facebook/ent v0.4.0
 	github.com/getsentry/sentry-go v0.6.1
 	github.com/go-openapi/runtime v0.19.19
 	github.com/go-redis/redis v6.15.8+incompatible
@@ -29,3 +29,5 @@ require (
 	google.golang.org/grpc v1.30.0
 	google.golang.org/grpc/examples v0.0.0-20200709004140-9af290fac4b2 // indirect
 )
+
+replace github.com/facebook/ent => github.com/shanbay/ent v0.4.0
