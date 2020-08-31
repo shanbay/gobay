@@ -11,8 +11,8 @@ import (
 
 	"github.com/shanbay/gobay/testdata/ent/user"
 
-	"github.com/facebookincubator/ent/dialect"
-	"github.com/facebookincubator/ent/dialect/sql"
+	"github.com/facebook/ent/dialect"
+	"github.com/facebook/ent/dialect/sql"
 )
 
 // Client is the client that holds all ent builders.

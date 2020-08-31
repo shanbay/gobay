@@ -2,9 +2,11 @@ package ent_mw
 
 import (
 	"context"
-	"github.com/facebookincubator/ent/dialect"
+	"testing"
+
+	"github.com/facebook/ent/dialect"
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/grpc-ecosystem/go-grpc-middleware"
+	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpc_testing "github.com/grpc-ecosystem/go-grpc-middleware/testing"
 	pb_testproto "github.com/grpc-ecosystem/go-grpc-middleware/testing/testproto"
 	"github.com/shanbay/gobay"
@@ -16,7 +18,6 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"testing"
 )
 
 var (
