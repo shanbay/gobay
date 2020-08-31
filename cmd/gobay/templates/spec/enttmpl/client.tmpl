@@ -218,9 +218,9 @@ func (c *{{ $client }}) CreateManyOnConflict(ctx context.Context, objs []*{{ $n.
 	columns := {{ $n.Package  }}.Columns[sIndex:]
 	inserter := sql.Insert({{ $n.Package }}.Table).Columns(columns...)
 	for _, obj := range objs {
-		obj.setDefault()
+		obj.preSave()
 		values := []interface{}{}
-		_, spec := obj.getObjAndSpec()
+		_, spec := obj.createSpec()
 		if sIndex == 0 {
 			values = append(values, spec.ID.Value)
 		}
