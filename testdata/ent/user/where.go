@@ -3,7 +3,7 @@
 package user
 
 import (
-	"github.com/facebookincubator/ent/dialect/sql"
+	"github.com/facebook/ent/dialect/sql"
 	"github.com/shanbay/gobay/testdata/ent/predicate"
 )
 

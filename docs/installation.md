@@ -53,10 +53,10 @@ curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/insta
 golangci-lint --version
 ```
 
-- [orm tool: ent, make sure to install version v0.2.5](https://github.com/shanbay/ent)
+- [orm tool: ent, make sure to install version v0.4.0](https://github.com/shanbay/ent)
 
 ```sh
-go get github.com/facebookincubator/ent/cmd/entc@v0.2.5
+go get github.com/facebook/ent/cmd/entc@v0.4.0
 ```
 
 - [test tool: gotests](https://github.com/cweill/gotests)

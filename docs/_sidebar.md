@@ -1,4 +1,5 @@
 - [关于](about)
+- [更新](CHANGELOG)
 - [安装](installation)
 - [快速入门](quickstart)
 - [项目结构](structure)

@@ -6,7 +6,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/facebookincubator/ent/dialect/sql"
+	"github.com/facebook/ent/dialect/sql"
 	"github.com/shanbay/gobay/testdata/ent/user"
 )
 
