@@ -55,7 +55,12 @@ func (d *StubExt) Application() *gobay.Application { return d.app }
 
 func (d *StubExt) Object() interface{} { return d }
 
-func (d *StubExt) Close() error { return d.conn.Close() }
+func (d *StubExt) Close() error {
+	if d.Mocked {
+		return nil
+	}
+	return d.conn.Close()
+}
 
 func (d *StubExt) Init(app *gobay.Application) error {
 	if d.NS == "" {
