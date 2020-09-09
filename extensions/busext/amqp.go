@@ -102,6 +102,9 @@ func (b *BusExt) Init(app *gobay.Application) error {
 }
 
 func (b *BusExt) Close() error {
+	if b.mocked {
+		return nil
+	}
 	if !b.isReady {
 		return errAlreadyClosed
 	}
