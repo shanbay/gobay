@@ -14,7 +14,7 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware v1.2.1
 	github.com/iancoleman/strcase v0.0.0-20191112232945-16388991a334
 	github.com/markbates/pkger v0.17.1
-	github.com/mattn/go-sqlite3 v1.14.2
+	github.com/mattn/go-sqlite3 v1.14.3
 	github.com/mitchellh/mapstructure v1.3.3
 	github.com/satori/go.uuid v1.2.0
 	github.com/spf13/cobra v1.0.0
