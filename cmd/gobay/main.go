@@ -2,15 +2,16 @@ package main
 
 import (
 	"bytes"
-	"github.com/iancoleman/strcase"
-	"github.com/markbates/pkger"
-	"github.com/spf13/cobra"
 	"io/ioutil"
 	"log"
 	"os"
 	"path"
 	"strings"
 	"text/template"
+
+	"github.com/iancoleman/strcase"
+	"github.com/markbates/pkger"
+	"github.com/spf13/cobra"
 )
 
 type _projTemplate struct {
@@ -25,11 +26,12 @@ type _projDir struct {
 }
 
 type _projConfig struct {
-	Url           string
-	Name          string
-	SkipSentry    bool
-	SkipAsyncTask bool
-	SkipCache     bool
+	Url            string
+	Name           string
+	SkipSentry     bool
+	SkipAsyncTask  bool
+	SkipCache      bool
+	SkipElasticApm bool
 }
 
 var (
@@ -76,6 +78,7 @@ func main() {
 	}
 	cmdNew.Flags().StringVar(&projConfig.Name, "name", "", "specific project name")
 	cmdNew.Flags().BoolVar(&projConfig.SkipSentry, "skip-sentry", false, "skip sentry")
+	cmdNew.Flags().BoolVar(&projConfig.SkipElasticApm, "skip-elasticapm", false, "skip elastic APM")
 	cmdNew.Flags().BoolVar(&projConfig.SkipCache, "skip-cache", false, "skip cache")
 	cmdNew.Flags().BoolVar(&projConfig.SkipAsyncTask, "skip-asynctask", false, "skip asynctask")
 

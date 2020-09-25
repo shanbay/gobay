@@ -102,7 +102,7 @@ build_debug: $(DIR_BUILD)
 	$(GO) build $(DEBUG_FLAGS) -o $(FILE_DEBUG_BIN) $(BIN_SRC)
 
 run: build_debug
-	./$(FILE_DEBUG_BIN) $(COMMAND) $(ARGS)
+	./$(FILE_DEBUG_BIN) $(COMMAND) $(ARGS) --env $(GOBAY_ENV) --root $(RUN)
 
 build_release: $(DIR_DIST)
 	$(GO) build $(RELEASE_FLAGS) -o $(FILE_RELEASE_BIN) $(BIN_SRC)
@@ -248,7 +248,7 @@ ensure:
 
 .PHONY: genswagger
 
-APP ?= $(BIN)
+APP ?= {{ $.Name }}
 SWAGGER_SPEC ?= spec/openapi/main.yml
 SWAGGER_TARGET ?= gen/openapi
 
@@ -256,12 +256,32 @@ genswagger:
 	mkdir -p $(SWAGGER_TARGET)
 	swagger generate server -f $(SWAGGER_SPEC) -A $(APP) -t $(SWAGGER_TARGET) --exclude-main
 
+# grpc proto
+.PHONY: genproto genprotomock
+
+PROTO_SPEC ?= spec/grpc
+PROTO_TARGET ?= gen/grpc
+
+genproto:
+	mkdir -p ${PROTO_TARGET}
+	for protofile in $$(find ${PROTO_SPEC} -maxdepth 10 -type f -iname "*.proto"); do \
+		protoc -I ${PROTO_SPEC} --gofast_out=plugins=grpc:${PROTO_TARGET} $$protofile; \
+	done
+	
+genprotomock:
+	TEMP_CURR_DIR=${pwd}
+	cd ${PROTO_TARGET}
+	for file in $$(find ./ -type f -iname "*.go" -not -path "./mocks/*"); do \
+		mockgen -source=$$file -destination=./mocks/$$file; \
+	done
+	cd ${TEMP_CURR_DIR}
+
 # ent
 
 .PHONY: entdesc
 
 DIR_SCHEMA = ./spec/schema/
-DIR_SCHEMA_GEN = ./gen/schema/
+DIR_SCHEMA_GEN = ./gen/entschema/
 DIR_SCHEMA_TMPL = ./spec/enttmpl
 EMPTY_SCHEMA_NAME = schema.go
 EMPTY_SCHEMA_PATH = $(DIR_SCHEMA_GEN)$(EMPTY_SCHEMA_NAME)
@@ -273,7 +293,7 @@ $(DIR_SCHEMA_GEN):
 	mkdir -p $(DIR_SCHEMA_GEN)
 
 $(EMPTY_SCHEMA_PATH): $(DIR_SCHEMA_GEN)
-	echo "package schema" > $(EMPTY_SCHEMA_PATH)
+	echo "package entschema" > $(EMPTY_SCHEMA_PATH)
 
 entinit:
 	entc init --target $(DIR_SCHEMA) $(ARGS)

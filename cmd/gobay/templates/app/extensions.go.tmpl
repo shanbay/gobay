@@ -1,10 +1,10 @@
 package app
 
 import (
-	"context"
-	// "{{ $.Url }}/gen/schema"
-	// "github.com/facebookincubator/ent/dialect"
-	"github.com/go-redis/redis"
+	// "context"
+	// schema "{{ $.Url }}/gen/entschema"
+	// "github.com/facebook/ent/dialect"
+	// "github.com/go-redis/redis"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/shanbay/gobay"
 {{- if not $.SkipAsyncTask }}
@@ -12,15 +12,19 @@ import (
 {{- end }}
 	"github.com/shanbay/gobay/extensions/cachext"
 	_ "github.com/shanbay/gobay/extensions/cachext/backend/redis"
-	"github.com/shanbay/gobay/extensions/entext"
+	// "github.com/shanbay/gobay/extensions/entext"
+{{- if not $.SkipElasticApm }}
 	"github.com/shanbay/gobay/extensions/esapmext"
+{{- end }}
 	"github.com/shanbay/gobay/extensions/redisext"
 {{- if not $.SkipSentry }}
 	"github.com/shanbay/gobay/extensions/sentryext"
 {{- end }}
 	"github.com/shanbay/gobay/extensions/seqgenext"
+{{- if not $.SkipElasticApm }}
 	"go.elastic.co/apm"
 	_ "go.elastic.co/apm/module/apmsql/mysql"
+{{- end }}
 )
 
 // Extensions defined Extensions to be used by init app
@@ -32,16 +36,18 @@ func Extensions() map[gobay.Key]gobay.Extension {
 		"sentry": &sentryext.SentryExt{NS: "sentry_"},
 {{- end }}
 		"cache": &cachext.CacheExt{NS: "cache_"},
+{{- if not $.SkipElasticApm }}
 		"apm":   &esapmext.EsApmExt{},
-		"entext": &entext.EntExt{
-			NS: "db_",
-			// NewClient: func(opt interface{}) entext.Client {
-			// 	return schema.NewClient(opt.(schema.Option))
-			// },
-			// Driver: func(drv dialect.Driver) interface{} {
-			// 	return schema.Driver(drv)
-			// },
-		},
+{{- end }}
+		// "entext": &entext.EntExt{
+		// 	NS: "db_",
+		// 	NewClient: func(opt interface{}) entext.Client {
+		// 	 	return schema.NewClient(opt.(schema.Option))
+		// 	},
+		// 	Driver: func(drv dialect.Driver) interface{} {
+		// 	 	return schema.Driver(drv)
+		// 	 },
+		// },
 {{- if not $.SkipAsyncTask }}
 		"asyncTask": &asynctaskext.AsyncTaskExt{NS: "asynctask_"},
 {{- end }}
@@ -55,7 +61,9 @@ var (
 	Sentry    *sentryext.SentryExt
 {{- end }}
 	Cache     *cachext.CacheExt
+{{- if not $.SkipElasticApm }}
 	ApmTracer *apm.Tracer
+{{- end }}
 {{- if not $.SkipAsyncTask }}
 	AsyncTask *asynctaskext.AsyncTaskExt
 {{- end }}
@@ -70,7 +78,9 @@ func InitExts(app *gobay.Application) {
 	Sentry = app.Get("sentry").Object().(*sentryext.SentryExt)
 {{- end }}
 	Cache = app.Get("cache").Object().(*cachext.CacheExt)
+{{- if not $.SkipElasticApm }}
 	ApmTracer = app.Get("apm").Object().(*apm.Tracer)
+{{- end }}
 {{- if not $.SkipAsyncTask }}
 	AsyncTask = app.Get("asyncTask").Object().(*asynctaskext.AsyncTaskExt)
 {{- end }}

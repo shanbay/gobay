@@ -15,11 +15,11 @@ defaults: &defaults
       queue: test
       binding_key: buses.oc.post_order_paid
 
-  stub_health_host: '127.0.0.1'
+  stub_health_host: "127.0.0.1"
   stub_health_port: 5555
-  stub_health_authority: 'health-rpc.xyz'
+  stub_health_authority: "health-rpc.xyz"
   stub_health_metadata:
-    svc_auth_token: 'abcdefg'
+    svc_auth_token: "abcdefg"
   stub_health_conntimeout: 1s
   stub_health_calltimeout: 300ms
   stub_health_retrybackoff: 50ms
@@ -47,10 +47,15 @@ defaults: &defaults
   cache_password: ""
   cache_db: 3
 
-  redis_host: '127.0.0.1:6379'
-  redis_password: ''
+  redis_host: "127.0.0.1:6379"
+  redis_password: ""
   redis_db: 0
-  redis_prefix: 'github-redis'
+  redis_prefix: "github-redis"
+
+  redisnoprefix_host: "127.0.0.1:6379"
+  redisnoprefix_password: ""
+  redisnoprefix_db: 0
+  redisnoprefix_prefix: ""
 testing:
   <<: *defaults
   db_driver: mysql

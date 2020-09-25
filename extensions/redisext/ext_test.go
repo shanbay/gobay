@@ -1,9 +1,9 @@
 package redisext_test
 
 import (
+	"context"
 	"fmt"
 	"time"
-	"context"
 
 	"github.com/shanbay/gobay"
 	"github.com/shanbay/gobay/extensions/redisext"
@@ -42,9 +42,20 @@ func ExampleRedisExt_AddPrefix() {
 	prefixKey := redis.AddPrefix("testRawKey")
 	fmt.Println(prefixKey)
 	// Output: github-redis.testRawKey
+}
 
-	redis.NS = ""
-	prefixKey = redis.AddPrefix("testNoPrefixKey")
+func ExampleRedisExt_AddPrefixNoPrefix() {
+	redis := &redisext.RedisExt{NS: "redisnoprefix"}
+	exts := map[gobay.Key]gobay.Extension{
+		"redis": redis,
+	}
+
+	if _, err := gobay.CreateApp("../../testdata/", "testing", exts); err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	prefixKey := redis.AddPrefix("testNoPrefixKey")
 	fmt.Println(prefixKey)
 	// Output: testNoPrefixKey
 }

@@ -3,10 +3,10 @@ package appopenapi
 import (
 	"context"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
-	"net/http"
 
 	"github.com/go-openapi/loads"
 	"github.com/go-openapi/runtime/middleware"
@@ -14,10 +14,12 @@ import (
 	"github.com/shanbay/gobay"
 	"github.com/shanbay/gobay/openapi"
 
+{{- if not $.SkipElasticApm }}
 	"go.elastic.co/apm/module/apmhttp"
+{{- end }}
 
 	myapp "{{ $.Url }}/app"
-	"{{ $.Url }}/app/models"
+	// "{{ $.Url }}/app/models"
 	"{{ $.Url }}/gen/openapi/restapi"
 	"{{ $.Url }}/gen/openapi/restapi/operations"
 )
@@ -39,7 +41,11 @@ func Serve(app *gobay.Application) error {
 	server.Host = config.GetString("openapi_listen_host")
 	server.Port = config.GetInt("openapi_listen_port")
 
+{{- if not $.SkipElasticApm }}
 	enableAPM := config.GetBool("elastic_apm_enable")
+{{- else }}
+	enableAPM := false
+{{- end }}
 	configureAPI(server, api, &{{ toLowerCamel $.Name }}Server{app: app}, enableAPM)
 
 	// 启动 prometheus handler
@@ -86,6 +92,8 @@ func configureAPI(s *restapi.Server, api *operations.{{ toCamel $.Name }}API, im
 	// The middleware configuration is for the handler executors. These do not apply to the swagger.json document.
 	// The middleware executes after routing but before authentication, binding and validation
 	mdwBuilders := []middleware.Builder{}
+
+{{- if not $.SkipElasticApm }}
 	if enableApm {
 		mdwBuilders = append(
 			mdwBuilders,
@@ -94,5 +102,6 @@ func configureAPI(s *restapi.Server, api *operations.{{ toCamel $.Name }}API, im
 			},
 		)
 	}
+{{- end }}
 	s.SetHandler(gmw(api.Serve(openapi.ChainMiddlewares(mdwBuilders...))))
 }

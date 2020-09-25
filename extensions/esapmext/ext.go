@@ -67,6 +67,8 @@ func (e *EsApmExt) Init(app *gobay.Application) error {
 }
 
 func (e *EsApmExt) Close() error {
-	e.tracer.Close()
+	if e.tracer != nil {
+		e.tracer.Close()
+	}
 	return nil
 }

@@ -1,6 +1,6 @@
 defaults: &defaults
   db_driver: mysql
-  db_url: 'root:@(mysql:3306)/{{ $.Name }}?charset=utf8mb4&parseTime=true&loc=UTC&interpolateParams=true'
+  db_url: 'root:dbpassword@(mysql:3306)/{{ $.Name }}?charset=utf8mb4&parseTime=true&loc=UTC&interpolateParams=true'
 
   redis_host: 'redis:6379'
   redis_password: ''
@@ -18,15 +18,20 @@ defaults: &defaults
   seqgen_sequence_key: '{{ $.Name }}:global_id'
 
 {{- if not $.SkipSentry }}
-  sentry_dsn: ''
+  sentry_dsn: "https://user:pass@sentry.abc.com/90"
   sentry_environment: 'development'
 {{- end }}
 
+{{- if not $.SkipElasticApm }}
   elastic_apm_service_name: '{{ $.Name }}-rpc-go'
   elastic_apm_service_version: '1'
   elastic_apm_server_url: ''
   elastic_apm_transaction_sample_rate: 0.01
   elastic_apm_enable: false
+{{- end }}
+
+  openapi_listen_host: "0.0.0.0"
+  openapi_listen_port: 5000
 
   grpc_listen_host: 0.0.0.0
   grpc_conn_timeout: 1s
@@ -49,7 +54,9 @@ testing:
 {{- end }}
 integration: &integration
   <<: *defaults
+{{- if not $.SkipElasticApm }}
   elastic_apm_enable: true
+{{- end }}
   redis_host: ${REDIS_HOST}
   redis_password: ${REDIS_PASSWORD}
 {{- if not $.SkipSentry }}
@@ -63,7 +70,11 @@ integration: &integration
   db_url: ${DB_URL}
 staging: &staging
   <<: *integration
+{{- if not $.SkipElasticApm }}
   elastic_apm_enable: false
+{{- end }}
 production:
   <<: *staging
+{{- if not $.SkipElasticApm }}
   elastic_apm_enable: true
+{{- end }}

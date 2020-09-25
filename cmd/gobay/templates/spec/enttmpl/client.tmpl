@@ -17,7 +17,7 @@ import (
 		"{{ $n.Config.Package }}/{{ $n.Package }}"
 	{{- end }}
 
-	"github.com/facebookincubator/ent/dialect"
+	"github.com/facebook/ent/dialect"
 	{{ range $_, $import := $.Storage.Imports -}}
 		"{{ $import }}"
 	{{ end -}}
@@ -30,30 +30,33 @@ type Client struct {
 		// Schema is the client for creating, migrating and dropping schema.
 		Schema *migrate.Schema
 	{{- end }}
-	{{ range $_, $n := $.Nodes -}}
+	{{- range $n := $.Nodes }}
 		// {{ $n.Name }} is the client for interacting with the {{ $n.Name }} builders.
 		{{ $n.Name }} *{{ $n.Name }}Client
-	{{ end }}
+	{{- end }}
 	{{ template "client/fields/additional" $ }}
 }
 
 // NewClient creates a new client configured with the given options.
 func NewClient(opts ...Option) *Client {
-	c := config{log: log.Println}
-	c.options(opts...)
-	return &Client{
-		config: c,
-		{{- if $.SupportMigrate }}
-			Schema: migrate.NewSchema(c.driver),
-		{{- end }}
-		{{ range $_, $n := $.Nodes -}}
-			{{ $n.Name }}: New{{ $n.Name }}Client(c),
-		{{ end -}}
-	}
+	cfg := config{log: log.Println, hooks: &hooks{}}
+	cfg.options(opts...)
+	client := &Client{config: cfg}
+	client.init()
+	return client
 }
 
-// Open opens a connection to the database specified by the driver name and a
-// driver-specific data source name, and returns a new client attached to it.
+func (c *Client) init() {
+	{{- if $.SupportMigrate }}
+		c.Schema = migrate.NewSchema(c.driver)
+	{{- end }}
+	{{- range $n := $.Nodes }}
+    	c.{{ $n.Name }} =  New{{ $n.Name }}Client(c.config)
+	{{- end }}
+}
+
+// Open opens a database/sql.DB specified by the driver name and
+// the data source name, and returns a new client attached to it.
 // Optional parameters can be added for configuring the client.
 func Open(driverName, dataSourceName string, options ...Option) (*Client, error) {
 	switch driverName {
@@ -74,7 +77,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	if err != nil {
 		return nil, fmt.Errorf("{{ $pkg }}: starting a transaction: %v", err)
 	}
-	cfg := config{driver: tx, log: c.log, debug: c.debug}
+	cfg := config{driver: tx, log: c.log, debug: c.debug, hooks: c.hooks}
 	return &Tx{
 		config: cfg,
 		{{ range $_, $n := $.Nodes -}}
@@ -82,6 +85,12 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		{{ end -}}
 	}, nil
 }
+
+{{- /* If the storage driver supports TxOptions (like SQL) */}}
+{{- $tmpl = printf "dialect/%s/txoptions" $.Storage }}
+{{- if hasTemplate $tmpl }}
+    {{- xtemplate $tmpl . }}
+{{- end }}
 
 // Debug returns a new debug-client. It's used to get verbose logging on specific operations.
 //
@@ -94,16 +103,10 @@ func (c *Client) Debug() *Client {
 	if c.debug {
 		return c
 	}
-	cfg := config{driver: dialect.Debug(c.driver, c.log), log: c.log, debug: true}
-	return &Client{
-		config: cfg,
-		{{- if $.SupportMigrate }}
-			Schema: migrate.NewSchema(cfg.driver),
-		{{- end }}
-		{{ range $_, $n := $.Nodes -}}
-			{{ $n.Name }}: New{{ $n.Name }}Client(cfg),
-		{{ end -}}
-	}
+	cfg := config{driver: dialect.Debug(c.driver, c.log), log: c.log, debug: true, hooks: c.hooks}
+	client := &Client{config: cfg}
+	client.init()
+	return client
 }
 
 // Close closes the database connection and prevents new queries from starting.
@@ -111,7 +114,16 @@ func (c *Client) Close() error {
 	return c.driver.Close()
 }
 
-{{ range $_, $n := $.Nodes -}}
+// Use adds the mutation hooks to all the entity clients.
+// In order to add hooks to a specific client, call: `client.Node.Use(...)`.
+func (c *Client) Use(hooks ...Hook) {
+	{{- range $_, $n := $.Nodes }}
+		c.{{ $n.Name }}.Use(hooks...)
+	{{- end }}
+}
+
+
+{{ range $_, $n := $.Nodes }}
 {{ $client := print $n.Name "Client" }}
 // {{ $client }} is a client for the {{ $n.Name }} schema.
 type {{ $client }} struct {
@@ -125,29 +137,40 @@ func New{{ $client }}(c config) *{{ $client }} {
 	return &{{ $client }}{config: c}
 }
 
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `{{ $n.Package }}.Hooks(f(g(h())))`.
+func (c *{{ $client }}) Use(hooks ...Hook) {
+	c.hooks.{{ $n.Name }} = append(c.hooks.{{ $n.Name }}, hooks...)
+}
+
 // Create returns a create builder for {{ $n.Name }}.
 func (c *{{ $client }}) Create() *{{ $n.Name }}Create {
-	return &{{ $n.Name }}Create{config: c.config}
+	mutation := new{{ $n.MutationName }}(c.config, OpCreate)
+	return &{{ $n.Name }}Create{config: c.config, hooks: c.Hooks(), mutation: mutation}
 }
 
 // Update returns an update builder for {{ $n.Name }}.
 func (c *{{ $client }}) Update() *{{ $n.Name }}Update {
-	return &{{ $n.Name }}Update{config: c.config}
+	mutation := new{{ $n.MutationName }}(c.config, OpUpdate)
+	return &{{ $n.Name }}Update{config: c.config, hooks: c.Hooks(), mutation: mutation}
 }
 
 // UpdateOne returns an update builder for the given entity.
 func (c *{{ $client }}) UpdateOne({{ $rec }} *{{ $n.Name }}) *{{ $n.Name }}UpdateOne {
-	return c.UpdateOneID({{ $rec }}.ID)
+	mutation := new{{ $n.MutationName }}(c.config, OpUpdateOne, {{ print "with" $n.Name }}({{ $rec }}))
+	return &{{ $n.Name }}UpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
 }
 
 // UpdateOneID returns an update builder for the given id.
 func (c *{{ $client }}) UpdateOneID(id {{ $n.ID.Type }}) *{{ $n.Name }}UpdateOne {
-	return &{{ $n.Name }}UpdateOne{config: c.config, id: id}
+	mutation := new{{ $n.MutationName }}(c.config, OpUpdateOne, {{ print "with" $n.Name "ID" }}(id))
+	return &{{ $n.Name }}UpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
 }
 
 // Delete returns a delete builder for {{ $n.Name }}.
 func (c *{{ $client }}) Delete() *{{ $n.Name }}Delete {
-	return &{{ $n.Name }}Delete{config: c.config}
+	mutation := new{{ $n.MutationName }}(c.config, OpDelete)
+	return &{{ $n.Name }}Delete{config: c.config, hooks: c.Hooks(), mutation: mutation}
 }
 
 // DeleteOne returns a delete builder for the given entity.
@@ -157,7 +180,10 @@ func (c *{{ $client }}) DeleteOne({{ $rec }} *{{ $n.Name }}) *{{ $n.Name }}Delet
 
 // DeleteOneID returns a delete builder for the given id.
 func (c *{{ $client }}) DeleteOneID(id {{ $n.ID.Type }}) *{{ $n.Name }}DeleteOne {
-	return &{{ $n.Name }}DeleteOne{c.Delete().Where({{ $n.Package }}.ID(id))}
+	builder := c.Delete().Where({{ $n.Package }}.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &{{ $n.Name }}DeleteOne{builder}
 }
 
 // Create returns a query builder for {{ $n.Name }}.
@@ -180,21 +206,21 @@ func (c *{{ $client }}) GetX(ctx context.Context, id {{ $n.ID.Type }}) *{{ $n.Na
 }
 
 // CreateManyOnConflict by {{ $n.Name }}Create slice
-func (c *{{ $client }}) CreateManyOnConflict(ctx context.Context, objs []*{{ $n.Name }}Create, extra string) error {
+func (c *{{ $client }}) CreateManyOnConflict(ctx context.Context, objs []*{{ $n.Name }}Create, extra string, ignore bool) error {
 	tx, err := c.config.driver.Tx(ctx)
 	if err != nil {
 		return err
 	}
 	sIndex := 0
-	if objs[0].id == nil {
+	if objs[0].mutation.id == nil {
 		sIndex = 1
 	}
 	columns := {{ $n.Package  }}.Columns[sIndex:]
 	inserter := sql.Insert({{ $n.Package }}.Table).Columns(columns...)
 	for _, obj := range objs {
-		obj.setDefault()
+		obj.preSave()
 		values := []interface{}{}
-		_, spec := obj.getObjAndSpec()
+		_, spec := obj.createSpec()
 		if sIndex == 0 {
 			values = append(values, spec.ID.Value)
 		}
@@ -208,6 +234,9 @@ func (c *{{ $client }}) CreateManyOnConflict(ctx context.Context, objs []*{{ $n.
 	}
 	var res sql.Result
 	sql, args := inserter.Query()
+	if ignore {
+		sql = strings.Replace(sql, "INSERT INTO", "INSERT IGNORE INTO", 1)
+	}
 	sql = sql + " " + extra
 	if err := tx.Exec(ctx, sql, args, &res); err != nil {
 		if err_roll := tx.Rollback(); err_roll != nil {
@@ -219,20 +248,33 @@ func (c *{{ $client }}) CreateManyOnConflict(ctx context.Context, objs []*{{ $n.
 }
 
 {{ range $_, $e := $n.Edges }}
-{{ $builder := print (pascal $e.Type.Name) "Query" }}
+{{ $builder := $e.Type.QueryName }}
 // Query{{ pascal $e.Name }} queries the {{ $e.Name }} edge of a {{ $n.Name }}.
 func (c *{{ $client }}) Query{{ pascal $e.Name }}({{ $rec }} *{{ $n.Name }}) *{{ $builder }} {
-	query := &{{ $e.Type.Name }}Query{config: c.config}
-	{{- with extend $n "Receiver" $rec "Edge" $e }}
-		{{ $tmpl := printf "dialect/%s/query/from" $.Storage }}
-		{{- xtemplate $tmpl . -}}
-	{{- end }}
+	query := &{{ $builder }}{config: c.config}
+	query.path = func(ctx context.Context) (fromV {{ $.Storage.Builder }}, _ error) {
+		{{- with extend $n "Receiver" $rec "Edge" $e "Ident" "fromV" }}
+			{{ $tmpl := printf "dialect/%s/query/from" $.Storage }}
+			{{- xtemplate $tmpl . -}}
+		{{- end -}}
+		return fromV, nil
+	}
 	return query
 }
 {{ end }}
+
+// Hooks returns the client hooks.
+func (c *{{ $client }}) Hooks() []Hook {
+	{{- if or $n.NumHooks $n.HasPolicy }}
+		hooks := c.hooks.{{ $n.Name }}
+		return append(hooks[:len(hooks):len(hooks)], {{ $n.Package }}.Hooks[:]...)
+	{{- else }}
+		return c.hooks.{{ $n.Name }}
+	{{- end }}
+}
 
 {{ end }}
 {{ end }}
 
 {{/* A template that can be overrided in order to add additional fields to the client.*/}}
-{{ define "client/fields/additional" }}{{end}}
+{{ define "client/fields/additional" }}{{ end }}

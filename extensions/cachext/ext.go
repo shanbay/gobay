@@ -25,7 +25,7 @@ type CacheExt struct {
 
 var (
 	_          gobay.Extension = (*CacheExt)(nil)
-	backendMap                 = map[string]CacheBackend{}
+	backendMap                 = map[string](func() CacheBackend){}
 	mu         sync.Mutex
 )
 
@@ -60,8 +60,8 @@ func (c *CacheExt) Init(app *gobay.Application) error {
 	config = gobay.GetConfigByPrefix(config, c.NS, true)
 	c.prefix = config.GetString("prefix")
 	backendConfig := config.GetString("backend")
-	if backend, exist := backendMap[backendConfig]; exist {
-		c.backend = backend
+	if backendFunc, exist := backendMap[backendConfig]; exist {
+		c.backend = backendFunc()
 		if err := c.backend.Init(config); err != nil {
 			return err
 		}
@@ -74,11 +74,11 @@ func (c *CacheExt) Init(app *gobay.Application) error {
 
 // RegisteBackend if you want a new backend, use this func to registe your backend
 // then load it by config
-func RegisteBackend(configBackend string, backend CacheBackend) error {
+func RegisteBackend(configBackend string, backendFunc func() CacheBackend) error {
 	mu.Lock()
 	defer mu.Unlock()
 	if _, exist := backendMap[configBackend]; !exist {
-		backendMap[configBackend] = backend
+		backendMap[configBackend] = backendFunc
 		return nil
 	} else {
 		return errors.New("Backend already registered")
