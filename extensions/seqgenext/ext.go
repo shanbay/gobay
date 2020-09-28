@@ -9,12 +9,13 @@ package seqgenext
 '0000000010110101100111101101011000010111010001100000000000000000'
 */
 import (
+	"context"
 	"errors"
 	"fmt"
 	"sync"
 
-	"github.com/go-redis/redis"
 	"github.com/shanbay/gobay"
+	"github.com/shanbay/gobay/extensions/redisext"
 )
 
 const (
@@ -37,12 +38,8 @@ return {sq, tonumber(t[1]), tonumber(t[2])}
 `
 )
 
-type redisClient interface {
-	Eval(script string, keys []string, args ...interface{}) *redis.Cmd
-}
-
 type SequenceGeneratorExt struct {
-	redisClient  redisClient
+	redisExt     *redisext.RedisExt
 	app          *gobay.Application
 	NS           string
 	RedisExtName gobay.Key
@@ -79,14 +76,15 @@ func (d *SequenceGeneratorExt) Close() error {
 
 // 当 step > 1 时, 即分配了一批 sequence, 可以使用 (sequence - step, sequence] 间的 sequence,
 // 注意此时在分布式环境下 sequence 并不能保证随着时间递增
-func (g *SequenceGeneratorExt) getSequence(step uint64) (uint64, error) {
+func (g *SequenceGeneratorExt) getSequence(ctx context.Context, step uint64) (uint64, error) {
 	if step < 1 || step > maxSequence {
 		return 0, fmt.Errorf("step should not less than 1 or greater than MAX_STEP(%d)", maxStep)
 	}
-	if g.redisClient == nil {
-		g.redisClient = g.app.Get(g.RedisExtName).Object().(redisClient)
+	if g.redisExt == nil {
+		g.redisExt = g.app.Get(g.RedisExtName).Object().(*redisext.RedisExt)
 	}
-	cmd := g.redisClient.Eval(luaScript, []string{g.SequenceKey}, maxSequence, step)
+	redisclient := g.redisExt.Client(ctx)
+	cmd := redisclient.Eval(luaScript, []string{g.SequenceKey}, maxSequence, step)
 	result, err := cmd.Result()
 	if err != nil {
 		return 0, err
@@ -100,8 +98,8 @@ func (g *SequenceGeneratorExt) getSequence(step uint64) (uint64, error) {
 	return sequence, nil
 }
 
-func (g *SequenceGeneratorExt) GetSequence() (uint64, error) {
-	return g.getSequence(1)
+func (g *SequenceGeneratorExt) GetSequence(ctx context.Context) (uint64, error) {
+	return g.getSequence(ctx, 1)
 }
 
 // 批量生成 sequence, 减少 redis 请求
@@ -136,7 +134,7 @@ func (s *Sequences) HasNext() bool {
 	return s.restCount > 0
 }
 
-func (s *Sequences) Next() (uint64, error) {
+func (s *Sequences) Next(ctx context.Context) (uint64, error) {
 	s.mux.Lock()
 	defer s.mux.Unlock()
 
@@ -154,7 +152,7 @@ func (s *Sequences) Next() (uint64, error) {
 		s.step = s.batchSize
 	}
 
-	s.lastMaxSequence, s.err = s.g.getSequence(s.step)
+	s.lastMaxSequence, s.err = s.g.getSequence(ctx, s.step)
 	if s.err != nil {
 		s.restCount = 0
 		return 0, s.err

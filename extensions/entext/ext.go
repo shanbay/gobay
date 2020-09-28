@@ -3,8 +3,9 @@ package entext
 import (
 	"database/sql"
 	"errors"
-	"github.com/facebookincubator/ent/dialect"
-	entsql "github.com/facebookincubator/ent/dialect/sql"
+
+	"github.com/facebook/ent/dialect"
+	entsql "github.com/facebook/ent/dialect/sql"
 	"github.com/shanbay/gobay"
 	"go.elastic.co/apm/module/apmsql"
 )

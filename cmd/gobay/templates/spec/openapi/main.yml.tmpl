@@ -1,0 +1,38 @@
+---
+swagger: "2.0"
+info:
+  title: ""
+  description: ""
+  version: 1.0.0
+consumes:
+  - application/json
+produces:
+  - application/json
+schemes:
+  - http
+basePath: /{{ $.Name }}
+definitions:
+  BaseDefaultRes:
+    type: object
+  BadRequestRes:
+    type: object
+    properties:
+      msg:
+        type: string
+paths:
+  /health:
+    get:
+      tags:
+        - health
+      operationId: healthCheck
+      summary: API health check
+      parameters:
+        - in: query
+          name: type
+          type: string
+          enum: ["liveness", "readiness"]
+      responses:
+        "200":
+          description: Success
+        "404":
+          description: "unknown check type"

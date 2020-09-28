@@ -18,3 +18,17 @@ gobay new github.com/me/mine_project
 
 1. 实现`gobay.Extension`
 2. 每一个ext目录都是你的例子
+
+# ext
+
+### ent/orm
+
+**关于时间**
+
+```
+// 如果需要开启 parseTime，在 dsn 中加上参数：
+// 显式指定loc为UTC
+parseTime=True&loc=UTC
+```
+
+> 虽然 `loc` 默认值为 `UTC`，但是这依赖于默认情况。默认情况有可能发生改变。所以我们推荐显式指定 `loc`

@@ -3,30 +3,31 @@ module github.com/shanbay/gobay
 go 1.13
 
 require (
-	github.com/RichardKnop/machinery v1.7.3
-	github.com/facebookincubator/ent v0.0.0-20191218131918-1bbe460259f9
-	github.com/getsentry/sentry-go v0.5.1
-	github.com/go-openapi/runtime v0.19.11
-	github.com/go-redis/redis v6.15.7+incompatible
-	github.com/go-sql-driver/mysql v1.5.0
-	github.com/golang/protobuf v1.3.3
-	github.com/grpc-ecosystem/go-grpc-middleware v1.2.0
+	github.com/RichardKnop/logging v0.0.0-20190827224416-1a693bdd4fae
+	github.com/RichardKnop/machinery v1.9.2
+	github.com/facebook/ent v0.4.0
+	github.com/getsentry/sentry-go v0.7.0
+	github.com/go-openapi/runtime v0.19.21
+	github.com/go-redis/redis v6.15.9+incompatible
+	github.com/go-sql-driver/mysql v1.5.1-0.20200311113236-681ffa848bae
+	github.com/golang/protobuf v1.4.2
+	github.com/grpc-ecosystem/go-grpc-middleware v1.2.1
 	github.com/iancoleman/strcase v0.0.0-20191112232945-16388991a334
-	github.com/markbates/pkger v0.14.0
-	github.com/mattn/go-sqlite3 v1.13.0
-	github.com/mitchellh/mapstructure v1.1.2
+	github.com/markbates/pkger v0.17.1
+	github.com/mattn/go-sqlite3 v1.14.2
+	github.com/mitchellh/mapstructure v1.3.3
 	github.com/satori/go.uuid v1.2.0
-	github.com/spf13/cobra v0.0.5
-	github.com/spf13/viper v1.6.2
-	github.com/streadway/amqp v0.0.0-20190827072141-edfb9018d271
-	github.com/stretchr/testify v1.4.0
+	github.com/spf13/cobra v1.0.0
+	github.com/spf13/viper v1.7.1
+	github.com/streadway/amqp v1.0.0
+	github.com/stretchr/testify v1.6.1
 	github.com/vmihailenco/msgpack v4.0.4+incompatible
-	go.elastic.co/apm v1.7.0
-	go.elastic.co/apm/module/apmgoredis v1.7.0
-	go.elastic.co/apm/module/apmgrpc v1.7.0
-	go.elastic.co/apm/module/apmsql v1.7.0
-	golang.org/x/net v0.0.0-20191014212845-da9a3fd4c582 // indirect
-	golang.org/x/sys v0.0.0-20200917073148-efd3b9a0ff20 // indirect
-	google.golang.org/genproto v0.0.0-20191009194640-548a555dbc03 // indirect
-	google.golang.org/grpc v1.27.1
+	go.elastic.co/apm v1.8.0
+	go.elastic.co/apm/module/apmgoredis v1.8.0
+	go.elastic.co/apm/module/apmgrpc v1.8.0
+	go.elastic.co/apm/module/apmsql v1.8.0
+	google.golang.org/grpc v1.31.0
+	google.golang.org/grpc/examples v0.0.0-20200925170654-e6c98a478e62 // indirect
 )
+
+replace github.com/facebook/ent => github.com/shanbay/ent v0.4.0

@@ -57,13 +57,7 @@ func (c *CachedConfig) MakeCacheKey(strArgs []string, intArgs []int64) string {
 // GetResult
 func (c *CachedConfig) GetResult(ctx context.Context, out interface{}, strArgs []string, intArgs []int64) error {
 	cacheKey := c.MakeCacheKey(strArgs, intArgs)
-	var backend CacheBackend
-	if c.cache.enableApm {
-		backend = c.cache.backend.WithContext(ctx)
-	} else {
-		backend = c.cache.backend
-	}
-	data, err := backend.Get(c.cache.transKey(cacheKey))
+	data, err := c.cache.backend.Get(ctx, c.cache.transKey(cacheKey))
 	if err != nil {
 		return err
 	}
@@ -91,7 +85,7 @@ func (c *CachedConfig) GetResult(ctx context.Context, out interface{}, strArgs [
 	case cacheNilHited:
 		// Set nil 会保存一个[]byte{192}的结构到backend中
 		nilBytes, _ := encode(nil)
-		if err = backend.Set(c.cache.transKey(cacheKey), nilBytes, c.ttl); err != nil {
+		if err = c.cache.backend.Set(ctx, c.cache.transKey(cacheKey), nilBytes, c.ttl); err != nil {
 			return err
 		}
 		return Nil
@@ -102,7 +96,7 @@ func (c *CachedConfig) GetResult(ctx context.Context, out interface{}, strArgs [
 		if encodedBytes, err := encode(res); err != nil {
 			return err
 		} else {
-			err = backend.Set(c.cache.transKey(cacheKey), encodedBytes, c.ttl)
+			err = c.cache.backend.Set(ctx, c.cache.transKey(cacheKey), encodedBytes, c.ttl)
 			if err != nil {
 				return err
 			}

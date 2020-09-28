@@ -1,6 +1,7 @@
 package redisext_test
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -19,9 +20,9 @@ func ExampleRedisExt_Set() {
 	}
 
 	var key = "redisKey"
-	err := redis.Set(key, "hello", 10*time.Second).Err()
+	err := redis.Client(context.Background()).Set(key, "hello", 10*time.Second).Err()
 	fmt.Println(err)
-	res, err := redis.Get("redisKey").Result()
+	res, err := redis.Client(context.Background()).Get("redisKey").Result()
 	fmt.Println(res, err)
 	// Output:
 	// <nil>
@@ -41,4 +42,20 @@ func ExampleRedisExt_AddPrefix() {
 	prefixKey := redis.AddPrefix("testRawKey")
 	fmt.Println(prefixKey)
 	// Output: github-redis.testRawKey
+}
+
+func ExampleRedisExt_AddPrefixNoPrefix() {
+	redis := &redisext.RedisExt{NS: "redisnoprefix"}
+	exts := map[gobay.Key]gobay.Extension{
+		"redis": redis,
+	}
+
+	if _, err := gobay.CreateApp("../../testdata/", "testing", exts); err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	prefixKey := redis.AddPrefix("testNoPrefixKey")
+	fmt.Println(prefixKey)
+	// Output: testNoPrefixKey
 }

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/shanbay/gobay"
+	"github.com/shanbay/gobay/extensions/sentryext/custom_logger"
 )
 
 var (
@@ -18,6 +19,7 @@ var (
 func init() {
 	bus = BusExt{NS: "bus_"}
 
+	bus.ErrorLogger = custom_logger.NewSentryErrorLogger()
 	app, _ = gobay.CreateApp(
 		"../../testdata",
 		"testing",
@@ -76,6 +78,11 @@ func TestPushConsume(t *testing.T) {
 	time.Sleep(2 * time.Second)
 	if len(result) != 100 {
 		t.Error("consume length doesn't match publish'")
+	}
+
+	err := app.Close()
+	if err != nil {
+		t.Error("close busext failed")
 	}
 }
 

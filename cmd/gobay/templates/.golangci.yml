@@ -1,0 +1,11 @@
+# see https://github.com/golangci/golangci-lint#configuration
+
+run:
+  timeout: 3m
+  tests: false
+  skip-dirs:
+    - gen
+
+linters:
+  enable:
+    - gofmt

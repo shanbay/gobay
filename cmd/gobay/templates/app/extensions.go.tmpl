@@ -1,21 +1,30 @@
 package app
 
 import (
-	"context"
-	// "{{ $.Url }}/gen/schema"
-	// "github.com/facebookincubator/ent/dialect"
-	"github.com/go-redis/redis"
+	// "context"
+	// schema "{{ $.Url }}/gen/entschema"
+	// "github.com/facebook/ent/dialect"
+	// "github.com/go-redis/redis"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/shanbay/gobay"
-	"github.com/shanbay/gobay/cachext"
-	_ "github.com/shanbay/gobay/cachext/backend/redis"
-	"github.com/shanbay/gobay/entext"
-	"github.com/shanbay/gobay/esapmext"
-	"github.com/shanbay/gobay/redisext"
-	"github.com/shanbay/gobay/sentryext"
-	"github.com/shanbay/gobay/seqgenext"
+{{- if not $.SkipAsyncTask }}
+	"github.com/shanbay/gobay/extensions/asynctaskext"
+{{- end }}
+	"github.com/shanbay/gobay/extensions/cachext"
+	_ "github.com/shanbay/gobay/extensions/cachext/backend/redis"
+	// "github.com/shanbay/gobay/extensions/entext"
+{{- if not $.SkipElasticApm }}
+	"github.com/shanbay/gobay/extensions/esapmext"
+{{- end }}
+	"github.com/shanbay/gobay/extensions/redisext"
+{{- if not $.SkipSentry }}
+	"github.com/shanbay/gobay/extensions/sentryext"
+{{- end }}
+	"github.com/shanbay/gobay/extensions/seqgenext"
+{{- if not $.SkipElasticApm }}
 	"go.elastic.co/apm"
 	_ "go.elastic.co/apm/module/apmsql/mysql"
+{{- end }}
 )
 
 // Extensions defined Extensions to be used by init app
@@ -23,39 +32,56 @@ func Extensions() map[gobay.Key]gobay.Extension {
 	return map[gobay.Key]gobay.Extension{
 		"redis":  &redisext.RedisExt{NS: "redis_"},
 		"seqgen": &seqgenext.SequenceGeneratorExt{NS: "seqgen_", RedisExtName: "redis"},
+{{- if not $.SkipSentry }}
 		"sentry": &sentryext.SentryExt{NS: "sentry_"},
+{{- end }}
 		"cache": &cachext.CacheExt{NS: "cache_"},
+{{- if not $.SkipElasticApm }}
 		"apm":   &esapmext.EsApmExt{},
-		"entext": &entext.EntExt{
-			NS: "db_",
-			// NewClient: func(opt interface{}) entext.Client {
-			// 	return schema.NewClient(opt.(schema.Option))
-			// },
-			// Driver: func(drv dialect.Driver) interface{} {
-			// 	return schema.Driver(drv)
-			// },
-		},
+{{- end }}
+		// "entext": &entext.EntExt{
+		// 	NS: "db_",
+		// 	NewClient: func(opt interface{}) entext.Client {
+		// 	 	return schema.NewClient(opt.(schema.Option))
+		// 	},
+		// 	Driver: func(drv dialect.Driver) interface{} {
+		// 	 	return schema.Driver(drv)
+		// 	 },
+		// },
+{{- if not $.SkipAsyncTask }}
+		"asyncTask": &asynctaskext.AsyncTaskExt{NS: "asynctask_"},
+{{- end }}
 	}
 }
 
 var (
-	Redis     *redis.Client
+	Redis     *redisext.RedisExt
 	Seqgen    *seqgenext.SequenceGeneratorExt
+{{- if not $.SkipSentry }}
 	Sentry    *sentryext.SentryExt
+{{- end }}
 	Cache     *cachext.CacheExt
+{{- if not $.SkipElasticApm }}
 	ApmTracer *apm.Tracer
+{{- end }}
+{{- if not $.SkipAsyncTask }}
+	AsyncTask *asynctaskext.AsyncTaskExt
+{{- end }}
 	// EntClient *schema.Client
 )
 
 func InitExts(app *gobay.Application) {
 	// EntClient = app.Get("entext").Object().(*schema.Client)
-	Redis = app.Get("redis").Object().(*redis.Client)
+	Redis = app.Get("redis").Object().(*redisext.RedisExt)
 	Seqgen = app.Get("seqgen").Object().(*seqgenext.SequenceGeneratorExt)
+{{- if not $.SkipSentry }}
 	Sentry = app.Get("sentry").Object().(*sentryext.SentryExt)
+{{- end }}
 	Cache = app.Get("cache").Object().(*cachext.CacheExt)
+{{- if not $.SkipElasticApm }}
 	ApmTracer = app.Get("apm").Object().(*apm.Tracer)
-}
-
-func GetApmCache(ctx context.Context) *cachext.CacheExt {
-	return Cache.WithContext(ctx)
+{{- end }}
+{{- if not $.SkipAsyncTask }}
+	AsyncTask = app.Get("asyncTask").Object().(*asynctaskext.AsyncTaskExt)
+{{- end }}
 }

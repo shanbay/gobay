@@ -2,21 +2,21 @@ package main
 
 import (
 	"bytes"
-	"github.com/iancoleman/strcase"
-	"github.com/markbates/pkger"
-	"github.com/spf13/cobra"
 	"io/ioutil"
 	"log"
 	"os"
 	"path"
 	"strings"
 	"text/template"
+
+	"github.com/iancoleman/strcase"
+	"github.com/markbates/pkger"
+	"github.com/spf13/cobra"
 )
 
 type _projTemplate struct {
 	content []byte
 	dstPath string
-	skip    bool
 	mode    os.FileMode
 }
 
@@ -26,9 +26,12 @@ type _projDir struct {
 }
 
 type _projConfig struct {
-	Url   string
-	Name  string
-	Skips []string
+	Url            string
+	Name           string
+	SkipSentry     bool
+	SkipAsyncTask  bool
+	SkipCache      bool
+	SkipElasticApm bool
 }
 
 var (
@@ -74,7 +77,10 @@ func main() {
 		Long:  "Example: `gobay new github.com/shanbay/project`",
 	}
 	cmdNew.Flags().StringVar(&projConfig.Name, "name", "", "specific project name")
-	cmdNew.Flags().StringSliceVar(&projConfig.Skips, "skip", nil, "skip templates")
+	cmdNew.Flags().BoolVar(&projConfig.SkipSentry, "skip-sentry", false, "skip sentry")
+	cmdNew.Flags().BoolVar(&projConfig.SkipElasticApm, "skip-elasticapm", false, "skip elastic APM")
+	cmdNew.Flags().BoolVar(&projConfig.SkipCache, "skip-cache", false, "skip cache")
+	cmdNew.Flags().BoolVar(&projConfig.SkipAsyncTask, "skip-asynctask", false, "skip asynctask")
 
 	cmd.AddCommand(cmdNew)
 	if err := cmd.Execute(); err != nil {
@@ -149,6 +155,9 @@ func loadTemplates() error {
 func renderTemplates() {
 	// dir
 	for _, dir := range projDirs {
+		if projConfig.SkipAsyncTask && strings.Contains(dir.dstPath, "asynctask") {
+			continue
+		}
 		check(os.MkdirAll(dir.dstPath, dir.mode))
 	}
 
@@ -156,13 +165,14 @@ func renderTemplates() {
 	gobayTmpl := template.New("gobay")
 	gobayTmpl.Funcs(tmplFuncs)
 	for _, f := range projTemplates {
-		if f.skip {
-			continue
-		}
 		tmpl := template.Must(gobayTmpl.Parse(string(f.content)))
 		b := bytes.NewBuffer(nil)
 		if err := tmpl.Execute(b, projConfig); err != nil {
 			log.Fatalln(err)
+		}
+		// empty file
+		if b.Len() <= 1 {
+			continue
 		}
 		if err := ioutil.WriteFile(f.dstPath, b.Bytes(), f.mode); err != nil {
 			log.Fatalln(err)
