@@ -52,13 +52,9 @@ type BusExt struct {
 	resendDelay     time.Duration
 	reconnectDelay  time.Duration
 	reinitDelay     time.Duration
-<<<<<<< HEAD
 	pushM           sync.Mutex
-=======
 	ErrorLogger     customLoggerInterface
-
-	mocked bool
->>>>>>> 79393fb990e7322259b1d87eb7bbce0524ff7c70
+	mocked          bool
 }
 
 func (b *BusExt) Object() interface{} {
@@ -129,17 +125,13 @@ func (b *BusExt) Close() error {
 }
 
 func (b *BusExt) Push(exchange, routingKey string, data amqp.Publishing) error {
-<<<<<<< HEAD
+	if b.mocked {
+		return nil
+	}
 	b.pushM.Lock()
 	defer b.pushM.Unlock()
 
 	log.Printf("Trying to publish: %s\n", data.Headers["id"])
-=======
-	if b.mocked {
-		return nil
-	}
-	log.Printf("Trying to publish: %+v\n", data)
->>>>>>> 79393fb990e7322259b1d87eb7bbce0524ff7c70
 	if !b.isReady {
 		err := errors.New("BusExt is not ready")
 		b.ErrorLogger.Printf("Can not publish message: %v\n", err)
@@ -154,11 +146,8 @@ func (b *BusExt) Push(exchange, routingKey string, data amqp.Publishing) error {
 		}
 		err := b.UnsafePush(exchange, routingKey, data)
 		if err != nil {
-<<<<<<< HEAD
+
 			log.Printf("UnsafePush msg %s failed : %v\n", data.Headers["id"], err)
-=======
-			b.ErrorLogger.Printf("UnsafePush failed: %v\n", err)
->>>>>>> 79393fb990e7322259b1d87eb7bbce0524ff7c70
 			select {
 			case <-b.done:
 				b.ErrorLogger.Println("BusExt closed during publishing message")
@@ -179,13 +168,8 @@ func (b *BusExt) Push(exchange, routingKey string, data amqp.Publishing) error {
 			data.Headers["id"], b.resendDelay.Seconds())
 	}
 	err := fmt.Errorf(
-<<<<<<< HEAD
 		"publishing message %s failed after retry %d times", data.Headers["id"], b.publishRetry)
-	log.Println(err)
-=======
-		"publishing message failed after retry %d times", b.publishRetry)
 	b.ErrorLogger.Println(err)
->>>>>>> 79393fb990e7322259b1d87eb7bbce0524ff7c70
 	return err
 }
 
@@ -246,14 +230,9 @@ func (b *BusExt) Consume() error {
 				case <-b.done:
 					return
 				case delivery := <-channel:
-<<<<<<< HEAD
-					deliveryAck(delivery)
+					b.deliveryAck(delivery)
 					log.Printf("Receive delivery: %s from queue: %v\n",
 						delivery.Headers["id"], chName)
-=======
-					b.deliveryAck(delivery)
-					log.Printf("Receive delivery: %+v from queue: %v\n", delivery, chName)
->>>>>>> 79393fb990e7322259b1d87eb7bbce0524ff7c70
 					var handler Handler
 					var ok bool
 					if delivery.Headers == nil {
