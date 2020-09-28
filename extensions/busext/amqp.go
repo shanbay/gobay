@@ -146,8 +146,7 @@ func (b *BusExt) Push(exchange, routingKey string, data amqp.Publishing) error {
 		}
 		err := b.UnsafePush(exchange, routingKey, data)
 		if err != nil {
-
-			log.Printf("UnsafePush msg %s failed : %v\n", data.Headers["id"], err)
+			b.ErrorLogger.Printf("UnsafePush msg %s failed : %v\n", data.Headers["id"], err)
 			select {
 			case <-b.done:
 				b.ErrorLogger.Println("BusExt closed during publishing message")
