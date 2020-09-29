@@ -13,6 +13,9 @@ func GetMiddleWare(d *sentryext.SentryExt) (middleware.Builder, error) {
 	if err := config.Unmarshal(&o); err != nil {
 		return nil, err
 	}
+	if !config.IsSet("repanic") {
+		o.Repanic = true
+	}
 	handler := sentryhttp.New(o)
 	return handler.Handle, nil
 }
