@@ -2,6 +2,7 @@ package gobay
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -10,6 +11,7 @@ import (
 	"sync"
 
 	"github.com/spf13/viper"
+	"github.com/hashicorp/go-multierror"
 )
 
 // A Key represents a key for a Extension.
@@ -106,12 +108,13 @@ func (d *Application) initConfig() error {
 }
 
 func (d *Application) initExtensions() error {
-	for _, ext := range d.extensions {
+	var allerr error
+	for key, ext := range d.extensions {
 		if err := ext.Init(d); err != nil {
-			return err
+			allerr = multierror.Append(allerr, errors.New(string(key)), err)
 		}
 	}
-	return nil
+	return allerr
 }
 
 // Close close app when exit
