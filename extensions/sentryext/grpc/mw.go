@@ -16,6 +16,9 @@ func GetOption(d *sentryext.SentryExt) grpc_recovery.Option {
 	return grpc_recovery.WithRecoveryHandlerContext(
 		func(ctx context.Context, err interface{}) error {
 			hub := sentry.CurrentHub().Clone()
+			if hub == nil {
+				return errors.New("failed to get sentry hub")
+			}
 			if eventID := hub.RecoverWithContext(ctx, err); eventID == nil {
 				return errors.New("failed sending event to Sentry")
 			}
