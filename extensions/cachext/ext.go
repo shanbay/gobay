@@ -152,6 +152,8 @@ func (c *CacheExt) GetMany(ctx context.Context, out map[string]interface{}) erro
 			if err := decode(value, out[key]); err != nil {
 				return err
 			}
+		} else {
+			out[key] = nil
 		}
 	}
 	return nil
