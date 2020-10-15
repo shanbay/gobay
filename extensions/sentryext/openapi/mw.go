@@ -1,7 +1,7 @@
 package sentryopenapimw
 
 import (
-	"github.com/getsentry/sentry-go/http"
+	sentryhttp "github.com/getsentry/sentry-go/http"
 	"github.com/go-openapi/runtime/middleware"
 
 	"github.com/shanbay/gobay/extensions/sentryext"
