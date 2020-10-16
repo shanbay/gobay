@@ -1,3 +1,10 @@
+# 0.13.6 (2020-09-29)
+
+- cache ext 的 GetMany 会把未命中的 key 对应的 interface{} 置为 nil
+
+BREAKING CHANGE:
+项目需要修改 GetMany 后是否命中的判定方法，改为判断值是否为 nil
+
 # 0.12.11 (2020-08-28)
 
 - 更新 ent 版本到 0.4.0
