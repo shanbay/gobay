@@ -1,4 +1,4 @@
-# 0.12.12 (2020-10-16)
+# 0.13.9 (2020-10-16)
 
 - 添加 openapi 的 ent 报错处理 middleware 。 ent 报错后，把错误 panic 出来，可以自动处理 404 not found 和 400 constraint error。
 
