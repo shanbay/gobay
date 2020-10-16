@@ -1,6 +1,7 @@
 package entopenapimw
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"github.com/go-openapi/runtime/middleware"
@@ -22,13 +23,28 @@ func GetEntMw(e *entext.EntExt) middleware.Builder {
 						h := w.Header()
 						h.Set("Content-Type", "application/json; charset=utf-8")
 						w.WriteHeader(404)
-						w.Write([]byte("{\"msg\":\"Not Found Error\"}"))
+
+						msg, jsonErr := json.Marshal(map[string]string{
+							"msg":    "Not Found Error",
+							"detail": entErr.Error(),
+						})
+						if jsonErr != nil {
+							msg = []byte("{\"msg\":\"Not Found Error\"}"}
+						}
+						w.Write(msg)
 						return
 					} else if e.IsConstraintFailure != nil && err != nil && e.IsConstraintFailure(entErr) {
 						h := w.Header()
 						h.Set("Content-Type", "application/json; charset=utf-8")
 						w.WriteHeader(400)
-						w.Write([]byte("{\"msg\":\"Already Exists Error\"}"))
+						msg, jsonErr := json.Marshal(map[string]string{
+							"msg":    "Already Exists Error",
+							"detail": entErr.Error(),
+						})
+						if jsonErr != nil {
+							msg = []byte("{\"msg\":\"Already Exists Error\"}"}
+						}
+						w.Write(msg)
 						return
 					} else {
 						panic(err)
