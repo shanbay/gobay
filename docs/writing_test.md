@@ -8,7 +8,7 @@ import (
 
     mock_something "git.17bdc.com/shanbay/protos-go/mocks/something"
 
-    "github.com/shanbay/gobay/utils/test_helpers"
+    "github.com/shanbay/gobay/utils/testhelpers"
 )
 
 func setup() *gobay.Application {
@@ -78,9 +78,9 @@ func Test_newAdminGetUserAppletAndBuyRecordHandler(t *testing.T) {
     handler := getHandler(bapp)
 
     // create test cases
-    testCases := []test_helpers.TestCase{
-      test_helpers.MakeTestCase(
-        &test_helpers.TestCase{
+    testCases := []testhelpers.TestCase{
+      testhelpers.MakeTestCase(
+        &testhelpers.TestCase{
           App:  bapp,
           Ctx:  ctx,
           Name: "TestSuccessName",
@@ -111,15 +111,17 @@ func Test_newAdminGetUserAppletAndBuyRecordHandler(t *testing.T) {
       },
     }
 
+    // API Tests ----------------
+
     // create getRequest Function for running test cases
-    getRequestFunc := func(req interface{}) *http.Request {
+    getAPIRequestFunc := func(req interface{}) *http.Request {
       reqBody := req.(*gen_applet.SomeRequestParams)
       result := getRequest("GET", "/something/"+reqBody.UserID+"/something/"+reqBody.AppletID, nil)
       return result
     }
 
     // check API test cases
-    test_helpers.CheckAPITestCases(testCases, getRequestFunc, t, handler)
+    testhelpers.CheckAPITestCases(testCases, getAPIRequestFunc, t, handler)
 
     // OR
 
@@ -131,7 +133,33 @@ func Test_newAdminGetUserAppletAndBuyRecordHandler(t *testing.T) {
             handler.ServeHTTP(res, req)
 
             // check if tt.WantJSON == res.Body.(JSON)
-            CheckTestCase(tt, res, t)
+            CheckAPITestCaseResult(tt, res, t)
+        })
+    }
+
+    // GRPC Tests ----------------
+
+    // create get GRPC result function for running test cases
+    getGRPCResultFunc := func(test TestCase, t *testing.T) (interface{}, error) {
+        s := &someRPCServer{
+            app: test.App,
+        }
+        typedReq := test.Req.(*RpcRequestType)
+        got, err := s.someRPRCFunc(test.Ctx, typedReq)
+        return got, err
+    }
+
+    // check GRPC test cases
+    testhelpers.CheckGRPCTestCases(testCases, getGRPCResultFunc, t)
+
+    // OR
+
+    // if want to manually check test result
+    for _, tt := range testCases {
+        t.Run(tt.Name, func(t *testing.T) {
+            got, err := getGrpcResult(tt, t)
+
+            CheckGRPCTestCaseResult(tt, got, err, t)
         })
     }
 }

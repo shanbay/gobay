@@ -1,4 +1,4 @@
-package test_helpers
+package testhelpers
 
 import (
 	"context"
@@ -69,31 +69,31 @@ func MakeTestCase(query *TestCase, wantRes interface{}) TestCase {
 	return *query
 }
 
-// CheckTestCase - Check TestCase
-func CheckTestCase(tt TestCase, res *httptest.ResponseRecorder, t *testing.T) {
+// CheckAPITestCaseResult - Check API TestCase's result
+func CheckAPITestCaseResult(tt TestCase, res *httptest.ResponseRecorder, t *testing.T) {
 	if tt.WantErr {
 		if res.Code != tt.WantStatusCode {
-			t.Errorf("Test_adminGetUserAppletAndBuyRecordHandler %v should %v, got %v", tt.Name, tt.WantStatusCode, res.Code)
+			t.Errorf("Test case %v should %v, got %v", tt.Name, tt.WantStatusCode, res.Code)
 		}
 		return
 	}
 
 	if res.Code != 200 {
-		t.Errorf("Test_adminGetUserAppletAndBuyRecordHandler %v should %v, got %v", tt.Name, tt.WantStatusCode, res.Code)
+		t.Errorf("Test case %v should %v, got %v", tt.Name, tt.WantStatusCode, res.Code)
 	}
 
 	if !DeepEqualJSON(tt.WantJSON, string(res.Body.Bytes()), tt.IgnoredFieldKeys) {
-		t.Errorf("Test_adminGetUserAppletAndBuyRecordHandler %v: want %v, got json:%v", tt.Name, tt.WantJSON, string(res.Body.Bytes()))
+		t.Errorf("Test case %v: want %v, got json:%v", tt.Name, tt.WantJSON, string(res.Body.Bytes()))
 	}
 }
 
-// GetRequestFunc -
-type GetRequestFunc func(interface{}) *http.Request
+// GetAPIRequestFunc -
+type GetAPIRequestFunc func(interface{}) *http.Request
 
 // CheckAPITestCases - Check API test Cases
 func CheckAPITestCases(
 	tests []TestCase,
-	getRequest GetRequestFunc,
+	getRequest GetAPIRequestFunc,
 	t *testing.T,
 	handler http.Handler,
 ) {
@@ -103,7 +103,45 @@ func CheckAPITestCases(
 			res := httptest.NewRecorder()
 			handler.ServeHTTP(res, req)
 
-			CheckTestCase(tt, res, t)
+			CheckAPITestCaseResult(tt, res, t)
+		})
+	}
+}
+
+// GetGRPCResultFunc -
+type GetGRPCResultFunc func(TestCase, *testing.T) (interface{}, error)
+
+// CheckGRPCTestCaseResult - check single GRPC test result
+func CheckGRPCTestCaseResult(
+	testCase TestCase,
+	got interface{},
+	err error,
+	t *testing.T,
+) {
+	if testCase.WantErr {
+		if err == nil {
+			t.Errorf("Test case %v error = %v, wantErr %v", testCase.Name, err, testCase.WantErr)
+			return
+		}
+		return
+	}
+	gotJSON := JSONMustMarshal(got)
+	if !DeepEqualJSON(testCase.WantJSON, gotJSON, testCase.IgnoredFieldKeys) {
+		t.Errorf("Test case %v: want %v, got json:%v", testCase.Name, testCase.WantJSON, gotJSON)
+	}
+}
+
+// CheckGRPCTestCases - check multiple GRPC test cases
+func CheckGRPCTestCases(
+	testCases []TestCase,
+	getGrpcResult GetGRPCResultFunc,
+	t *testing.T,
+) {
+	for _, tt := range testCases {
+		t.Run(tt.Name, func(t *testing.T) {
+			got, err := getGrpcResult(tt, t)
+
+			CheckGRPCTestCaseResult(tt, got, err, t)
 		})
 	}
 }

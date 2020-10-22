@@ -1,8 +1,9 @@
-package test_helpers
+package testhelpers
 
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -10,6 +11,9 @@ import (
 	"testing"
 
 	"github.com/shanbay/gobay"
+
+	grpc_testing "github.com/grpc-ecosystem/go-grpc-middleware/testing"
+	pb_testproto "github.com/grpc-ecosystem/go-grpc-middleware/testing/testproto"
 )
 
 type DeepStruct struct {
@@ -141,6 +145,9 @@ func setup() *gobay.Application {
 	if err != nil {
 		panic(err)
 	}
+	if err := bapp.Init(); err != nil {
+		log.Panic(err)
+	}
 	return bapp
 }
 
@@ -161,7 +168,7 @@ func getHandler(app *gobay.Application) http.Handler {
 	return handler
 }
 
-func Test_CheckTestCase(t *testing.T) {
+func Test_CheckAPITestCaseResult(t *testing.T) {
 	bapp := setup()
 	defer tearDown()
 
@@ -210,7 +217,7 @@ func Test_CheckTestCase(t *testing.T) {
 			res := httptest.NewRecorder()
 			handler.ServeHTTP(res, req)
 
-			CheckTestCase(tt, res, t)
+			CheckAPITestCaseResult(tt, res, t)
 		})
 	}
 }
@@ -259,4 +266,97 @@ func Test_CheckAPITestCases(t *testing.T) {
 	}
 
 	CheckAPITestCases(testCases, getRequestFunc, t, handler)
+}
+
+type recoveryAssertService struct {
+	pb_testproto.TestServiceServer
+}
+
+func (s *recoveryAssertService) Ping(ctx context.Context, ping *pb_testproto.PingRequest) (*pb_testproto.PingResponse, error) {
+	if ping.Value == "error" {
+		return nil, fmt.Errorf("error")
+	}
+	return s.TestServiceServer.Ping(ctx, ping)
+}
+
+func Test_CheckGRPCTestCaseResult(t *testing.T) {
+	bapp := setup()
+	defer tearDown()
+
+	ctx := context.Background()
+
+	testCases := []TestCase{
+		MakeTestCase(
+			&TestCase{
+				App:              bapp,
+				Ctx:              ctx,
+				Name:             "TestCase1",
+				Req:              &pb_testproto.PingRequest{Value: "something", SleepTimeMs: 9999},
+				IgnoredFieldKeys: []string{"counter"},
+			},
+			pb_testproto.PingResponse{
+				Value: "something",
+			},
+		),
+		{
+			App:     bapp,
+			Ctx:     ctx,
+			Name:    "TestCase2",
+			Req:     &pb_testproto.PingRequest{Value: "error", SleepTimeMs: 9999},
+			WantErr: true,
+		},
+	}
+
+	getRequestFunc := func(test TestCase, t *testing.T) (interface{}, error) {
+		s := &recoveryAssertService{TestServiceServer: &grpc_testing.TestPingService{T: t}}
+		typedReq := test.Req.(*pb_testproto.PingRequest)
+		got, err := s.Ping(ctx, typedReq)
+		return got, err
+	}
+
+	for _, tt := range testCases {
+		t.Run(tt.Name, func(t *testing.T) {
+			res, err := getRequestFunc(tt, t)
+
+			CheckGRPCTestCaseResult(tt, res, err, t)
+		})
+	}
+}
+
+func Test_CheckGRPCTestCases(t *testing.T) {
+	bapp := setup()
+	defer tearDown()
+
+	ctx := context.Background()
+
+	testCases := []TestCase{
+		MakeTestCase(
+			&TestCase{
+				App:              bapp,
+				Ctx:              ctx,
+				Name:             "TestCase1",
+				Req:              &pb_testproto.PingRequest{Value: "something", SleepTimeMs: 9999},
+				IgnoredFieldKeys: []string{"counter"},
+			},
+			pb_testproto.PingResponse{
+				Value: "something",
+			},
+		),
+		{
+			App:     bapp,
+			Ctx:     ctx,
+			Name:    "TestCase2",
+			Req:     &pb_testproto.PingRequest{Value: "error", SleepTimeMs: 9999},
+			WantErr: true,
+		},
+	}
+
+	getGRPCResultFunc := func(test TestCase, t *testing.T) (interface{}, error) {
+		s := &recoveryAssertService{TestServiceServer: &grpc_testing.TestPingService{T: t}}
+		typedReq := test.Req.(*pb_testproto.PingRequest)
+		got, err := s.Ping(ctx, typedReq)
+		return got, err
+	}
+
+	CheckGRPCTestCases(testCases, getGRPCResultFunc, t)
 }
