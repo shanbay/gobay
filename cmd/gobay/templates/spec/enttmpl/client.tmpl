@@ -196,6 +196,15 @@ func (c *{{ $client }}) Get(ctx context.Context, id {{ $n.ID.Type }}) (*{{ $n.Na
 	return c.Query().Where({{ $n.Package }}.ID(id)).Only(ctx)
 }
 
+// CheckHealth try to read a first {{ $n.Name }} entity, okay if NotFound, returns the error if any other error happens.
+func (c *{{ $client }}) CheckHealth(ctx context.Context) (error) {
+	_, err := c.Query().Limit(1).Only(ctx)
+	if err != nil  && !schema.IsNotFound(err) {
+		return err
+	}
+	return nil
+}
+
 // GetX is like Get, but panics if an error occurs.
 func (c *{{ $client }}) GetX(ctx context.Context, id {{ $n.ID.Type }}) *{{ $n.Name }} {
 	{{ $rec }}, err := c.Get(ctx, id)
