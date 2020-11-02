@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/rand"
 	"sync"
 	"time"
 
@@ -47,11 +48,6 @@ type CacheBackend interface {
 	CheckHealth(context.Context) error
 }
 
-// HealthCheckResult - Result for checking health check
-type HealthCheckResult struct {
-	IsHealthy bool
-}
-
 // Init init a cache extension
 func (c *CacheExt) Init(app *gobay.Application) error {
 	if c.NS == "" {
@@ -89,24 +85,23 @@ func (c *CacheExt) CheckHealth(ctx context.Context) error {
 		return err
 	}
 
-	cacheKey := "GobayCheckCacheHealthCheck"
-
-	err = c.Set(ctx, cacheKey, HealthCheckResult{IsHealthy: true}, 10*time.Second)
+	cacheKey := c.prefix + "&GobayCacheExtensionHealthCheck&" + string(time.Now().Local().UnixNano())
+	cacheValue := string(rand.Int63())
+	err = c.backend.Set(ctx, cacheKey, []byte(cacheValue), 10*time.Second)
 	if err != nil {
 		return err
 	}
 
-	result := &HealthCheckResult{}
-	ok, err := c.Get(ctx, cacheKey, result)
+	gotValueByteArr, err := c.backend.Get(ctx, cacheKey)
 	if err != nil {
 		return err
 	}
-	if !ok || result == nil || result.IsHealthy != true {
-		return fmt.Errorf("cache got no result")
+	if string(gotValueByteArr) != cacheValue {
+		return fmt.Errorf("cache healthcheck cache result not match, expect %v, got %v", cacheValue, string(gotValueByteArr))
 	}
 
 	// test delete cache
-	c.Delete(ctx, cacheKey)
+	c.backend.Delete(ctx, cacheKey)
 	return nil
 }
 
