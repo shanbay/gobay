@@ -39,6 +39,15 @@ func (b *redisBackend) Init(config *viper.Viper) error {
 	return err
 }
 
+func (b *redisBackend) CheckHealth(ctx context.Context) error {
+	client := b.withContext(ctx)
+	_, err := client.Ping().Result()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (b *redisBackend) Get(ctx context.Context, key string) ([]byte, error) {
 	client := b.withContext(ctx)
 	val, err := client.Get(key).Result()
