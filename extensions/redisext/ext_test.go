@@ -9,6 +9,22 @@ import (
 	"github.com/shanbay/gobay/extensions/redisext"
 )
 
+func ExampleRedisExt_CheckHealth() {
+	redis := &redisext.RedisExt{NS: "redis_"}
+	exts := map[gobay.Key]gobay.Extension{
+		"redis": redis,
+	}
+	if _, err := gobay.CreateApp("../../testdata/", "testing", exts); err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	err := redis.CheckHealth(context.Background())
+	fmt.Println(err)
+	// Output:
+	// <nil>
+}
+
 func ExampleRedisExt_Set() {
 	redis := &redisext.RedisExt{NS: "redis_"}
 	exts := map[gobay.Key]gobay.Extension{

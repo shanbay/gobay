@@ -55,6 +55,15 @@ func (c *Client) init() {
 	{{- end }}
 }
 
+func (c *Client) CheckHealth(ctx context.Context) error {
+	{{- range $n := $.Nodes }}
+			if err := c.{{ $n.Name }}.CheckHealth(ctx); err != nil {
+				return err
+			}
+	{{- end }}
+	return nil
+}
+
 // Open opens a database/sql.DB specified by the driver name and
 // the data source name, and returns a new client attached to it.
 // Optional parameters can be added for configuring the client.
@@ -199,7 +208,7 @@ func (c *{{ $client }}) Get(ctx context.Context, id {{ $n.ID.Type }}) (*{{ $n.Na
 // CheckHealth try to read a first {{ $n.Name }} entity, okay if NotFound, returns the error if any other error happens.
 func (c *{{ $client }}) CheckHealth(ctx context.Context) (error) {
 	_, err := c.Query().Limit(1).Only(ctx)
-	if err != nil  && !schema.IsNotFound(err) {
+	if err != nil  && !IsNotFound(err) {
 		return err
 	}
 	return nil
