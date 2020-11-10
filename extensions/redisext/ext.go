@@ -3,7 +3,10 @@ package redisext
 import (
 	"context"
 	"errors"
+	"fmt"
+	"math/rand"
 	"strings"
+	"time"
 
 	"github.com/go-redis/redis"
 	"github.com/shanbay/gobay"
@@ -45,6 +48,32 @@ func (c *RedisExt) Init(app *gobay.Application) error {
 	}
 	_, err := c.redisclient.Ping().Result()
 	return err
+}
+
+func (c *RedisExt) CheckHealth(ctx context.Context) error {
+	_, err := c.redisclient.Ping().Result()
+	if err != nil {
+		return err
+	}
+
+	cacheKey := c.prefix + "&GobayRedisExtensionHealthCheck&" + string(time.Now().Local().UnixNano())
+	cacheValue := string(rand.Int63())
+	err = c.Client(ctx).Set(cacheKey, cacheValue, 10*time.Second).Err()
+	if err != nil {
+		return err
+	}
+	gotValue, err := c.Client(ctx).Get(cacheKey).Result()
+	if err != nil {
+		return err
+	}
+	if gotValue != cacheValue {
+		return fmt.Errorf("redis healthcheck cache result not match, expect %v, got %v", cacheValue, gotValue)
+	}
+
+	// test delete cache
+	c.Client(ctx).Del(cacheKey)
+
+	return nil
 }
 
 // Object return redis client

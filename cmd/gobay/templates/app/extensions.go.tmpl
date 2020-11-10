@@ -67,10 +67,12 @@ var (
 {{- if not $.SkipAsyncTask }}
 	AsyncTask *asynctaskext.AsyncTaskExt
 {{- end }}
+	// EntExt         *entext.EntExt
 	// EntClient *schema.Client
 )
 
 func InitExts(app *gobay.Application) {
+	// EntExt = app.Get("entext").(*entext.EntExt)
 	// EntClient = app.Get("entext").Object().(*schema.Client)
 	Redis = app.Get("redis").Object().(*redisext.RedisExt)
 	Seqgen = app.Get("seqgen").Object().(*seqgenext.SequenceGeneratorExt)

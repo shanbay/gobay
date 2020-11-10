@@ -14,6 +14,24 @@ type {{ toLowerCamel $.Name }}Server struct {
 
 func (s *{{ toLowerCamel $.Name }}Server) Check(ctx context.Context, req *grpc_health_v1.HealthCheckRequest) (*grpc_health_v1.HealthCheckResponse, error) {
 	if req.Service == "liveness" || req.Service == "readiness" {
+		// if app.EntExt != nil {
+		// 	if err := app.EntClient.CheckHealth(ctx); err != nil {
+		// 		return &grpc_health_v1.HealthCheckResponse{Status: grpc_health_v1.HealthCheckResponse_NOT_SERVING}, nil
+		// 	}
+		// }
+
+		if app.Redis != nil {
+			if err := app.Redis.CheckHealth(ctx); err != nil {
+				return &grpc_health_v1.HealthCheckResponse{Status: grpc_health_v1.HealthCheckResponse_NOT_SERVING}, nil
+			}
+		}
+
+		if app.Cache != nil {
+			if err := app.Cache.CheckHealth(ctx); err != nil {
+				return &grpc_health_v1.HealthCheckResponse{Status: grpc_health_v1.HealthCheckResponse_NOT_SERVING}, nil
+			}
+		}
+
 		return &grpc_health_v1.HealthCheckResponse{Status: grpc_health_v1.HealthCheckResponse_SERVING}, nil
 	}
 	return &grpc_health_v1.HealthCheckResponse{Status: grpc_health_v1.HealthCheckResponse_UNKNOWN}, nil
