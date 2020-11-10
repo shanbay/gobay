@@ -33,6 +33,22 @@ func ExampleCacheExt_Set() {
 	// true hello <nil>
 }
 
+func ExampleCacheExt_CheckHealth() {
+	cache := &cachext.CacheExt{NS: "cache_"}
+	exts := map[gobay.Key]gobay.Extension{
+		"cache": cache,
+	}
+	if _, err := gobay.CreateApp("../../testdata/", "testing", exts); err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	err := cache.CheckHealth(context.Background())
+	fmt.Println(err)
+	// Output:
+	// <nil>
+}
+
 func ExampleCacheExt_Cached() {
 	cache := &cachext.CacheExt{NS: "cache_"}
 	exts := map[gobay.Key]gobay.Extension{

@@ -1,3 +1,36 @@
+# 0.13.10 (2020-11-03)
+
+- 增强 health check
+
+GRPC 和 OpenAPI 的 health check 检查时，可以添加检查 Cache, Redis, 每个 DB。
+
+```go
+func (h *luneServer) Check(ctx context.Context, req *grpc_health_v1.HealthCheckRequest) (*grpc_health_v1.HealthCheckResponse, error) {
+	if req.Service == "liveness" || req.Service == "readiness" {
+		if app.EntExt != nil {
+			if err := app.EntClient.CheckHealth(ctx); err != nil {
+				return &grpc_health_v1.HealthCheckResponse{Status: grpc_health_v1.HealthCheckResponse_NOT_SERVING}, nil
+			}
+		}
+
+		if app.Redis != nil {
+			if err := app.Redis.CheckHealth(ctx); err != nil {
+				return &grpc_health_v1.HealthCheckResponse{Status: grpc_health_v1.HealthCheckResponse_NOT_SERVING}, nil
+			}
+		}
+
+		if app.Cache != nil {
+			if err := app.Cache.CheckHealth(ctx); err != nil {
+				return &grpc_health_v1.HealthCheckResponse{Status: grpc_health_v1.HealthCheckResponse_NOT_SERVING}, nil
+			}
+		}
+
+		return &grpc_health_v1.HealthCheckResponse{Status: grpc_health_v1.HealthCheckResponse_SERVING}, nil
+	}
+	return &grpc_health_v1.HealthCheckResponse{Status: grpc_health_v1.HealthCheckResponse_UNKNOWN}, nil
+}
+```
+
 # 0.13.9 (2020-10-16)
 
 - 添加 openapi 的 ent 报错处理 middleware 。 ent 报错后，把错误 panic 出来，可以自动处理 404 not found 和 400 constraint error。
@@ -11,6 +44,8 @@ mdwBuilders = append(mdwBuilders, entopenapimw.GetEntMw(myapp.EntExt))
 // 在这个之前
 s.SetHandler(gmw(api.Serve(openapi.ChainMiddlewares(...
 ```
+
+- 添加方便写测试的 testhelper ，详情参考 [/docs/writing_test.md](https://github.com/shanbay/gobay/blob/master/docs/writing_test.md)
 
 # 0.13.6 (2020-09-29)
 
