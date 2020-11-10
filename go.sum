@@ -639,6 +639,7 @@ go.elastic.co/apm v1.8.0/go.mod h1:tCw6CkOJgkWnzEthFN9HUP1uL3Gjc/Ur6m7gRPLaoH0=
 go.elastic.co/apm v1.9.0/go.mod h1:qoOSi09pnzJDh5fKnfY7bPmQgl8yl2tULdOu03xhui0=
 go.elastic.co/apm/module/apmgoredis v1.8.0 h1:9A345CcyqkPgHOkzRCyqOklvw4Td+jAIyz1lSEYg8sQ=
 go.elastic.co/apm/module/apmgoredis v1.8.0/go.mod h1:J8mXOp8sOJG1/Vuz0gPB7+ovcQY6vYqpabuRsk9beBM=
+go.elastic.co/apm/module/apmgoredis v1.9.0/go.mod h1:ECusuLbysraVucI7MBOWNfOlZsZLFKjyzbbpXW5waiw=
 go.elastic.co/apm/module/apmgrpc v1.8.0 h1:V1/+Y6tZ07BMdrV+HTkaQYlpwqMz9EkQJw4KMg1b0jE=
 go.elastic.co/apm/module/apmgrpc v1.8.0/go.mod h1:Bw3sVrDjrPR4gmmMqVFj5y46il2mG3XAO9hTZ1wyxPc=
 go.elastic.co/apm/module/apmgrpc v1.9.0/go.mod h1:taUolp6JZQO3AFOrNuoiDu6/SnR2U1Ga+wMtIW6ZfRc=
