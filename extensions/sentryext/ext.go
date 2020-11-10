@@ -2,6 +2,7 @@ package sentryext
 
 import (
 	"errors"
+	"log"
 	"time"
 
 	"github.com/getsentry/sentry-go"
@@ -31,6 +32,16 @@ func (d *SentryExt) Init(app *gobay.Application) error {
 	if co.Dsn == "" || co.Environment == "" {
 		return errors.New("lack dsn or environment")
 	}
+
+	if co.BeforeSend == nil {
+		co.BeforeSend = LogBeforeSend
+	} else {
+		original := co.BeforeSend
+		co.BeforeSend = func(event *sentry.Event, hint *sentry.EventHint) *sentry.Event {
+			return original(LogBeforeSend(event, hint), hint)
+		}
+	}
+
 	if err := sentry.Init(co); err != nil {
 		return err
 	}
@@ -58,3 +69,15 @@ func (d *SentryExt) Application() *gobay.Application {
 
 // Config get subConfig
 func (d *SentryExt) Config() *viper.Viper { return d.config }
+
+
+// LogBeforeSend log event to stdout before send it to sentry
+func LogBeforeSend(event *sentry.Event, hint *sentry.EventHint) *sentry.Event {
+	if event != nil {
+		log.Printf("Sentry event is captured: %v", event)
+		if hint != nil {
+			log.Printf("Sentry event hint is captured: %v", hint)
+		}
+	}
+	return event
+}
