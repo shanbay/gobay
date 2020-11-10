@@ -642,8 +642,10 @@ go.elastic.co/apm/module/apmgoredis v1.8.0/go.mod h1:J8mXOp8sOJG1/Vuz0gPB7+ovcQY
 go.elastic.co/apm/module/apmgoredis v1.9.0/go.mod h1:ECusuLbysraVucI7MBOWNfOlZsZLFKjyzbbpXW5waiw=
 go.elastic.co/apm/module/apmgrpc v1.8.0 h1:V1/+Y6tZ07BMdrV+HTkaQYlpwqMz9EkQJw4KMg1b0jE=
 go.elastic.co/apm/module/apmgrpc v1.8.0/go.mod h1:Bw3sVrDjrPR4gmmMqVFj5y46il2mG3XAO9hTZ1wyxPc=
+go.elastic.co/apm/module/apmgrpc v1.9.0/go.mod h1:taUolp6JZQO3AFOrNuoiDu6/SnR2U1Ga+wMtIW6ZfRc=
 go.elastic.co/apm/module/apmhttp v1.8.0 h1:5AJPefWJzWDLX/47XIDfaloGiYWkkOQEULvlrI6Ieaw=
 go.elastic.co/apm/module/apmhttp v1.8.0/go.mod h1:9LPFlEON51/lRbnWDfqAWErihIiAFDUMfMV27YjoWQ8=
+go.elastic.co/apm/module/apmhttp v1.9.0/go.mod h1:evGjj1bVDqi47Lg2+/uKre/PDSBrOso/eTRrgeJqZyE=
 go.elastic.co/apm/module/apmsql v1.8.0 h1:YMGTshRcC9SI8p+hJNI7OzNnk7Dn9RjwuwO0MRcbvvE=
 go.elastic.co/apm/module/apmsql v1.8.0/go.mod h1:pX+PSxIcEv5BvIYJjQnODzNwJ6+DJDeLb0fzrhSOIhE=
 go.elastic.co/fastjson v1.0.0 h1:ooXV/ABvf+tBul26jcVViPT3sBir0PvXgibYB1IQQzg=
@@ -983,6 +985,7 @@ google.golang.org/grpc v1.31.1/go.mod h1:N36X2cJ7JwdamYAgDz+s+rVMFjt3numwzf/HckM
 google.golang.org/grpc v1.32.0 h1:zWTV+LMdc3kaiJMSTOFz2UgSBgx8RNQoTGiZu3fR9S0=
 google.golang.org/grpc v1.32.0/go.mod h1:N36X2cJ7JwdamYAgDz+s+rVMFjt3numwzf/HckM8pak=
 google.golang.org/grpc v1.33.1/go.mod h1:fr5YgcSWrqhRRxogOsw7RzIpsmvOZ6IcH4kBYTpR3n0=
+google.golang.org/grpc v1.33.2/go.mod h1:JMHMWHQWaTccqQQlmk3MJZS+GWXOdAesneDmEnv2fbc=
 google.golang.org/grpc/examples v0.0.0-20200925170654-e6c98a478e62 h1:HjNTeGivNN7lQO/JBQlP+QhpN2eTJ/KI6w+G0ihxC4c=
 google.golang.org/grpc/examples v0.0.0-20200925170654-e6c98a478e62/go.mod h1:Lh55/1hxmVHEkOvSIQ2uj0P12QyOCUNyRwnUlSS13hw=
 google.golang.org/protobuf v0.0.0-20200109180630-ec00e32a8dfd/go.mod h1:DFci5gLYBciE7Vtevhsrf46CRTquxDuWsQurQQe4oz8=

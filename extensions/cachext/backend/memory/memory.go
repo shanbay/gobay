@@ -29,6 +29,10 @@ func (m *memoryBackend) Init(*viper.Viper) error {
 	return nil
 }
 
+func (m *memoryBackend) CheckHealth(ctx context.Context) error {
+	return nil
+}
+
 func (m *memoryBackend) Get(ctx context.Context, key string) ([]byte, error) {
 	res, exists := m.client[key]
 	if !exists {

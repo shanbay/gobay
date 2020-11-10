@@ -2,6 +2,8 @@ package sentryext
 
 import (
 	"errors"
+	"time"
+
 	"github.com/getsentry/sentry-go"
 	"github.com/shanbay/gobay"
 	"github.com/spf13/viper"
@@ -37,6 +39,10 @@ func (d *SentryExt) Init(app *gobay.Application) error {
 
 // Close implements Extension interface
 func (d *SentryExt) Close() error {
+	// 关闭前调用 Flush 方法保证所有 event 都被发送
+	if d.app != nil {
+		sentry.Flush(5 * time.Second)
+	}
 	return nil
 }
 
