@@ -65,3 +65,10 @@ func (s *sentryErrorLogger) Panicln(v ...interface{}) {
 	sentry.CaptureException(errors.New(fmt.Sprintln(v...)))
 	s.Logger.Panicln(v...)
 }
+
+//ErrorHandler 捕捉 error 相关 stacktrace
+func ErrorHandler(err error) {
+	if err != nil {
+		sentry.CaptureException(err)
+	}
+}

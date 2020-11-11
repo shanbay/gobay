@@ -12,6 +12,7 @@ import (
 	"github.com/RichardKnop/machinery/v1/tasks"
 	"github.com/mitchellh/mapstructure"
 	"github.com/shanbay/gobay"
+	"github.com/shanbay/gobay/extensions/sentryext/custom_logger"
 )
 
 type AsyncTaskExt struct {
@@ -82,6 +83,10 @@ func (t *AsyncTaskExt) StartWorker(queue string, concurrency int) error {
 	tag := fmt.Sprintf("%s@%s", queue, hostName)
 	worker := t.server.NewWorker(tag, concurrency)
 	worker.Queue = queue
+
+	// ErrorHandler 可以捕捉到 task 返回的 error，从而可以拿到 stacktrace
+	worker.SetErrorHandler(custom_logger.ErrorHandler)
+
 	t.workers = append(t.workers, worker)
 	return worker.Launch()
 }
