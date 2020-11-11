@@ -4,6 +4,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/hashicorp/go-multierror"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -56,7 +57,7 @@ func TestCreateApp(t *testing.T) {
 	call.Return(initErr)
 	app, err = CreateApp("./testdata", "testing", exts)
 	assert.Nil(app)
-	assert.Equal(initErr, err)
+	assert.Contains(err.(*multierror.Error).Errors, initErr)
 }
 
 func TestApplicationClose(t *testing.T) {

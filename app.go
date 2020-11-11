@@ -10,8 +10,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/spf13/viper"
 	"github.com/hashicorp/go-multierror"
+	"github.com/spf13/viper"
 )
 
 // A Key represents a key for a Extension.
@@ -80,8 +80,8 @@ func (d *Application) Init() error {
 }
 
 func (d *Application) initConfig() error {
-	configfile := filepath.Join(d.rootPath, "config.yaml")
-	originConfig, err := ioutil.ReadFile(configfile)
+	configFile := filepath.Join(d.rootPath, "config.yaml")
+	originConfig, err := ioutil.ReadFile(configFile)
 	if err != nil {
 		return err
 	}
@@ -108,13 +108,13 @@ func (d *Application) initConfig() error {
 }
 
 func (d *Application) initExtensions() error {
-	var allerr error
+	var allErr error
 	for key, ext := range d.extensions {
 		if err := ext.Init(d); err != nil {
-			allerr = multierror.Append(allerr, errors.New(string(key)), err)
+			allErr = multierror.Append(allErr, errors.New(string(key)), err)
 		}
 	}
-	return allerr
+	return allErr
 }
 
 // Close close app when exit
