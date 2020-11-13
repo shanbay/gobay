@@ -3,6 +3,8 @@ package sentrygrpcmw
 import (
 	"context"
 	"errors"
+	"log"
+	"runtime/debug"
 
 	"github.com/getsentry/sentry-go"
 	"github.com/grpc-ecosystem/go-grpc-middleware/recovery"
@@ -15,6 +17,10 @@ import (
 func GetOption(d *sentryext.SentryExt) grpc_recovery.Option {
 	return grpc_recovery.WithRecoveryHandlerContext(
 		func(ctx context.Context, err interface{}) error {
+			// log err and stack trace to stdout
+			log.Println(err)
+			log.Println(string(debug.Stack()))
+
 			hub := sentry.CurrentHub().Clone()
 			if hub == nil {
 				return errors.New("failed to get sentry hub")
