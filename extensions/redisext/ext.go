@@ -33,15 +33,12 @@ func (c *RedisExt) Init(app *gobay.Application) error {
 	}
 	c.app = app
 	config := gobay.GetConfigByPrefix(app.Config(), c.NS, true)
-	host := config.GetString("host")
-	password := config.GetString("password")
-	dbNum := config.GetInt("db")
+	opt := redis.Options{}
+	if err := config.Unmarshal(&opt); err != nil {
+		return err
+	}
 	c.prefix = config.GetString("prefix")
-	c.redisclient = redis.NewClient(&redis.Options{
-		Addr:     host,
-		Password: password,
-		DB:       dbNum,
-	})
+	c.redisclient = redis.NewClient(&opt)
 	if app.Config().GetBool("elastic_apm_enable") {
 		c.apmEnable = true
 		c.apmredisclient = apmgoredis.Wrap(c.redisclient)
@@ -56,8 +53,8 @@ func (c *RedisExt) CheckHealth(ctx context.Context) error {
 		return err
 	}
 
-	cacheKey := c.prefix + "&GobayRedisExtensionHealthCheck&" + string(time.Now().Local().UnixNano())
-	cacheValue := string(rand.Int63())
+	cacheKey := c.prefix + "&GobayRedisExtensionHealthCheck&" + fmt.Sprint(time.Now().Local().UnixNano())
+	cacheValue := fmt.Sprint(rand.Int63())
 	err = c.Client(ctx).Set(cacheKey, cacheValue, 10*time.Second).Err()
 	if err != nil {
 		return err
