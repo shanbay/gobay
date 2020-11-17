@@ -15,7 +15,7 @@ require (
 	github.com/hashicorp/go-multierror v1.1.0
 	github.com/iancoleman/strcase v0.1.2
 	github.com/markbates/pkger v0.17.1
-	github.com/mattn/go-sqlite3 v1.14.4
+	github.com/mattn/go-sqlite3 v1.14.5
 	github.com/mitchellh/mapstructure v1.3.3
 	github.com/satori/go.uuid v1.2.0
 	github.com/spf13/cobra v1.1.1
@@ -25,9 +25,9 @@ require (
 	github.com/stretchr/testify v1.6.1
 	github.com/vmihailenco/msgpack v4.0.4+incompatible
 	go.elastic.co/apm v1.9.0
-	go.elastic.co/apm/module/apmsql v1.9.0
 	go.elastic.co/apm/module/apmgoredis v1.9.0
 	go.elastic.co/apm/module/apmgrpc v1.9.0
+	go.elastic.co/apm/module/apmsql v1.9.0
 	google.golang.org/grpc v1.33.2
 	google.golang.org/grpc/examples v0.0.0-20200925170654-e6c98a478e62 // indirect
 )
