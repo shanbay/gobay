@@ -17,6 +17,7 @@ require (
 	github.com/markbates/pkger v0.17.1
 	github.com/mattn/go-sqlite3 v1.14.5
 	github.com/mitchellh/mapstructure v1.3.3
+	github.com/pkg/errors v0.9.1
 	github.com/satori/go.uuid v1.2.0
 	github.com/spf13/cobra v1.1.1
 	github.com/spf13/viper v1.7.1
