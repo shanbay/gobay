@@ -1,3 +1,14 @@
+# 0.14.0 (2020-11-19)
+
+- sentryext 收集当前栈信息，让 sentry web 界面上可以展开
+- redisext 支持更多可配置项
+
+**BREAKING CHANGE**:
+
+redisext 的 `host` 配置需要改名为 `addr` （注意是 redisext 而不是 cachext）
+
+> 如果你发现没修改也正常运行了，可能是未读到使用了默认值 `localhost:6379`
+
 # 0.13.10 (2020-11-03)
 
 - 增强 health check
@@ -51,14 +62,16 @@ s.SetHandler(gmw(api.Serve(openapi.ChainMiddlewares(...
 
 - cache ext 的 GetMany 会把未命中的 key 对应的 interface{} 置为 nil
 
-BREAKING CHANGE:
+**BREAKING CHANGE**:
+
 项目需要修改 GetMany 后是否命中的判定方法，改为判断值是否为 nil
 
 # 0.12.11 (2020-08-28)
 
 - 更新 ent 版本到 0.4.0
 
-BREAKING CHANGE:
+**BREAKING CHANGE**:
+
 需要修改项目里的 ent 版本：
 
 1. 更新 dependnecy - go.mod
