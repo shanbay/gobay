@@ -20,7 +20,7 @@ func respondHTTPError(w http.ResponseWriter, statusCode int, defaultMessage stri
 	if jsonErr != nil {
 		msg = []byte("{\"msg\":\"" + defaultMessage + "\"}")
 	}
-	w.Write(msg)
+	_, _ = w.Write(msg)
 }
 
 // GetEntMw - Get ent middleware

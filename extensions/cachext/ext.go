@@ -85,8 +85,8 @@ func (c *CacheExt) CheckHealth(ctx context.Context) error {
 		return err
 	}
 
-	cacheKey := c.prefix + "&GobayCacheExtensionHealthCheck&" + string(time.Now().Local().UnixNano())
-	cacheValue := string(rand.Int63())
+	cacheKey := c.prefix + "&GobayCacheExtensionHealthCheck&" + fmt.Sprint(time.Now().Local().UnixNano())
+	cacheValue := fmt.Sprint(rand.Int63())
 	err = c.backend.Set(ctx, cacheKey, []byte(cacheValue), 10*time.Second)
 	if err != nil {
 		return err

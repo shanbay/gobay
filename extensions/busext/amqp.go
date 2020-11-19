@@ -141,7 +141,7 @@ func (b *BusExt) Push(exchange, routingKey string, data amqp.Publishing) error {
 		// clear staled confirmnation
 		// 有可能在超时之后才收到 confirm，会堵塞 channel，最终造成死锁
 		select {
-		case _ = <-b.notifyConfirm:
+		case <-b.notifyConfirm:
 		default:
 		}
 		err := b.UnsafePush(exchange, routingKey, data)

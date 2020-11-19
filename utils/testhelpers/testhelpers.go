@@ -82,8 +82,8 @@ func CheckAPITestCaseResult(tt TestCase, res *httptest.ResponseRecorder, t *test
 		t.Errorf("Test case %v should %v, got %v", tt.Name, tt.WantStatusCode, res.Code)
 	}
 
-	if !DeepEqualJSON(tt.WantJSON, string(res.Body.Bytes()), tt.IgnoredFieldKeys) {
-		t.Errorf("Test case %v: want %v, got json:%v", tt.Name, tt.WantJSON, string(res.Body.Bytes()))
+	if !DeepEqualJSON(tt.WantJSON, res.Body.String(), tt.IgnoredFieldKeys) {
+		t.Errorf("Test case %v: want %v, got json:%v", tt.Name, tt.WantJSON, res.Body.String())
 	}
 }
 

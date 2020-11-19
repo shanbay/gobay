@@ -32,7 +32,7 @@ func (s *sentryErrorLogger) Print(v ...interface{}) {
 }
 
 func (s *sentryErrorLogger) Printf(format string, v ...interface{}) {
-	sentry.CaptureException(errors.New(fmt.Sprintf(format, v...)))
+	sentry.CaptureException(fmt.Errorf(format, v...))
 	s.Logger.Printf(format, v...)
 }
 func (s *sentryErrorLogger) Println(v ...interface{}) {
@@ -45,7 +45,7 @@ func (s *sentryErrorLogger) Fatal(v ...interface{}) {
 	s.Logger.Fatal(v...)
 }
 func (s *sentryErrorLogger) Fatalf(format string, v ...interface{}) {
-	sentry.CaptureException(errors.New(fmt.Sprintf(format, v...)))
+	sentry.CaptureException(fmt.Errorf(format, v...))
 	s.Logger.Fatalf(format, v...)
 }
 func (s *sentryErrorLogger) Fatalln(v ...interface{}) {
@@ -58,7 +58,7 @@ func (s *sentryErrorLogger) Panic(v ...interface{}) {
 	s.Logger.Panic(v...)
 }
 func (s *sentryErrorLogger) Panicf(format string, v ...interface{}) {
-	sentry.CaptureException(errors.New(fmt.Sprintf(format, v...)))
+	sentry.CaptureException(fmt.Errorf(format, v...))
 	s.Logger.Panicf(format, v...)
 }
 func (s *sentryErrorLogger) Panicln(v ...interface{}) {
