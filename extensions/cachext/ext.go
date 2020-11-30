@@ -4,11 +4,14 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
+	"math/rand"
+	"sync"
+	"time"
+
 	"github.com/shanbay/gobay"
 	"github.com/spf13/viper"
 	"github.com/vmihailenco/msgpack"
-	"sync"
-	"time"
 )
 
 type void struct{}
@@ -29,6 +32,7 @@ var (
 	mu         sync.Mutex
 )
 
+// CacheBackend
 type CacheBackend interface {
 	Init(*viper.Viper) error
 	Get(context.Context, string) ([]byte, error) // if record not exist, return (nil, nil)
@@ -41,6 +45,7 @@ type CacheBackend interface {
 	TTL(context.Context, string) time.Duration
 	Exists(context.Context, string) bool
 	Close() error
+	CheckHealth(context.Context) error
 }
 
 // Init init a cache extension
@@ -68,7 +73,35 @@ func (c *CacheExt) Init(app *gobay.Application) error {
 	} else {
 		return errors.New("No backend found for cache_backend:" + backendConfig)
 	}
+
 	c.initialized = true
+	return nil
+}
+
+// CheckHealth - Check if extension is healthy
+func (c *CacheExt) CheckHealth(ctx context.Context) error {
+	err := c.backend.CheckHealth(ctx)
+	if err != nil {
+		return err
+	}
+
+	cacheKey := c.prefix + "&GobayCacheExtensionHealthCheck&" + fmt.Sprint(time.Now().Local().UnixNano())
+	cacheValue := fmt.Sprint(rand.Int63())
+	err = c.backend.Set(ctx, cacheKey, []byte(cacheValue), 10*time.Second)
+	if err != nil {
+		return err
+	}
+
+	gotValueByteArr, err := c.backend.Get(ctx, cacheKey)
+	if err != nil {
+		return err
+	}
+	if string(gotValueByteArr) != cacheValue {
+		return fmt.Errorf("cache healthcheck cache result not match, expect %v, got %v", cacheValue, string(gotValueByteArr))
+	}
+
+	// test delete cache
+	c.backend.Delete(ctx, cacheKey)
 	return nil
 }
 
@@ -152,6 +185,8 @@ func (c *CacheExt) GetMany(ctx context.Context, out map[string]interface{}) erro
 			if err := decode(value, out[key]); err != nil {
 				return err
 			}
+		} else {
+			out[key] = nil
 		}
 	}
 	return nil

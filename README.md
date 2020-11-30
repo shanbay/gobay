@@ -1,25 +1,26 @@
-# gobay
+# [gobay](https://shanbay.github.io/gobay)
 [![Go Report Card](https://goreportcard.com/badge/github.com/shanbay/gobay)](https://goreportcard.com/report/github.com/shanbay/gobay)
 [![Build Status](https://travis-ci.org/shanbay/gobay.svg?branch=master)](https://travis-ci.org/shanbay/gobay)
 [![](https://img.shields.io/:license-mit-blue.svg?style=flat-square)](https://shanbay.mit-license.org)
 
-# 脚手架
+# Documentation
 
-```bash
-# go get github.com/shanbay/gobay/cmd/gobay
-gobay new github.com/me/mine_project
-```
+- [Official documentation](https://shanbay.github.io/gobay)
+  - [Changelog](https://shanbay.github.io/gobay/#/CHANGELOG)
+  - [Installation](https://shanbay.github.io/gobay/#/installation)
+  - [Quick Start](https://shanbay.github.io/gobay/#/quickstart)
+  - [Project Structure](https://shanbay.github.io/gobay/#/structure)
 
-[详细说明](cmd/gobay/README.md)
-
-# 贡献代码
+# Contributing
 
 ## 如何为gobay编写extension
 
-1. 实现`gobay.Extension`
-2. 每一个ext目录都是你的例子
+1. 实现 `gobay.Extension`
+2. 每一个 ext 目录都是你的例子
 
-# ext
+## 附录
+
+## ext
 
 ### ent/orm
 

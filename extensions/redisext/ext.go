@@ -3,7 +3,10 @@ package redisext
 import (
 	"context"
 	"errors"
+	"fmt"
+	"math/rand"
 	"strings"
+	"time"
 
 	"github.com/go-redis/redis"
 	"github.com/shanbay/gobay"
@@ -30,21 +33,44 @@ func (c *RedisExt) Init(app *gobay.Application) error {
 	}
 	c.app = app
 	config := gobay.GetConfigByPrefix(app.Config(), c.NS, true)
-	host := config.GetString("host")
-	password := config.GetString("password")
-	dbNum := config.GetInt("db")
+	opt := redis.Options{}
+	if err := config.Unmarshal(&opt); err != nil {
+		return err
+	}
 	c.prefix = config.GetString("prefix")
-	c.redisclient = redis.NewClient(&redis.Options{
-		Addr:     host,
-		Password: password,
-		DB:       dbNum,
-	})
+	c.redisclient = redis.NewClient(&opt)
 	if app.Config().GetBool("elastic_apm_enable") {
 		c.apmEnable = true
 		c.apmredisclient = apmgoredis.Wrap(c.redisclient)
 	}
 	_, err := c.redisclient.Ping().Result()
 	return err
+}
+
+func (c *RedisExt) CheckHealth(ctx context.Context) error {
+	_, err := c.redisclient.Ping().Result()
+	if err != nil {
+		return err
+	}
+
+	cacheKey := c.prefix + "&GobayRedisExtensionHealthCheck&" + fmt.Sprint(time.Now().Local().UnixNano())
+	cacheValue := fmt.Sprint(rand.Int63())
+	err = c.Client(ctx).Set(cacheKey, cacheValue, 10*time.Second).Err()
+	if err != nil {
+		return err
+	}
+	gotValue, err := c.Client(ctx).Get(cacheKey).Result()
+	if err != nil {
+		return err
+	}
+	if gotValue != cacheValue {
+		return fmt.Errorf("redis healthcheck cache result not match, expect %v, got %v", cacheValue, gotValue)
+	}
+
+	// test delete cache
+	c.Client(ctx).Del(cacheKey)
+
+	return nil
 }
 
 // Object return redis client

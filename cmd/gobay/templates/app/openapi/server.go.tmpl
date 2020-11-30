@@ -103,5 +103,7 @@ func configureAPI(s *restapi.Server, api *operations.{{ toCamel $.Name }}API, im
 		)
 	}
 {{- end }}
+	mdwBuilders = append(mdwBuilders, entopenapimw.GetEntMw(myapp.EntExt))
+	
 	s.SetHandler(gmw(api.Serve(openapi.ChainMiddlewares(mdwBuilders...))))
 }

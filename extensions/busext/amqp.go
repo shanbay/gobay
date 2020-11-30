@@ -52,9 +52,9 @@ type BusExt struct {
 	resendDelay     time.Duration
 	reconnectDelay  time.Duration
 	reinitDelay     time.Duration
+	pushM           sync.Mutex
 	ErrorLogger     customLoggerInterface
-
-	mocked bool
+	mocked          bool
 }
 
 func (b *BusExt) Object() interface{} {
@@ -128,16 +128,25 @@ func (b *BusExt) Push(exchange, routingKey string, data amqp.Publishing) error {
 	if b.mocked {
 		return nil
 	}
-	log.Printf("Trying to publish: %+v\n", data)
+	b.pushM.Lock()
+	defer b.pushM.Unlock()
+
+	log.Printf("Trying to publish: %s\n", data.Headers["id"])
 	if !b.isReady {
 		err := errors.New("BusExt is not ready")
 		b.ErrorLogger.Printf("Can not publish message: %v\n", err)
 		return err
 	}
-	for i := 0; i < b.publishRetry; i++ {
+	for i := 0; i <= b.publishRetry; i++ {
+		// clear staled confirmnation
+		// 有可能在超时之后才收到 confirm，会堵塞 channel，最终造成死锁
+		select {
+		case <-b.notifyConfirm:
+		default:
+		}
 		err := b.UnsafePush(exchange, routingKey, data)
 		if err != nil {
-			b.ErrorLogger.Printf("UnsafePush failed: %v\n", err)
+			b.ErrorLogger.Printf("UnsafePush msg %s failed : %v\n", data.Headers["id"], err)
 			select {
 			case <-b.done:
 				b.ErrorLogger.Println("BusExt closed during publishing message")
@@ -149,16 +158,16 @@ func (b *BusExt) Push(exchange, routingKey string, data amqp.Publishing) error {
 		select {
 		case confirm := <-b.notifyConfirm:
 			if confirm.Ack {
-				log.Println("Publish confirmed!")
+				log.Printf("Publish %s confirmed!", data.Headers["id"])
 				return nil
 			}
 		case <-time.After(b.resendDelay):
 		}
-		log.Printf("Publish not confirmed after %f seconds. Retrying...\n",
-			b.resendDelay.Seconds())
+		log.Printf("Publish %s not confirmed after %f seconds. Retrying...\n",
+			data.Headers["id"], b.resendDelay.Seconds())
 	}
 	err := fmt.Errorf(
-		"publishing message failed after retry %d times", b.publishRetry)
+		"publishing message %s failed after retry %d times", data.Headers["id"], b.publishRetry)
 	b.ErrorLogger.Println(err)
 	return err
 }
@@ -221,7 +230,8 @@ func (b *BusExt) Consume() error {
 					return
 				case delivery := <-channel:
 					b.deliveryAck(delivery)
-					log.Printf("Receive delivery: %+v from queue: %v\n", delivery, chName)
+					log.Printf("Receive delivery: %s from queue: %v\n",
+						delivery.Headers["id"], chName)
 					var handler Handler
 					var ok bool
 					if delivery.Headers == nil {
@@ -310,7 +320,7 @@ func (b *BusExt) handleReInit(conn *amqp.Connection) bool {
 			log.Println("Connection closed. Reconnecting...")
 			return false
 		case <-b.notifyChanClose:
-			log.Println("channel closed. Rerunning init...")
+			log.Println("channel closed. Retrying init...")
 		}
 	}
 }
