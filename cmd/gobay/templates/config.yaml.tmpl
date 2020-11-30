@@ -2,7 +2,7 @@ defaults: &defaults
   db_driver: mysql
   db_url: 'root:dbpassword@(mysql:3306)/{{ $.Name }}?charset=utf8mb4&parseTime=true&loc=UTC&interpolateParams=true'
 
-  redis_host: 'redis:6379'
+  redis_addr: 'redis:6379'
   redis_password: ''
   redis_db: 0
 
@@ -57,7 +57,7 @@ integration: &integration
 {{- if not $.SkipElasticApm }}
   elastic_apm_enable: true
 {{- end }}
-  redis_host: ${REDIS_HOST}
+  redis_addr: ${REDIS_ADDR}
   redis_password: ${REDIS_PASSWORD}
 {{- if not $.SkipSentry }}
   sentry_dsn: ${SENTRY_DSN}
