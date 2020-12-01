@@ -33,4 +33,7 @@ require (
 	google.golang.org/grpc/examples v0.0.0-20200925170654-e6c98a478e62 // indirect
 )
 
-replace github.com/facebook/ent => github.com/shanbay/ent v0.4.0
+replace (
+	github.com/RichardKnop/machinery => github.com/RichardKnop/machinery v1.9.7
+	github.com/facebook/ent => github.com/shanbay/ent v0.4.0
+)
