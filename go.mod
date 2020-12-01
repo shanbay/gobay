@@ -4,7 +4,7 @@ go 1.15
 
 require (
 	github.com/RichardKnop/logging v0.0.0-20190827224416-1a693bdd4fae
-	github.com/RichardKnop/machinery v1.9.7
+	github.com/RichardKnop/machinery v1.9.9
 	github.com/facebook/ent v0.4.0
 	github.com/getsentry/sentry-go v0.8.0
 	github.com/go-openapi/runtime v0.19.24
@@ -16,7 +16,7 @@ require (
 	github.com/iancoleman/strcase v0.1.2
 	github.com/markbates/pkger v0.17.1
 	github.com/mattn/go-sqlite3 v1.14.5
-	github.com/mitchellh/mapstructure v1.3.3
+	github.com/mitchellh/mapstructure v1.4.0
 	github.com/pkg/errors v0.9.1
 	github.com/satori/go.uuid v1.2.0
 	github.com/spf13/cobra v1.1.1
