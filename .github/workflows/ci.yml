@@ -1,0 +1,80 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  tests:
+    name: "Golang ${{ matrix.go-version }} ${{ matrix.os }}"
+    runs-on: "${{ matrix.os }}"
+    strategy:
+      matrix:
+        mysql-version: ['mysql:latest', 'mysql:5.7', 'mysql:5.6']
+        go-version: ['1.13', '1.14', '1.15']
+        os: [ubuntu-latest]
+
+    services:
+      mysql:
+        image: ${{ matrix.mysql-version }}
+        env:
+          MYSQL_DATABASE: gobay
+          MYSQL_ROOT_HOST: "%"
+          MYSQL_USER: root
+          MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "mysqladmin ping -uroot"
+          --health-interval 10s
+          --health-start-period 10s
+          --health-timeout 5s
+          --health-retries 10
+      rabbitmq:
+        image: rabbitmq
+        env:
+          RABBITMQ_DEFAULT_USER: guest
+          RABBITMQ_DEFAULT_PASS: guest
+        ports:
+          - 5672:5672
+        options: >-
+          --health-cmd "rabbitmqctl node_health_check"
+          --health-interval 10s
+          --health-start-period 10s
+          --health-timeout 5s
+          --health-retries 10
+      redis-server:
+        image: redis
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Check out code into Go module directory 
+        uses: actions/checkout@v2
+
+      - name: Set up golang ${{ matrix.go-version }}
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ matrix.go-version }}
+      
+      - name: Go mod package cache
+        uses: actions/cache@v2
+        with:
+          path: $GOPATH/pkg/mod
+          key: ${{ runner.os }}-go-${{ matrix.go-version }}-${{ hashFiles('**/go.sum') }}
+
+      - name: Before tests
+        run: |
+          go install github.com/golangci/golangci-lint/cmd/golangci-lint
+      - name: Run tests and lint
+        run: |
+          golangci-lint run --timeout=10m --skip-dirs=testdata --tests=false
+          go test -v -count=1 ./...
