@@ -1,5 +1,20 @@
 # 使用 GRPC
 
+## 检查 config 文件
+
+检查一下项目下的 config.yaml 文件，应该有这几行
+
+```yaml
+  grpc_listen_host: 0.0.0.0
+  grpc_conn_timeout: 1s
+```
+
+RPC默认监听6000端口的请求。可以添加这个配置来修改：
+
+```yaml
+  grpc_listen_port: 6000
+```
+
 ## 准备好你的 proto 文件
 
 1. 在`spec/grpc`文件夹里，创建你的 proto 文件,
