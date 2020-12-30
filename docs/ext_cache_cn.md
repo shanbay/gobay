@@ -1,6 +1,6 @@
 # 接入缓存
 
-注意，这里的缓存只是用于缓存function结果单一用途的。如果有自定义的存入redis的需求，请参考隔壁左传[redis](docs/ext_redis.md)部分。
+注意，这里的缓存只是用于缓存function结果单一用途的。如果有自定义的存入redis的需求，请参考隔壁左传[redis](ext_redis_cn.md)部分。
 
 ## config 配置
 
@@ -53,7 +53,7 @@ func InitExts(app *gobay.Application) {
 
 ## 准备 model
 
-cache 缓存需要包裹一定的 model 才好使用。这儿我们假设是隔壁[数据库](docs/ext_database.md)的 `models.SampleGetLastByName(ctx, name)`。
+cache 缓存需要包裹一定的 model 才好使用。这儿我们假设是隔壁[数据库](ext_database_cn.md)的 `models.SampleGetLastByName(ctx, name)`。
 
 ## 写包裹 model 的缓存代码
 

@@ -56,7 +56,7 @@ mdwBuilders = append(mdwBuilders, entopenapimw.GetEntMw(myapp.EntExt))
 s.SetHandler(gmw(api.Serve(openapi.ChainMiddlewares(...
 ```
 
-- 添加方便写测试的 testhelper ，详情参考 [/docs/writing_test.md](https://github.com/shanbay/gobay/blob/master/docs/writing_test.md)
+- 添加方便写测试的 testhelper ，详情参考 [writing_test.md](https://github.com/shanbay/gobay/blob/master/docs/writing_test.md)
 
 # 0.13.6 (2020-09-29)
 

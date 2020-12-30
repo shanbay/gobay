@@ -1,6 +1,6 @@
 # 接入 Redis
 
-这是直接接入Redis的功能，如果只是对CRUD的model进行缓存，建议直接去隔壁[接入cache](/docs/ext_cache.md)部分。
+这是直接接入Redis的功能，如果只是对CRUD的model进行缓存，建议直接去隔壁[接入cache](ext_cache_cn.md)部分。
 
 ## config 配置
 
