@@ -112,4 +112,4 @@ make run COMMAND=httpsvc
 
 ## 给 API 服务写测试
 
-请参考出门右转的 [写测试](docs/writing_test_cn.md)
+请参考出门右转的 [写测试](writing_test_cn.md)
