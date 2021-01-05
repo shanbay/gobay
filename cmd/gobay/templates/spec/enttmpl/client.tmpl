@@ -207,7 +207,7 @@ func (c *{{ $client }}) Get(ctx context.Context, id {{ $n.ID.Type }}) (*{{ $n.Na
 
 // CheckHealth try to read a first {{ $n.Name }} entity, okay if NotFound, returns the error if any other error happens.
 func (c *{{ $client }}) CheckHealth(ctx context.Context) (error) {
-	_, err := c.Query().Limit(1).Only(ctx)
+	_, err := c.Query().Limit(1).All(ctx)
 	if err != nil  && !IsNotFound(err) {
 		return err
 	}
