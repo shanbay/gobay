@@ -14,6 +14,7 @@ type SentryExt struct {
 	NS     string
 	app    *gobay.Application
 	config *viper.Viper
+	mocked bool
 }
 
 // Init implements Extension interface
@@ -30,6 +31,10 @@ func (d *SentryExt) Init(app *gobay.Application) error {
 	}
 	if co.Dsn == "" || co.Environment == "" {
 		return errors.New("lack dsn or environment")
+	}
+	d.mocked = d.config.GetBool("mocked")
+	if d.mocked {
+		return nil
 	}
 	if err := sentry.Init(co); err != nil {
 		return err
