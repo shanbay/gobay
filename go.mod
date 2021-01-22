@@ -9,6 +9,8 @@ require (
 	github.com/getsentry/sentry-go v0.9.0
 	github.com/go-openapi/runtime v0.19.24
 	github.com/go-redis/redis v6.15.9+incompatible
+	github.com/go-redis/redis/v8 v8.3.4
+	github.com/go-redis/redis_rate/v9 v9.1.1
 	github.com/go-sql-driver/mysql v1.5.1-0.20200311113236-681ffa848bae
 	github.com/golang/protobuf v1.4.3
 	github.com/grpc-ecosystem/go-grpc-middleware v1.2.2

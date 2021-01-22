@@ -47,6 +47,12 @@ defaults: &defaults
   cache_password: ""
   cache_db: 3
 
+  ratelimit_backend: "redis"
+  ratelimit_prefix: "proj_rl"
+  ratelimit_host: "redis:6379"
+  ratelimit_password: ""
+  ratelimit_db: 4
+
   redis_host: "127.0.0.1:6379"
   redis_password: ""
   redis_db: 0
