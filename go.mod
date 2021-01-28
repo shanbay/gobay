@@ -25,10 +25,10 @@ require (
 	github.com/stretchr/objx v0.3.0
 	github.com/stretchr/testify v1.7.0
 	github.com/vmihailenco/msgpack v4.0.4+incompatible
-	go.elastic.co/apm v1.9.0
+	go.elastic.co/apm v1.10.0
 	go.elastic.co/apm/module/apmgoredis v1.9.0
 	go.elastic.co/apm/module/apmgrpc v1.9.0
-	go.elastic.co/apm/module/apmsql v1.9.0
+	go.elastic.co/apm/module/apmsql v1.10.0
 	google.golang.org/grpc v1.35.0
 	google.golang.org/grpc/examples v0.0.0-20200925170654-e6c98a478e62 // indirect
 )
