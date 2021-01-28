@@ -56,7 +56,7 @@ func (c *RatelimitExt) Init(app *gobay.Application) error {
 			return err
 		}
 	} else {
-		return errors.New("No backend found for cache_backend:" + backendConfig)
+		return errors.New("No backend found for ratelimit_backend:" + backendConfig)
 	}
 
 	c.initialized = true
