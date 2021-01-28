@@ -1,17 +1,18 @@
 package asynctaskext
 
 import (
+	"context"
 	"log"
 	"testing"
 	"time"
 
+	"github.com/RichardKnop/machinery/v1/backends/result"
 	"github.com/RichardKnop/machinery/v1/tasks"
 
 	"github.com/shanbay/gobay"
 )
 
 var (
-	app  *gobay.Application
 	task AsyncTaskExt
 )
 
@@ -31,7 +32,9 @@ func init() {
 }
 
 func TestPushConsume(t *testing.T) {
-	if err := task.RegisterWorkerHandlers(map[string]interface{}{"add": TaskAdd, "sub": TaskSub}); err != nil {
+	if err := task.RegisterWorkerHandlers(map[string]interface{}{
+		"add": TaskAdd, "sub": TaskSub, "subCtx": TaskSubWithContext,
+	}); err != nil {
 		t.Error(err)
 	}
 	go func() {
@@ -78,9 +81,32 @@ func TestPushConsume(t *testing.T) {
 				},
 			},
 		},
+		{
+			Name:       "subCtx",
+			RoutingKey: "gobay.task_sub",
+			Args: []tasks.Arg{
+				{
+					Type:  "int64",
+					Value: 10,
+				},
+				{
+					Type:  "int64",
+					Value: 4,
+				},
+			},
+		},
 	}
 	for _, sign := range signs {
-		if asyncResult, err := task.SendTask(sign); err != nil {
+		var (
+			asyncResult *result.AsyncResult
+			err         error
+		)
+		if sign.Name == "subCtx" {
+			asyncResult, err = task.SendTaskWithContext(context.Background(), sign)
+		} else {
+			asyncResult, err = task.SendTask(sign)
+		}
+		if err != nil {
 			t.Error(err)
 		} else if results, err := asyncResult.Get(time.Millisecond * 5); err != nil {
 			t.Error(err)
@@ -98,5 +124,12 @@ func TaskAdd(args ...int64) (int64, error) {
 }
 
 func TaskSub(arg1, arg2 int64) (int64, error) {
+	return arg1 - arg2, nil
+}
+
+func TaskSubWithContext(ctx context.Context, arg1, arg2 int64) (int64, error) {
+	if err := ctx.Err(); err != nil {
+		return 0, err
+	}
 	return arg1 - arg2, nil
 }

@@ -1,6 +1,7 @@
 package asynctaskext
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -91,6 +92,16 @@ func (t *AsyncTaskExt) SendTask(sign *tasks.Signature) (*result.AsyncResult, err
 	asyncResult, err := t.server.SendTask(sign)
 	if err != nil {
 		log.ERROR.Printf("send task failed: %v", err)
+		return nil, err
+	}
+	return asyncResult, nil
+}
+
+//SendTask publish task messages with context to broker
+func (t *AsyncTaskExt) SendTaskWithContext(ctx context.Context, sign *tasks.Signature) (*result.AsyncResult, error) {
+	asyncResult, err := t.server.SendTaskWithContext(ctx, sign)
+	if err != nil {
+		log.ERROR.Printf("send task with context failed: %v", err)
 		return nil, err
 	}
 	return asyncResult, nil
