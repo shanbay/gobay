@@ -102,6 +102,22 @@ func configureAPI(s *restapi.Server, api *operations.HelloworldProjectAPI, impls
 
 1. 打开 `app/openapi/handlers.go`，在里面添加新的 handler 的逻辑代码
 
+```go
+func (s *helloworldProjectServer) healthCheckHealthHandler() health.HealthCheckHandler {
+  return health.HealthCheckHandlerFunc(func(params health.HealthCheckParams) middleware.Responder {
+    if params.Type == nil {
+      return health.NewHealthCheckNotFound()
+    }
+    check_type := *params.Type
+    if check_type == "liveness" || check_type == "readiness" {
+      return health.NewHealthCheckOK()
+    } else {
+      return health.NewHealthCheckNotFound()
+    }
+  })
+}
+```
+
 ## 开启 API 服务
 
 ```sh
