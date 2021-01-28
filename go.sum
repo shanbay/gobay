@@ -718,8 +718,10 @@ github.com/yuin/goldmark v1.2.1/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9dec
 github.com/zenazn/goji v0.9.0/go.mod h1:7S9M489iMyHBNxwZnk9/EHS098H4/F6TATF2mIxtB1Q=
 go.elastic.co/apm v1.9.0 h1:uLOZniTuJ2rU2fFGiNI0ZswzKr9fryHDkNMV8iVDDDI=
 go.elastic.co/apm v1.9.0/go.mod h1:qoOSi09pnzJDh5fKnfY7bPmQgl8yl2tULdOu03xhui0=
+go.elastic.co/apm v1.10.0/go.mod h1:qoOSi09pnzJDh5fKnfY7bPmQgl8yl2tULdOu03xhui0=
 go.elastic.co/apm/module/apmgoredis v1.9.0 h1:ltxYAsrcsW9fmDOFwat48Bjdgs0kMk82W0kt5TiTjDc=
 go.elastic.co/apm/module/apmgoredis v1.9.0/go.mod h1:ECusuLbysraVucI7MBOWNfOlZsZLFKjyzbbpXW5waiw=
+go.elastic.co/apm/module/apmgoredis v1.10.0/go.mod h1:zDJmYOsK34a8eHqAZNPhsogjfReyz6R6hJDD27InRnU=
 go.elastic.co/apm/module/apmgrpc v1.9.0 h1:oIsbZRF5VHXYSi24JWxT8z/jFqJg3g6kAKvC0m/KGd8=
 go.elastic.co/apm/module/apmgrpc v1.9.0/go.mod h1:taUolp6JZQO3AFOrNuoiDu6/SnR2U1Ga+wMtIW6ZfRc=
 go.elastic.co/apm/module/apmhttp v1.9.0 h1:yAsxgx5bzWTFva1MJ1PqwhKsPUAUARPJ/sXIwv+uqvs=
