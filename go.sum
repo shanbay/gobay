@@ -720,6 +720,7 @@ github.com/yuin/goldmark v1.2.1/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9dec
 github.com/zenazn/goji v0.9.0/go.mod h1:7S9M489iMyHBNxwZnk9/EHS098H4/F6TATF2mIxtB1Q=
 go.elastic.co/apm v1.9.0 h1:uLOZniTuJ2rU2fFGiNI0ZswzKr9fryHDkNMV8iVDDDI=
 go.elastic.co/apm v1.9.0/go.mod h1:qoOSi09pnzJDh5fKnfY7bPmQgl8yl2tULdOu03xhui0=
+go.elastic.co/apm v1.11.0/go.mod h1:qoOSi09pnzJDh5fKnfY7bPmQgl8yl2tULdOu03xhui0=
 go.elastic.co/apm/module/apmgoredis v1.9.0 h1:ltxYAsrcsW9fmDOFwat48Bjdgs0kMk82W0kt5TiTjDc=
 go.elastic.co/apm/module/apmgoredis v1.9.0/go.mod h1:ECusuLbysraVucI7MBOWNfOlZsZLFKjyzbbpXW5waiw=
 go.elastic.co/apm/module/apmgrpc v1.9.0 h1:oIsbZRF5VHXYSi24JWxT8z/jFqJg3g6kAKvC0m/KGd8=
@@ -728,6 +729,7 @@ go.elastic.co/apm/module/apmhttp v1.9.0 h1:yAsxgx5bzWTFva1MJ1PqwhKsPUAUARPJ/sXIw
 go.elastic.co/apm/module/apmhttp v1.9.0/go.mod h1:evGjj1bVDqi47Lg2+/uKre/PDSBrOso/eTRrgeJqZyE=
 go.elastic.co/apm/module/apmsql v1.9.0 h1:JH/2muAIwZX7AC5IG2mwdeC6rRFvxoP/Vp75jF5eElA=
 go.elastic.co/apm/module/apmsql v1.9.0/go.mod h1:BSOt0jmW3FYN1gLY4XYjQEJQoL0UyEf5mtIgRzHpePs=
+go.elastic.co/apm/module/apmsql v1.11.0/go.mod h1:FvBcflXcDUpYiqknKkXKsop9E7bJDTCrTa46zvKunvY=
 go.elastic.co/fastjson v1.1.0 h1:3MrGBWWVIxe/xvsbpghtkFoPciPhOCmjsR/HfwEeQR4=
 go.elastic.co/fastjson v1.1.0/go.mod h1:boNGISWMjQsUPy/t6yqt2/1Wx4YNPSe+mZjlyw9vKKI=
 go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
