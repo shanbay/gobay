@@ -4,14 +4,13 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
 
-	"github.com/spf13/viper"
 	"github.com/hashicorp/go-multierror"
+	"github.com/spf13/viper"
 )
 
 // A Key represents a key for a Extension.
@@ -81,7 +80,7 @@ func (d *Application) Init() error {
 
 func (d *Application) initConfig() error {
 	configfile := filepath.Join(d.rootPath, "config.yaml")
-	originConfig, err := ioutil.ReadFile(configfile)
+	originConfig, err := os.ReadFile(configfile)
 	if err != nil {
 		return err
 	}

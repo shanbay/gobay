@@ -1,6 +1,6 @@
 module github.com/shanbay/gobay
 
-go 1.15
+go 1.16
 
 require (
 	github.com/RichardKnop/logging v0.0.0-20190827224416-1a693bdd4fae
