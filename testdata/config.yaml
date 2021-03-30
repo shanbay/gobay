@@ -59,7 +59,7 @@ defaults: &defaults
 testing:
   <<: *defaults
   db_driver: mysql
-  db_url: "root:@(127.0.0.1:3306)/gobay?charset=utf8mb4&parseTime=true"
+  db_url: "root:root@(127.0.0.1:3306)/gobay?charset=utf8mb4&parseTime=true"
 grpclong:
   <<: *defaults
   stub_health_retrybackoff: 300ms

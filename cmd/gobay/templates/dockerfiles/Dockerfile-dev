@@ -4,7 +4,7 @@ RUN which swagger
 FROM golangci/golangci-lint AS lint
 RUN which golangci-lint
 
-FROM golang:1.14-buster
+FROM golang:1.16-buster
 
 # chinese mirror for linux
 COPY sources.list /etc/apt/sources.list
