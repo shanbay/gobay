@@ -2,7 +2,8 @@ package main
 
 import (
 	"bytes"
-	"io/ioutil"
+	"embed"
+	"io/fs"
 	"log"
 	"os"
 	"path"
@@ -10,9 +11,11 @@ import (
 	"text/template"
 
 	"github.com/iancoleman/strcase"
-	"github.com/markbates/pkger"
 	"github.com/spf13/cobra"
 )
+
+//go:embed templates/*
+var templatesDir embed.FS
 
 type _projTemplate struct {
 	content []byte
@@ -51,8 +54,8 @@ const (
 	RAW_TMPL_DIR             = "enttmpl"
 	DIRMODE      os.FileMode = os.ModeDir | 0755
 	FILEMODE     os.FileMode = 0644
-	DIRPREFIX                = "/cmd/gobay/templates/"
-	TRIMPREFIX               = "github.com/shanbay/gobay:/cmd/gobay/templates/"
+	DIRPREFIX                = "."
+	TRIMPREFIX               = "templates"
 )
 
 func main() {
@@ -107,18 +110,21 @@ func newProject() {
 
 // loadTemplates loads templates and directory structure.
 func loadTemplates() error {
-	if err := pkger.Walk(
-		DIRPREFIX,
-		func(filePath string, info os.FileInfo, err error) error {
-			if err != nil || len(filePath) <= len(TRIMPREFIX) { // dir `templates`
+	if err := fs.WalkDir(templatesDir, DIRPREFIX,
+		func(filePath string, entry fs.DirEntry, err error) error {
+			if err != nil || len(filePath) <= 1 { // dir `templates`
 				return err
 			}
 			targetPath := path.Join(
 				projConfig.Name,
 				strings.TrimPrefix(filePath, TRIMPREFIX),
 			)
+			info, err := entry.Info()
+			if err != nil {
+				return err
+			}
 			// dir
-			if info.IsDir() {
+			if entry.IsDir() {
 				projDirs = append(projDirs, _projDir{
 					dstPath: targetPath,
 					mode:    info.Mode(),
@@ -131,12 +137,8 @@ func loadTemplates() error {
 				projRawTmpl[filePath] = targetPath
 				return nil
 			}
-			file, err := pkger.Open(filePath)
+			b, err := fs.ReadFile(templatesDir, filePath)
 			if err != nil {
-				return err
-			}
-			b := make([]byte, info.Size())
-			if _, err = file.Read(b); err != nil {
 				return err
 			}
 			projTemplates = append(projTemplates, _projTemplate{
@@ -158,7 +160,7 @@ func renderTemplates() {
 		if projConfig.SkipAsyncTask && strings.Contains(dir.dstPath, "asynctask") {
 			continue
 		}
-		check(os.MkdirAll(dir.dstPath, dir.mode))
+		check(os.MkdirAll(dir.dstPath, DIRMODE))
 	}
 
 	// file
@@ -174,7 +176,7 @@ func renderTemplates() {
 		if b.Len() <= 1 {
 			continue
 		}
-		if err := ioutil.WriteFile(f.dstPath, b.Bytes(), f.mode); err != nil {
+		if err := os.WriteFile(f.dstPath, b.Bytes(), FILEMODE); err != nil {
 			log.Fatalln(err)
 		}
 	}
@@ -183,7 +185,7 @@ func renderTemplates() {
 // copyTmplFiles copys .tpml file(like ent templates).
 func copyTmplFiles() {
 	for sourcePath, targetPath := range projRawTmpl {
-		file, err := pkger.Open(sourcePath)
+		file, err := templatesDir.Open(sourcePath)
 		if err != nil {
 			panic(err)
 		}
@@ -195,7 +197,7 @@ func copyTmplFiles() {
 		if _, err := file.Read(b); err != nil {
 			panic(err)
 		}
-		check(ioutil.WriteFile(targetPath, b, FILEMODE))
+		check(os.WriteFile(targetPath, b, FILEMODE))
 	}
 }
 

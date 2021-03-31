@@ -107,14 +107,3 @@ lint 检查
 ### make entgen
 
 根据 schema 生成代码到 gen 目录
-
-# 贡献代码
-
-## 更新 templates
-
-更新完静态文件（templates 目录），需要将静态文件打包成.go 文件：
-
-```bash
-# go get github.com/markbates/pkger/cmd/pkger
-pkger -include /cmd/gobay/templates -o cmd/gobay/
-```

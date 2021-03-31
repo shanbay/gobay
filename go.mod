@@ -1,6 +1,6 @@
 module github.com/shanbay/gobay
 
-go 1.15
+go 1.16
 
 require (
 	github.com/RichardKnop/logging v0.0.0-20190827224416-1a693bdd4fae
@@ -14,7 +14,6 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware v1.2.2
 	github.com/hashicorp/go-multierror v1.1.0
 	github.com/iancoleman/strcase v0.1.3
-	github.com/markbates/pkger v0.17.1
 	github.com/mattn/go-sqlite3 v1.14.6
 	github.com/mitchellh/mapstructure v1.4.1
 	github.com/pkg/errors v0.9.1
