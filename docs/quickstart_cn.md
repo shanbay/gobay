@@ -79,11 +79,52 @@ func configureAPI(s *grpc.Server, impls *helloworldProjectServer) {
 }
 ```
 
-1. 打开 `app/grpc/handlers.go`, 在里面编写你的 grpc 服务代码。
+2. 打开 `app/grpc/handlers.go`, 在里面编写你的 grpc 服务代码。
 
 ---
 
-## 开启一个 API 服务
+## 开启一个 API 服务：新版（oapi-codegen + echo）
+
+> 仅支持 OpenAPI v3
+
+1. 首先要先写一些符合 openapi 规范的 API 定义文档 (`spec/oapi/main.yml`)
+
+2. 使用 openapi 定义文档，生成模板代码（需要使用 openapi 工具，没有安装的话，docker 开发用镜像里已经把它准备好了）
+
+```sh
+# 生成文档
+make genswagger
+# 处理 go.mod
+make tidy ensure
+```
+
+3. 启动 API 服务
+
+```sh
+make run COMMAND="oapisvc" ARGS="--env development"
+```
+
+这时你可以在 [http://127.0.0.1:5000/helloworld-project/apidocs](http://127.0.0.1:5000/helloworld-project/apidocs) 查看 OpenAPI 的文档了。
+
+### 添加更多的 API
+
+1. 更新 `spec/oapi/main.yml` API 文档文件
+
+2. 重新生成模板代码
+
+```sh
+make genswagger
+```
+
+3. 打开 `app/oapi/handlers.go`，在里面添加新的 handler 以及逻辑代码（实现 `gen/oapi/oapi.go` 里的 `ServerInterface`）
+
+---
+
+> 下面是旧版 API 的使用方法
+
+## 开启一个 API 服务：旧版（go-swagger）
+
+> 仅支持 OpenAPI v2
 
 1. 首先要先写一些符合 openapi 规范的 API 定义文档 (`spec/openapi/main.yml`)
 

@@ -16,7 +16,10 @@
 │   │   ├── cache.go
 │   │   └── common.go
 │   │   # ...可以添加更多model
-│   └── openapi # API 服务
+│   ├── openapi # 旧版 API 服务
+│   │   ├── handlers.go
+│   │   └── server.go
+│   └── oapi # 新版 API 服务
 │       ├── handlers.go
 │       └── server.go
 ├── cmd # 定义命令
@@ -25,6 +28,7 @@
 │   │   ├── grpcsvc.go
 │   │   ├── health_check.go
 │   │   ├── httpsvc.go
+│   │   ├── oapisvc.go
 │   │   └── root.go
 │   │   # ...可以添加更多命令
 │   └── main.go
@@ -37,5 +41,7 @@
     ├── schema # ent 的数据库 schema 定义文件
     ├── grpc # grpc proto 文件
     ├── openapi
-    │   └── main.yml # openapi (swagger) 文档
+    │   └── main.yml # openapi (swagger v2) 文档（旧版）
+    ├── oapi
+    │   └── main.yml # openapi v3 文档（新版）
 ```

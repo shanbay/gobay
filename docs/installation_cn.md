@@ -72,6 +72,15 @@ go get -u github.com/cweill/gotests/
 go get github.com/wadey/gocovmerge
 ```
 
+- [OpenAPI echo 文档生成工具（oapi-codegen）](https://github.com/shanbay/oapi-codegen/releases)
+
+```sh
+# 或者去 Github 下载二进制
+git clone git@github.com:shanbay/oapi-codegen.git
+cd oapi-codegen
+go install ./cmd/oapi-codegen/
+```
+
 ## Docker 开发用镜像
 
 某些工具在某些系统里，安装可能会很困难。想要快速上手的话，你也可以使用我们的 docker 开发用镜像，略过这些安装步骤：

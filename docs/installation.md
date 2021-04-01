@@ -71,6 +71,15 @@ go get -u github.com/cweill/gotests/
 go get github.com/wadey/gocovmerge
 ```
 
+- [OpenAPI generator for echo (oapi-codegen)](https://github.com/shanbay/oapi-codegen/releases)
+
+```sh
+# Or download binary from Github release
+git clone git@github.com:shanbay/oapi-codegen.git
+cd oapi-codegen
+go install ./cmd/oapi-codegen/
+```
+
 ## Docker development box
 
 If any of the installations above is too annoying in your OS, you may try this option:

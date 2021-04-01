@@ -46,5 +46,8 @@ RUN go get github.com/wadey/gocovmerge
 RUN go get github.com/axw/gocov/...
 RUN go get github.com/AlekSi/gocov-xml
 
+# oapi-codegen
+RUN wget https://github.com/shanbay/oapi-codegen/releases/download/v1.5.1/oapi-codegen_1.5.1_linux_amd64 -O /usr/local/bin/oapi-codegen && chmod +x /usr/local/bin/oapi-codegen
+
 WORKDIR /go/src/app
 

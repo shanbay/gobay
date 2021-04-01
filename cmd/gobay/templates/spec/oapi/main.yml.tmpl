@@ -1,0 +1,40 @@
+---
+openapi: 3.0.1
+info:
+  title: "{{ $.Name }} Demo"
+  description: ""
+  version: 1.0.0
+servers:
+- url: /{{ $.Name }}
+paths:
+  /health:
+    get:
+      tags:
+      - health
+      summary: API health check
+      operationId: healthCheck
+      parameters:
+      - name: type
+        in: query
+        schema:
+          type: string
+          enum:
+          - liveness
+          - readiness
+      responses:
+        200:
+          description: Success
+          content: {}
+        404:
+          description: unknown check type
+          content: {}
+components:
+  schemas:
+    BaseDefaultRes:
+      type: object
+    BadRequestRes:
+      type: object
+      properties:
+        msg:
+          type: string
+

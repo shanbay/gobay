@@ -68,11 +68,50 @@ func configureAPI(s *grpc.Server, impls *helloworldProjectServer) {
 }
 ```
 
-1. open app/grpc/handlers.go, and implement the grpc method handler inside.
+2. open app/grpc/handlers.go, and implement the grpc method handler inside.
 
 ---
 
-## To start an API server
+## To start an API server: New (oapi-codegen + echo)
+
+> Only support OpenAPI v3
+
+1. We need to generate some openapi code with the openapi spec (`spec/oapi/main.yml`) (require openapi tool, use docker dev box if needed)
+
+```sh
+# generate code
+make genswagger
+# go.mod
+make tidy ensure
+```
+
+2. Start the server
+
+```sh
+make run COMMAND="oapisvc" ARGS="--env development"
+```
+
+Then you may view the api docs at [http://127.0.0.1:5000/helloworld-project/apidocs](http://127.0.0.1:5000/helloworld-project/apidocs)
+
+### Add more API handlers
+
+1. Update `spec/openapi/main.yml` (add more API specs)
+
+2. generate code for openapi spec
+
+```sh
+make genswagger
+```
+
+3. Open `app/oapi/handlers.go` and add a new handler and logic code (implementing `ServerInterface` in `gen/oapi/oapi.go`)
+
+---
+
+> The following is the old version of how to use
+
+## To start an API server: Old (go-swagger)
+
+> Only support OpenAPI v2
 
 1. We need to generate some openapi code with the openapi spec (`spec/openapi/main.yml`) (require openapi tool, use docker dev box if needed)
 
