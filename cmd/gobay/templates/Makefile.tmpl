@@ -222,8 +222,6 @@ profile_all_stop: \
 
 # check code style in these directories
 FMT_DIRS = app cmd lib test
-SWAGGER_SPEC ?= spec/openapi/main.yml
-SWAGGER_TARGET ?= gen/openapi
 OAPI_SPEC ?= spec/oapi/main.yml
 OAPI_TARGET ?= gen/oapi/
 OAPI_TARGET_FILENAME ?= oapi.go
@@ -233,7 +231,6 @@ fmt:
 
 lint:
 	$(GOCI) run --timeout=3m --skip-dirs=gen
-	swagger validate  $(SWAGGER_SPEC)
 	oapi-codegen -o /dev/null $(OAPI_SPEC)
 
 #
@@ -257,8 +254,6 @@ ensure:
 APP ?= {{ $.Name }}
 
 genswagger:
-	mkdir -p $(SWAGGER_TARGET)
-	swagger generate server -f $(SWAGGER_SPEC) -A $(APP) -t $(SWAGGER_TARGET) --exclude-main
 	mkdir -p $(OAPI_TARGET)
 	oapi-codegen -package oapi -generate=types,server,spec,skip-prune -o $(OAPI_TARGET)$(OAPI_TARGET_FILENAME) $(OAPI_SPEC)
 

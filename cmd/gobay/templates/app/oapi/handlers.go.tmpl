@@ -9,9 +9,9 @@ import (
 	"github.com/shanbay/gobay"
 )
 
-type UserContext struct {
+type CustomContext struct {
 	echo.Context
-	// User *jwt.User
+	// ...
 }
 
 type {{ toLowerCamel $.Name }}Server struct {

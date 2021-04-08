@@ -112,14 +112,6 @@ func configureMiddlewares(e *echo.Echo, impls *{{ toLowerCamel $.Name }}Server, 
 	// Validator
 	e.Use(oapimw.OapiRequestValidatorWithOptions(swg, &oapimw.Options{}))
 
-	// User
-	// e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
-	// 	return func(c echo.Context) error {
-	// 		cc := &UserContext{Context: c, User: jwt.GetUser(c.Request())}
-	// 		return next(cc)
-	// 	}
-	// })
-
 	e.HTTPErrorHandler = customHTTPErrorHandler
 }
 
@@ -130,10 +122,6 @@ func customHTTPErrorHandler(err error, c echo.Context) {
 	switch {
 	case errors.Is(err, context.Canceled):
 		_ = c.NoContent(0)
-	// case schema.IsNotFound(err):
-	// 	_ = JSONResponseMsg(c, err.Error(), http.StatusNotFound)
-	// case schema.IsConstraintError(err):
-	// 	_ = JSONResponseMsg(c, err.Error(), http.StatusBadRequest)
 	default:
 		SentryLogger.Print(reqDetail(c), fmt.Sprintf("%+v", err))
 	}
@@ -142,6 +130,5 @@ func customHTTPErrorHandler(err error, c echo.Context) {
 }
 
 func reqDetail(c echo.Context) string {
-	// TODO body
 	return fmt.Sprintf("\nPath: %s,\nParamNames: %s,\nParamValues: %s,\nQueryString: %s\n", c.Path(), c.ParamNames(), c.ParamValues(), c.QueryString())
 }

@@ -1,6 +1,3 @@
-FROM quay.io/goswagger/swagger AS swagger
-RUN which swagger
-
 FROM golangci/golangci-lint AS lint
 RUN which golangci-lint
 
@@ -14,9 +11,6 @@ ENV CGO_ENABLED=0
 
 # lint
 COPY --from=lint /usr/bin/golangci-lint /go/bin/golangci-lint
-
-# swagger
-COPY --from=swagger /usr/bin/swagger /go/bin/swagger
 
 # chinese mirror for go packages
 RUN go env -w GOPROXY=https://goproxy.cn,direct

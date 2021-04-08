@@ -10,17 +10,6 @@ Here are the tools we recommend installing for developing a project with gobay:
 `And if it's too much for you, checkout the docker development box section below`
 
 - [golang (programming language)](https://golang.org/doc/install) [Download and Install](https://golang.org/dl/)
-- [openapi(API definition and documentation) tool](https://goswagger.io/install.html) [（openapi docs）](https://github.com/go-swagger/go-swagger)
-
-```sh
-# mac:
-brew tap go-swagger/go-swagger
-brew install go-swagger
-
-# windows
-# Download and install latest release version from:
-# https://github.com/go-swagger/go-swagger/releases/tag/v0.24.0
-```
 
 - [grpc tool](https://github.com/grpc/grpc-go)
 
