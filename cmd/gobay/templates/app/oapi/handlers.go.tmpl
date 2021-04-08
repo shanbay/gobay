@@ -1,0 +1,38 @@
+package appoapi
+
+import (
+	"net/http"
+
+	"{{ $.Url }}/gen/oapi"
+
+	"github.com/labstack/echo/v4"
+	"github.com/shanbay/gobay"
+)
+
+type CustomContext struct {
+	echo.Context
+	// ...
+}
+
+type {{ toLowerCamel $.Name }}Server struct {
+	app *gobay.Application
+}
+
+// (GET /health)
+func (*{{ toLowerCamel $.Name }}Server) HealthCheck(ctx echo.Context, params oapi.HealthCheckParams) error {
+	if params.Type == nil || (*params.Type != "liveness" && *params.Type != "readiness") {
+		return JSONResponseMsg(ctx, "Not Found", http.StatusNotFound)
+	}
+	return JSONResponseNoContent(ctx, http.StatusOK)
+}
+
+func JSONResponseNoContent(ctx echo.Context, code int) error {
+	return ctx.NoContent(code)
+}
+
+func JSONResponseMsg(ctx echo.Context, msg string, code int) error {
+        return ctx.JSON(code, map[string]interface{}{
+                "msg":    msg,
+                "errors": struct{}{},
+        })
+}

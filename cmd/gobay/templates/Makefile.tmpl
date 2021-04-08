@@ -222,13 +222,16 @@ profile_all_stop: \
 
 # check code style in these directories
 FMT_DIRS = app cmd lib test
+OAPI_SPEC ?= spec/oapi/main.yml
+OAPI_TARGET ?= gen/oapi/
+OAPI_TARGET_FILENAME ?= oapi.go
 
 fmt:
 	$(GOFMT) -d -s -w $(FMT_DIRS)
 
 lint:
 	$(GOCI) run --timeout=3m --skip-dirs=gen
-	swagger validate  $(SWAGGER_SPEC)
+	oapi-codegen -o /dev/null $(OAPI_SPEC)
 
 #
 # Dependency management
@@ -249,12 +252,10 @@ ensure:
 .PHONY: genswagger
 
 APP ?= {{ $.Name }}
-SWAGGER_SPEC ?= spec/openapi/main.yml
-SWAGGER_TARGET ?= gen/openapi
 
 genswagger:
-	mkdir -p $(SWAGGER_TARGET)
-	swagger generate server -f $(SWAGGER_SPEC) -A $(APP) -t $(SWAGGER_TARGET) --exclude-main
+	mkdir -p $(OAPI_TARGET)
+	oapi-codegen -package oapi -generate=types,server,spec,skip-prune -o $(OAPI_TARGET)$(OAPI_TARGET_FILENAME) $(OAPI_SPEC)
 
 # grpc proto
 .PHONY: genproto genprotomock

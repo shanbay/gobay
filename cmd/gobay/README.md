@@ -9,7 +9,7 @@ gobay new github.com/shanbay/my_proj
 
 ## 需要安装的一些二进制
 
-- openapi 工具: [go-swagger](https://github.com/go-swagger/go-swagger/releases)
+- openapi 工具: [oapi-codegen](https://github.com/shanbay/oapi-codegen/releases)
 - grpc/protobuf 工具: [grpc-go](https://github.com/grpc/grpc-go) [protobuf](https://github.com/golang/protobuf)
 - lint 工具: [golangci-lint](https://github.com/golangci/golangci-lint#binary)
 - orm 代码生成(ent): [ent](https://github.com/shanbay/ent) 请安装这个版本的 entc `go get github.com/facebook/ent/cmd/entc@v0.4.0`
@@ -34,11 +34,11 @@ gobay new github.com/shanbay/my_proj
 
 ### spec 目录
 
-一些扩展会生成一部分代码，这些扩展依赖某些源文件（如 protobuf 的 proto 文件、openapi 的 yaml 文件、ent 的 tmpl sehema 文件等）。作为约定，这些源文件统一放在`spec`目录下。
+一些扩展会生成一部分代码，这些扩展依赖某些源文件（如 protobuf 的 proto 文件、oapi 的 yaml 文件、ent 的 tmpl sehema 文件等）。作为约定，这些源文件统一放在`spec`目录下。
 
 ### gen 目录
 
-一些扩展会生成一部分代码，比如`openapi, protobuf, ent`等，作为约定这些生成的代码统一保存在`gen`目录里。如果用到这些扩展需要使用相应的`openapi, grpc, ent`工具来生成。
+一些扩展会生成一部分代码，比如`oapi-codegen, protobuf, ent`等，作为约定这些生成的代码统一保存在`gen`目录里。如果用到这些扩展需要使用相应的`openapi, grpc, ent`工具来生成。
 
 ## 生成测试
 
@@ -92,7 +92,7 @@ lint 检查
 
 ### make genswagger
 
-根据 Makefile 中的 `SWAGGER_SPEC`（默认为 spec/openapi/main.yml）来生成代码到 gen 目录
+根据 Makefile 中的 `OAPI_TARGET`（默认为 spec/oapi/main.yml）来生成代码到 gen 目录
 
 ### make entinit
 

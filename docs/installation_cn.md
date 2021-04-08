@@ -11,18 +11,6 @@ go get github.com/shanbay/gobay/cmd/gobay
 
 - [golang 语言](https://golang.org/doc/install) [下载安装](https://golang.org/dl/)
 
-- [OpenAPI API 文档工具](https://goswagger.io/install.html) [（介绍文档）](https://github.com/go-swagger/go-swagger)
-
-```sh
-# mac:
-brew tap go-swagger/go-swagger
-brew install go-swagger
-
-# windows
-# 这儿下载安装 release 版本
-# https://github.com/go-swagger/go-swagger/releases/tag/v0.24.0
-```
-
 - [grpc 工具](https://github.com/grpc/grpc-go)
 
 ```sh
@@ -70,6 +58,15 @@ go get -u github.com/cweill/gotests/
 
 ```sh
 go get github.com/wadey/gocovmerge
+```
+
+- [OpenAPI echo 文档生成工具（oapi-codegen）](https://github.com/shanbay/oapi-codegen/releases)
+
+```sh
+# 或者去 Github 下载二进制
+git clone git@github.com:shanbay/oapi-codegen.git
+cd oapi-codegen
+go install ./cmd/oapi-codegen/
 ```
 
 ## Docker 开发用镜像

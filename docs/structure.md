@@ -16,7 +16,7 @@
 │   │   ├── cache.go
 │   │   └── common.go
 │   │   # ...add more models and repositories here
-│   └── openapi # API 的 controller
+│   └── oapi # API
 │       ├── handlers.go
 │       └── server.go
 ├── cmd # command entry, start a (one of) grpc/openapi/asynctask/etc server by calling a command here.
@@ -24,7 +24,7 @@
 │   │   ├── asynctask.go
 │   │   ├── grpcsvc.go
 │   │   ├── health_check.go
-│   │   ├── httpsvc.go
+│   │   ├── oapisvc.go
 │   │   └── root.go
 │   │   # ...add more command
 │   └── main.go
@@ -39,7 +39,7 @@
     │   └── sql_create.tmpl
     ├── schema # schema directory for (ent) db models
     ├── grpc # proto files here
-    ├── openapi
-    │   └── main.yml # openapi (swagger) spec
+    ├── oapi
+    │   └── main.yml # openapi v3 spec
     # ...add more if needed here
 ```

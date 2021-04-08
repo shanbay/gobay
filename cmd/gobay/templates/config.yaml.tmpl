@@ -30,8 +30,9 @@ defaults: &defaults
   elastic_apm_enable: false
 {{- end }}
 
-  openapi_listen_host: "0.0.0.0"
-  openapi_listen_port: 5000
+  oapi_listen_host: "0.0.0.0"
+  oapi_listen_port: 5000
+  oapi_prom_listen_port: 9000
 
   grpc_listen_host: 0.0.0.0
   grpc_conn_timeout: 1s
