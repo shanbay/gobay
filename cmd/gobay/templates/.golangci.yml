@@ -8,4 +8,8 @@ run:
 
 linters:
   enable:
+    - goimports
+    - misspell
+    - gofumpt
     - gofmt
+    - gocritic

@@ -218,7 +218,7 @@ profile_all_stop: \
 # Format
 #
 
-.PHONY: fmt lint
+.PHONY: fmt lint lintfix
 
 # check code style in these directories
 FMT_DIRS = app cmd lib test
@@ -232,6 +232,9 @@ fmt:
 lint:
 	$(GOCI) run --timeout=3m --skip-dirs=gen
 	oapi-codegen -o /dev/null $(OAPI_SPEC)
+
+lintfix:
+	$(GOCI) run --skip-dirs=gen --fix
 
 #
 # Dependency management
