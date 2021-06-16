@@ -65,8 +65,12 @@ jobs:
           path: $GOPATH/pkg/mod
           key: ${{ runner.os }}-go-${{ matrix.go-version }}-${{ hashFiles('**/go.sum') }}
 
-      - name: Before tests
-        if: ${{ env.GOENV_VERSION != '1.16' }}
+      - name: Before tests 1.14
+        if: ${{ env.GOENV_VERSION == '1.14' }}
+        run: |
+          go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.39.0
+      - name: Before tests 1.15
+        if: ${{ env.GOENV_VERSION == '1.15' }}
         run: |
           go install github.com/golangci/golangci-lint/cmd/golangci-lint
       - name: Before tests 1.16

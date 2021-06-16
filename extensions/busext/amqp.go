@@ -419,7 +419,7 @@ func (b *BusExt) changeConnection(connection *amqp.Connection) {
 func (b *BusExt) changeChannel(channel *amqp.Channel) {
 	b.channel = channel
 	b.notifyChanClose = make(chan *amqp.Error)
-	b.notifyConfirm = make(chan amqp.Confirmation, 1)
+	b.notifyConfirm = make(chan amqp.Confirmation, 5)
 	b.channel.NotifyClose(b.notifyChanClose)
 	b.channel.NotifyPublish(b.notifyConfirm)
 	log.Println("channel changed")
