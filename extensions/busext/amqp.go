@@ -1,6 +1,7 @@
 package busext
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -19,6 +20,7 @@ var (
 	errNotConnected  = errors.New("not connected to a server")
 	errAlreadyClosed = errors.New("already closed: not connected to the server")
 	errShutdown      = errors.New("BusExt is closed")
+	errTimeout       = errors.New("Timeout when push bus messages")
 )
 
 const (
@@ -27,6 +29,7 @@ const (
 	defaultReinitDelay    = "1s"
 	defaultPrefetch       = 100
 	defaultPublishRetry   = 3
+	defaultPushTimeout    = "3s"
 )
 
 type customLoggerInterface interface {
@@ -55,6 +58,8 @@ type BusExt struct {
 	pushM           sync.Mutex
 	ErrorLogger     customLoggerInterface
 	mocked          bool
+	pushTimeout     time.Duration
+	pushFunc        func(context.Context, string, string, amqp.Publishing, chan error)
 }
 
 func (b *BusExt) Object() interface{} {
@@ -82,6 +87,8 @@ func (b *BusExt) Init(app *gobay.Application) error {
 	b.reinitDelay = b.config.GetDuration("reinit_delay")
 	brokerUrl := b.config.GetString("broker_url")
 	b.done = make(chan bool)
+	b.pushTimeout = b.config.GetDuration("push_timeout")
+	b.pushFunc = b.doPush
 
 	b.mocked = b.config.GetBool("mocked")
 	if !b.mocked {
@@ -125,8 +132,27 @@ func (b *BusExt) Close() error {
 }
 
 func (b *BusExt) Push(exchange, routingKey string, data amqp.Publishing) error {
-	if b.mocked {
+	result := make(chan error)
+	ctx, cancel := context.WithTimeout(context.Background(), b.pushTimeout)
+	defer cancel()
+	go b.pushFunc(ctx, exchange, routingKey, data, result)
+	select {
+	case err := <-result:
+		if err != nil {
+			b.ErrorLogger.Printf("Push failed: %v\n", err)
+			return err
+		}
+		log.Println("Pushed successfully!")
 		return nil
+	case <-ctx.Done():
+		return errTimeout
+	}
+}
+
+func (b *BusExt) doPush(ctx context.Context, exchange, routingKey string, data amqp.Publishing, result chan error) {
+	if b.mocked {
+		result <- nil
+		return
 	}
 	b.pushM.Lock()
 	defer b.pushM.Unlock()
@@ -135,7 +161,8 @@ func (b *BusExt) Push(exchange, routingKey string, data amqp.Publishing) error {
 	if !b.isReady {
 		err := errors.New("BusExt is not ready")
 		b.ErrorLogger.Printf("Can not publish message: %v\n", err)
-		return err
+		result <- err
+		return
 	}
 	for i := 0; i <= b.publishRetry; i++ {
 		// clear staled confirmnation
@@ -144,13 +171,20 @@ func (b *BusExt) Push(exchange, routingKey string, data amqp.Publishing) error {
 		case <-b.notifyConfirm:
 		default:
 		}
-		err := b.UnsafePush(exchange, routingKey, data)
+		err := b.unsafePush(exchange, routingKey, data)
+		select {
+		case <-ctx.Done():
+			result <- errTimeout
+			return
+		default:
+		}
 		if err != nil {
 			b.ErrorLogger.Printf("UnsafePush msg %s failed : %v\n", data.Headers["id"], err)
 			select {
 			case <-b.done:
 				b.ErrorLogger.Println("BusExt closed during publishing message")
-				return errShutdown
+				result <- errShutdown
+				return
 			case <-time.After(b.resendDelay):
 			}
 			continue
@@ -159,7 +193,8 @@ func (b *BusExt) Push(exchange, routingKey string, data amqp.Publishing) error {
 		case confirm := <-b.notifyConfirm:
 			if confirm.Ack {
 				log.Printf("Publish %s confirmed!", data.Headers["id"])
-				return nil
+				result <- nil
+				return
 			}
 		case <-time.After(b.resendDelay):
 		}
@@ -169,10 +204,10 @@ func (b *BusExt) Push(exchange, routingKey string, data amqp.Publishing) error {
 	err := fmt.Errorf(
 		"publishing message %s failed after retry %d times", data.Headers["id"], b.publishRetry)
 	b.ErrorLogger.Println(err)
-	return err
+	result <- err
 }
 
-func (b *BusExt) UnsafePush(exchange, routingKey string, data amqp.Publishing) error {
+func (b *BusExt) unsafePush(exchange, routingKey string, data amqp.Publishing) error {
 	if !b.isReady {
 		return errNotConnected
 	}
@@ -445,4 +480,5 @@ func setDefaultConfig(v *viper.Viper) {
 	v.SetDefault("resend_delay", defaultResendDelay)
 	v.SetDefault("reconnect_delay", defaultReconnectDelay)
 	v.SetDefault("reinit_delay", defaultReinitDelay)
+	v.SetDefault("push_timeout", defaultPushTimeout)
 }

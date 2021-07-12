@@ -1,6 +1,7 @@
 package busext
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 	"testing"
@@ -8,6 +9,8 @@ import (
 
 	"github.com/shanbay/gobay"
 	"github.com/shanbay/gobay/extensions/sentryext/custom_logger"
+	"github.com/streadway/amqp"
+	"github.com/stretchr/testify/assert"
 )
 
 var (
@@ -67,6 +70,37 @@ func TestPushConsume(t *testing.T) {
 		}
 	}
 
+	// publish with timeout
+	bus.pushFunc = func(ctx context.Context, exchange, routingKey string, data amqp.Publishing, result chan error) {
+		dur := bus.pushTimeout + time.Second
+		time.Sleep(dur)
+	}
+
+	msg, _ := BuildMsg(
+		routingKey,
+		[]interface{}{},
+		map[string]interface{}{
+			"user_id":       1,
+			"order_id":      1,
+			"department_id": 1,
+			"items": []map[string]interface{}{
+				{
+					"created_at":    time.Now(),
+					"updated_at":    time.Now(),
+					"user_id":       996,
+					"item_quantity": 1,
+					"item_price":    1,
+					"service_id":    1,
+					"order_id":      1,
+					"item_id":       1,
+				},
+			},
+		},
+	)
+	err := bus.Push("sbay-exchange", routingKey, *msg)
+	assert.NotNil(t, err)
+	assert.Equal(t, errTimeout, err)
+
 	//consume
 	bus.Register("buses.oc.post_order_paid", &OCPaid{})
 	go func() {
@@ -76,14 +110,9 @@ func TestPushConsume(t *testing.T) {
 		}
 	}()
 	time.Sleep(2 * time.Second)
-	if len(result) != 100 {
-		t.Error("consume length doesn't match publish'")
-	}
+	assert.Len(t, result, 100)
 
-	err := app.Close()
-	if err != nil {
-		t.Error("close busext failed")
-	}
+	assert.Nil(t, app.Close())
 }
 
 type OCPaid struct {
