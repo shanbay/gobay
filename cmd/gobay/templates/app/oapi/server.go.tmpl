@@ -1,0 +1,134 @@
+package appoapi
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+
+	myapp "{{ $.Url }}/app"
+	// schema "{{ $.Url }}/gen/entschema"
+	"{{ $.Url }}/gen/oapi"
+
+	oapimw "github.com/deepmap/oapi-codegen/pkg/middleware"
+	sentryecho "github.com/getsentry/sentry-go/echo"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
+	echolog "github.com/labstack/gommon/log"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/shanbay/gobay"
+	"github.com/shanbay/gobay/echo/swagger"
+	"github.com/shanbay/gobay/extensions/sentryext/custom_logger"
+{{- if not $.SkipElasticApm }}
+	"go.elastic.co/apm/module/apmechov4"
+{{- end }}
+)
+
+// Serve serve OpenAPI http server
+func Serve(app *gobay.Application) error {
+	myapp.InitExts(app)
+
+	config := app.Config()
+
+	// server and router
+	e := echo.New()
+	host := config.GetString("oapi_listen_host")
+	port := config.GetInt("oapi_listen_port")
+{{- if not $.SkipElasticApm }}
+	enableAPM := config.GetBool("elastic_apm_enable")
+{{- else }}
+	enableAPM := false
+{{- end }}
+	configureMiddlewares(e, &{{ toLowerCamel $.Name }}Server{app: app}, enableAPM, true)
+
+	// 启动 prometheus handler
+	promSrv := http.Server{Addr: fmt.Sprintf(":%d", config.GetInt("oapi_prom_listen_port"))}
+	go func() {
+		http.Handle("/metrics", promhttp.Handler())
+		if err := promSrv.ListenAndServe(); err != nil {
+			log.Fatalf("error when start prometheus server: %v\n", err)
+		}
+	}()
+
+	// 启动 http server
+	stopchan := make(chan os.Signal, 1)
+	signal.Notify(stopchan, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM)
+
+	go func(c <-chan os.Signal) {
+		<-c
+		err := e.Shutdown(context.Background())
+		if err != nil {
+			log.Fatalf("error when shutdown api server: %v\n", err)
+		}
+		if err := promSrv.Shutdown(context.Background()); err != nil {
+			log.Fatalf("error when shutdown api server: %v\n", err)
+		}
+	}(stopchan)
+
+	if err := e.Start(fmt.Sprintf("%s:%d", host, port)); err != nil {
+		return err
+	}
+	return nil
+}
+
+func configureMiddlewares(e *echo.Echo, impls *{{ toLowerCamel $.Name }}Server, enableAPM, enableDoc bool) {
+	oapi.RegisterHandlersWithBaseURL(e, impls, "/{{ $.Name }}")
+
+	// swagger
+	swg, err := oapi.GetSwagger()
+	if err != nil {
+		panic(err)
+	}
+	if enableDoc {
+		if swaggerJSON, err := swg.MarshalJSON(); err != nil {
+			panic(err)
+		} else {
+			opts := []swagger.Opts{}
+			e.Pre(swagger.SwaggerDoc("/{{ $.Name }}", swaggerJSON, opts...))
+		}
+	}
+
+	// APM or recover
+	if enableAPM {
+{{- if not $.SkipElasticApm }}
+		// APM middleware 会做 recover，但是不打印错误
+		// APM 会把 transaction 放在 echo.Context.Request().Context() 里
+		e.Use(apmechov4.Middleware(apmechov4.WithTracer(myapp.ApmTracer)))
+{{- end }}
+	} else {
+		e.Use(middleware.RecoverWithConfig(middleware.RecoverConfig{
+			StackSize: 1 << 10, // 1 KB
+			LogLevel:  echolog.ERROR,
+		}))
+	}
+
+	// 错误处理流程（靠左的更外层）: recover (apm) => sentry => custom error handler
+	e.Use(sentryecho.New(sentryecho.Options{Repanic: true}))
+
+	// Validator
+	e.Use(oapimw.OapiRequestValidatorWithOptions(swg, &oapimw.Options{}))
+
+	e.HTTPErrorHandler = customHTTPErrorHandler
+}
+
+var SentryLogger = custom_logger.NewSentryErrorLogger()
+
+func customHTTPErrorHandler(err error, c echo.Context) {
+	// ignore user cancelled error
+	switch {
+	case errors.Is(err, context.Canceled):
+		_ = c.NoContent(0)
+	default:
+		SentryLogger.Print(reqDetail(c), fmt.Sprintf("%+v", err))
+	}
+
+	c.Echo().DefaultHTTPErrorHandler(err, c)
+}
+
+func reqDetail(c echo.Context) string {
+	return fmt.Sprintf("\nPath: %s,\nParamNames: %s,\nParamValues: %s,\nQueryString: %s\n", c.Path(), c.ParamNames(), c.ParamValues(), c.QueryString())
+}

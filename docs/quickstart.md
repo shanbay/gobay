@@ -68,46 +68,39 @@ func configureAPI(s *grpc.Server, impls *helloworldProjectServer) {
 }
 ```
 
-1. open app/grpc/handlers.go, and implement the grpc method handler inside.
+2. open app/grpc/handlers.go, and implement the grpc method handler inside.
 
 ---
 
-## To start an API server
+## To start an API server: New (oapi-codegen + echo)
 
-1. We need to generate some openapi code with the openapi spec (`spec/openapi/main.yml`) (require openapi tool, use docker dev box if needed)
+> Only support OpenAPI v3
+
+1. We need to generate some openapi code with the openapi spec (`spec/oapi/main.yml`) (require openapi tool, use docker dev box if needed)
 
 ```sh
+# generate code
 make genswagger
+# go.mod
+make tidy ensure
 ```
 
-1. Start the server
+2. Start the server
 
 ```sh
-make run COMMAND=httpsvc
+make run COMMAND="oapisvc" ARGS="--env development"
 ```
 
-Then you may view the api docs at [http://127.0.0.1:5000/helloworld-project/docs](http://127.0.0.1:5000/helloworld-project/docs)
+Then you may view the api docs at [http://127.0.0.1:5000/helloworld-project/apidocs](http://127.0.0.1:5000/helloworld-project/apidocs)
 
 ### Add more API handlers
 
 1. Update `spec/openapi/main.yml` (add more API specs)
 
-1. generate code for openapi spec
+2. generate code for openapi spec
 
 ```sh
 make genswagger
 ```
 
-1. open `openapi/server.go`, register grpc server in `func configureAPI() {...}` method.
-
-```go
-// i.e.
-func configureAPI(s *restapi.Server, api *operations.HelloworldProjectAPI, impls *helloworldProjectServer, enableApm bool) {
-  // ...
-  api.HealthHealthCheckHandler = impls.healthCheckHealthHandler()
-  // ...
-}
-
-```
-
-1. open `app/openapi/handlers.go`, and implement the api method handler inside
+3. Open `app/oapi/handlers.go` and add a new handler and logic code (implementing `ServerInterface` in `gen/oapi/oapi.go`)

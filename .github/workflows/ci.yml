@@ -14,26 +14,10 @@ jobs:
     runs-on: "${{ matrix.os }}"
     strategy:
       matrix:
-        mysql-version: ['mysql:latest', 'mysql:5.7', 'mysql:5.6']
-        go-version: ['1.13', '1.14', '1.15']
+        go-version: ['1.14', '1.15', '1.16']
         os: [ubuntu-latest]
 
     services:
-      mysql:
-        image: ${{ matrix.mysql-version }}
-        env:
-          MYSQL_DATABASE: gobay
-          MYSQL_ROOT_HOST: "%"
-          MYSQL_USER: root
-          MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
-        ports:
-          - 3306:3306
-        options: >-
-          --health-cmd "mysqladmin ping -uroot"
-          --health-interval 10s
-          --health-start-period 10s
-          --health-timeout 5s
-          --health-retries 10
       rabbitmq:
         image: rabbitmq
         env:
@@ -56,7 +40,17 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+    env:
+      DB_DATABASE: gobay
+      DB_USER: root
+      DB_PASSWORD: "root"
+      GOENV_VERSION: "${{ matrix.go-version }}"
+
     steps:
+      - name: Set up MySQL
+        run: |
+          sudo /etc/init.d/mysql start
+          mysql -e 'CREATE DATABASE ${{ env.DB_DATABASE }};' -u${{ env.DB_USER }} -p${{ env.DB_PASSWORD }}
       - name: Check out code into Go module directory 
         uses: actions/checkout@v2
 
@@ -71,9 +65,18 @@ jobs:
           path: $GOPATH/pkg/mod
           key: ${{ runner.os }}-go-${{ matrix.go-version }}-${{ hashFiles('**/go.sum') }}
 
-      - name: Before tests
+      - name: Before tests 1.14
+        if: ${{ env.GOENV_VERSION == '1.14' }}
+        run: |
+          go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.39.0
+      - name: Before tests 1.15
+        if: ${{ env.GOENV_VERSION == '1.15' }}
         run: |
           go install github.com/golangci/golangci-lint/cmd/golangci-lint
+      - name: Before tests 1.16
+        if: ${{ env.GOENV_VERSION == '1.16' }}
+        run: |
+          go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
       - name: Run tests and lint
         run: |
           golangci-lint run --timeout=10m --skip-dirs=testdata --tests=false

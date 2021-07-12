@@ -14,3 +14,4 @@ repos:
     rev: v0.3.5
     hooks:
       - id: golangci-lint
+        args: [--fix]

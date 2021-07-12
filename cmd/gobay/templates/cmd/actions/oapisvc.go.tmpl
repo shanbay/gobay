@@ -6,10 +6,10 @@ import (
 	"github.com/spf13/cobra"
 
 	"{{ $.Url }}/app"
-	appopenapi "{{ $.Url }}/app/openapi"
+	appoapi "{{ $.Url }}/app/oapi"
 )
 
-func RunHttpSvc(cmd *cobra.Command, args []string) {
+func RunOapiSvc(cmd *cobra.Command, args []string) {
 	env, err := cmd.Flags().GetString("env")
 	if err != nil {
 		log.Fatalf("get env failed: %v\n", err)
@@ -23,15 +23,15 @@ func RunHttpSvc(cmd *cobra.Command, args []string) {
 	if err != nil {
 		log.Fatalf("app init failed: %v\n", err)
 	}
-	if err := appopenapi.Serve(bapp); err != nil {
+	if err := appoapi.Serve(bapp); err != nil {
 		log.Fatalf("openapi serve failed: %v\n", err)
 	}
 }
 
 func init() {
 	cmd := &cobra.Command{
-		Use: "httpsvc",
-		Run: RunHttpSvc,
+		Use: "oapisvc",
+		Run: RunOapiSvc,
 	}
 	rootCmd.AddCommand(cmd)
 }
