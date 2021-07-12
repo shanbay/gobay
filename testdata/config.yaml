@@ -13,7 +13,7 @@ defaults: &defaults
   bus_bindings:
     - exchange: sbay-exchange
       queue: test
-      binding_key: buses.oc.post_order_paid
+      binding_key: gobay.buses.test
 
   stub_health_host: "127.0.0.1"
   stub_health_port: 5555

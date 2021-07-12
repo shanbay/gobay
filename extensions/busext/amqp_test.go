@@ -8,12 +8,14 @@ import (
 
 	"github.com/shanbay/gobay"
 	"github.com/shanbay/gobay/extensions/sentryext/custom_logger"
+	"github.com/streadway/amqp"
+	"github.com/stretchr/testify/assert"
 )
 
 var (
 	app    *gobay.Application
 	bus    BusExt
-	result []*OCPaid
+	result []*TestHandler
 )
 
 func init() {
@@ -35,25 +37,17 @@ func init() {
 
 func TestPushConsume(t *testing.T) {
 	// publish
-	routingKey := "buses.oc.post_order_paid"
+	routingKey := "gobay.buses.test"
 	for i := 0; i < 100; i++ {
 		msg, _ := BuildMsg(
 			routingKey,
 			[]interface{}{},
 			map[string]interface{}{
-				"user_id":       i,
-				"order_id":      i,
-				"department_id": i,
+				"user_id": i,
 				"items": []map[string]interface{}{
 					{
-						"created_at":    time.Now(),
-						"updated_at":    time.Now(),
-						"user_id":       i,
-						"item_quantity": i,
-						"item_price":    i,
-						"service_id":    i,
-						"order_id":      i,
-						"item_id":       i,
+						"created_at": time.Now(),
+						"updated_at": time.Now(),
 					},
 				},
 			},
@@ -67,8 +61,8 @@ func TestPushConsume(t *testing.T) {
 		}
 	}
 
-	//consume
-	bus.Register("buses.oc.post_order_paid", &OCPaid{})
+	// consume
+	bus.Register(routingKey, &TestHandler{})
 	go func() {
 		err := bus.Consume()
 		if err != nil {
@@ -76,42 +70,65 @@ func TestPushConsume(t *testing.T) {
 		}
 	}()
 	time.Sleep(2 * time.Second)
-	if len(result) != 100 {
-		t.Error("consume length doesn't match publish'")
+	assert.Len(t, result, 100)
+
+	// mock amqp 的 publish, 使其 sleep 一个远比设置的 pushTimeout 长的时间, 模拟其卡死的情况
+	bus.publishFunc = func(exchange, key string, mandatory, immediate bool, msg amqp.Publishing) error {
+		dur := 100 * bus.pushTimeout
+		time.Sleep(dur)
+		return nil
 	}
 
-	err := app.Close()
-	if err != nil {
-		t.Error("close busext failed")
-	}
+	msg, _ := BuildMsg(
+		routingKey,
+		[]interface{}{},
+		map[string]interface{}{
+			"user_id": 1,
+			"items": []map[string]interface{}{
+				{
+					"created_at": time.Now(),
+					"updated_at": time.Now(),
+				},
+			},
+		},
+	)
+	// case-1: 超时后会结束本次 push 并返回 errTimeout error, 并且尝试重连
+	err := bus.Push("sbay-exchange", routingKey, *msg)
+	assert.NotNil(t, err)
+	assert.Equal(t, ErrTimeout, err)
+
+	// case-2: 紧接着 push 一次, 会返回 errNotReady, 因为此时还没有重新连接好
+	err = bus.Push("sbay-exchange", routingKey, *msg)
+	assert.NotNil(t, err)
+	assert.Equal(t, ErrNotReady, err)
+
+	// case-3: 等带几秒, 重连后再次 push, 可以成功
+	time.Sleep(3 * time.Second)
+	err = bus.Push("sbay-exchange", routingKey, *msg)
+	assert.Nil(t, err)
+	assert.Len(t, result, 101)
+
+	assert.Nil(t, app.Close())
 }
 
-type OCPaid struct {
-	UserID       int64 `json:"user_id"`
-	OrderID      int64 `json:"order_id"`
-	DepartmentID int   `json:"department_id"`
-	Items        []Item
+type TestHandler struct {
+	UserID int64 `json:"user_id"`
+	Items  []Item
 }
 
 type Item struct {
-	CreatedAt    time.Time `json:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at"`
-	UserID       int64     `json:"user_id"`
-	ItemQuantity int       `json:"item_quantity"`
-	ItemPrice    int       `json:"item_price"`
-	ServiceID    int       `json:"service_id"`
-	OrderID      int64     `json:"order_id"`
-	ItemID       int       `json:"item_id"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
-func (o *OCPaid) ParsePayload(args []byte, kwargs []byte) (err error) {
+func (o *TestHandler) ParsePayload(args []byte, kwargs []byte) (err error) {
 	if err := json.Unmarshal(kwargs, o); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (o *OCPaid) Run() error {
+func (o *TestHandler) Run() error {
 	result = append(result, o)
 	return nil
 }
