@@ -718,6 +718,7 @@ go.elastic.co/apm/module/apmhttp v1.9.0 h1:yAsxgx5bzWTFva1MJ1PqwhKsPUAUARPJ/sXIw
 go.elastic.co/apm/module/apmhttp v1.9.0/go.mod h1:evGjj1bVDqi47Lg2+/uKre/PDSBrOso/eTRrgeJqZyE=
 go.elastic.co/apm/module/apmsql v1.9.0 h1:JH/2muAIwZX7AC5IG2mwdeC6rRFvxoP/Vp75jF5eElA=
 go.elastic.co/apm/module/apmsql v1.9.0/go.mod h1:BSOt0jmW3FYN1gLY4XYjQEJQoL0UyEf5mtIgRzHpePs=
+go.elastic.co/apm/module/apmsql v1.13.0/go.mod h1:qmdbQrK4/1Zd9mox4crqYZRpKdzFeXe5LmE2p5lcGVw=
 go.elastic.co/fastjson v1.1.0 h1:3MrGBWWVIxe/xvsbpghtkFoPciPhOCmjsR/HfwEeQR4=
 go.elastic.co/fastjson v1.1.0/go.mod h1:boNGISWMjQsUPy/t6yqt2/1Wx4YNPSe+mZjlyw9vKKI=
 go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
