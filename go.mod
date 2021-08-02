@@ -30,7 +30,7 @@ require (
 	github.com/stretchr/testify v1.7.0
 	github.com/vmihailenco/msgpack v4.0.4+incompatible
 	go.elastic.co/apm v1.13.0
-	go.elastic.co/apm/module/apmgoredis v1.9.0
+	go.elastic.co/apm/module/apmgoredis v1.13.0
 	go.elastic.co/apm/module/apmgrpc v1.9.0
 	go.elastic.co/apm/module/apmsql v1.9.0
 	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616 // indirect
