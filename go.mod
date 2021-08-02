@@ -7,7 +7,7 @@ require (
 	github.com/RichardKnop/machinery v1.10.0
 	github.com/elastic/go-sysinfo v1.7.0 // indirect
 	github.com/elastic/go-windows v1.0.1 // indirect
-	github.com/facebook/ent v0.4.0
+	github.com/facebook/ent v0.8.0
 	github.com/getsentry/sentry-go v0.9.0
 	github.com/go-openapi/runtime v0.19.26
 	github.com/go-redis/redis v6.15.9+incompatible
