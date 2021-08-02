@@ -18,7 +18,7 @@ require (
 	github.com/iancoleman/strcase v0.1.3
 	github.com/labstack/echo/v4 v4.1.11
 	github.com/markbates/pkger v0.17.1
-	github.com/mattn/go-sqlite3 v1.14.6
+	github.com/mattn/go-sqlite3 v1.14.8
 	github.com/mitchellh/mapstructure v1.4.1
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/procfs v0.7.1 // indirect
