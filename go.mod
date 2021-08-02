@@ -4,7 +4,7 @@ go 1.15
 
 require (
 	github.com/RichardKnop/logging v0.0.0-20190827224416-1a693bdd4fae
-	github.com/RichardKnop/machinery v1.10.0
+	github.com/RichardKnop/machinery v1.10.6
 	github.com/elastic/go-sysinfo v1.7.0 // indirect
 	github.com/elastic/go-windows v1.0.1 // indirect
 	github.com/facebook/ent v0.4.0
