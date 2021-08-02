@@ -1,0 +1,35 @@
+version: 2
+updates:
+- package-ecosystem: gomod
+  directory: "/"
+  schedule:
+    interval: daily
+    time: "21:00"
+  open-pull-requests-limit: 10
+  ignore:
+  - dependency-name: google.golang.org/grpc
+    versions:
+    - 1.36.0
+    - 1.36.1
+  - dependency-name: github.com/facebook/ent
+    versions:
+    - 0.5.4
+    - 0.6.0
+    - 0.7.0
+  - dependency-name: github.com/RichardKnop/machinery
+    versions:
+    - 1.10.1
+    - 1.10.2
+    - 1.10.3
+  - dependency-name: go.elastic.co/apm
+    versions:
+    - 1.10.0
+  - dependency-name: go.elastic.co/apm/module/apmsql
+    versions:
+    - 1.10.0
+  - dependency-name: go.elastic.co/apm/module/apmgrpc
+    versions:
+    - 1.10.0
+  - dependency-name: go.elastic.co/apm/module/apmgoredis
+    versions:
+    - 1.10.0
