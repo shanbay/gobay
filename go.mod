@@ -13,6 +13,7 @@ require (
 	github.com/go-redis/redis v6.15.9+incompatible
 	github.com/go-sql-driver/mysql v1.5.1-0.20200311113236-681ffa848bae
 	github.com/golang/protobuf v1.4.3
+	github.com/google/uuid v1.2.0
 	github.com/grpc-ecosystem/go-grpc-middleware v1.2.2
 	github.com/hashicorp/go-multierror v1.1.0
 	github.com/iancoleman/strcase v0.1.3
@@ -42,6 +43,7 @@ require (
 )
 
 replace (
-	github.com/RichardKnop/machinery => github.com/RichardKnop/machinery v1.9.7
+	github.com/RichardKnop/machinery => github.com/shanbay/machinery v1.10.7-0.20210806005400-45afbf2ee694
 	github.com/facebook/ent => github.com/shanbay/ent v0.4.0
+	github.com/streadway/amqp => github.com/shanbay/amqp v1.0.1-0.20210728052407-b63250c049f2
 )

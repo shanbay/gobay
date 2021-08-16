@@ -1,3 +1,9 @@
+# 0.16.0 (2021-08-16)
+
+- 改用 `shanbay/amqp`
+- 增加 asynctask ext 的健康检查
+    - 使用方法：`curl 127.0.0.1:9000/health?timeout=5&queue=gobay.task_sub`
+
 # 0.14.0 (2020-11-19)
 
 - sentryext 收集当前栈信息，让 sentry web 界面上可以展开

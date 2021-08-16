@@ -3,6 +3,7 @@ package asynctaskext
 import (
 	"context"
 	"log"
+	"net/http"
 	"testing"
 	"time"
 
@@ -43,11 +44,31 @@ func TestPushConsume(t *testing.T) {
 			t.Error(err)
 		}
 	}()
+	time.Sleep(500 * time.Millisecond) // Make sure the worker is started
 	go func() {
 		if err := task.StartWorker("gobay.task_sub", 1); err != nil {
 			t.Error(err)
 		}
 	}()
+	time.Sleep(500 * time.Millisecond) // Make sure the workers is started
+
+	// health check
+	resp, err := http.Get("http://127.0.0.1:5000/health?timeout=5&queue=gobay.task_sub")
+	if err != nil || resp.StatusCode != http.StatusOK {
+		t.Errorf("%v %s", resp, err)
+	}
+	resp, err = http.Get("http://127.0.0.1:5000/health?timeout=5&queue=")
+	if err != nil || resp.StatusCode != http.StatusOK {
+		t.Errorf("%v %s", resp, err)
+	}
+	resp, err = http.Get("http://127.0.0.1:5000/health?timeout=5")
+	if err != nil || resp.StatusCode != http.StatusOK {
+		t.Errorf("%v %s", resp, err)
+	}
+	resp, err = http.Get("http://127.0.0.1:5000/health?timeout=5&queue=nosuchqueue")
+	if err != nil || resp.StatusCode != http.StatusBadRequest {
+		t.Errorf("%v %s", resp, err)
+	}
 
 	signs := []*tasks.Signature{
 		{
