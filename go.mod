@@ -37,7 +37,7 @@ require (
 	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616 // indirect
 	golang.org/x/sys v0.0.0-20210630005230-0f9fa26af87c // indirect
 	golang.org/x/tools v0.1.5 // indirect
-	google.golang.org/grpc v1.35.0
+	google.golang.org/grpc v1.35.1
 	google.golang.org/grpc/examples v0.0.0-20200925170654-e6c98a478e62 // indirect
 	howett.net/plist v0.0.0-20201203080718-1454fab16a06 // indirect
 )
