@@ -119,6 +119,10 @@ func (d *StubExt) getCallOpts() []grpc_retry.CallOption {
 	if d.RetryTimes > 0 {
 		callOpts = append(callOpts, grpc_retry.WithMax(d.RetryTimes))
 	}
+	// retry codes
+	if len(d.RetryCodes) > 0 {
+		callOpts = append(callOpts, grpc_retry.WithCodes(d.RetryCodes...))
+	}
 	return callOpts
 }
 
