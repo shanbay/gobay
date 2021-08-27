@@ -25,12 +25,19 @@ defaults: &defaults
   stub_health_retrybackoff: 50ms
   stub_health_retrytimes: 3
 
-  asynctask_concurrency: 10
-  asynctask_broker: "redis://127.0.0.1:6379/8"
-  asynctask_default_queue: "gobay.task"
-  asynctask_result_backend: "redis://127.0.0.1:6379/8"
-  asynctask_results_expire_in: 1
-  asynctask_redis: {}
+  one_asynctask_concurrency: 10
+  one_asynctask_broker: "redis://127.0.0.1:6379/8"
+  one_asynctask_default_queue: "gobay.task.one"
+  one_asynctask_result_backend: "redis://127.0.0.1:6379/8"
+  one_asynctask_results_expire_in: 1
+  one_asynctask_redis: {}
+
+  two_asynctask_concurrency: 10
+  two_asynctask_broker: "redis://127.0.0.1:6379/8"
+  two_asynctask_default_queue: "gobay.task.two"
+  two_asynctask_result_backend: "redis://127.0.0.1:6379/8"
+  two_asynctask_results_expire_in: 1
+  two_asynctask_redis: {}
 
   db_driver: sqlite3
   db_url: ":memory:"

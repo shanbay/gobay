@@ -91,7 +91,7 @@ func (t *AsyncTaskExt) RegisterWorkerHandlers(handlers map[string]interface{}) e
 }
 
 //StartWorker start a worker that consume task messages for queue
-func (t *AsyncTaskExt) StartWorker(queue string, concurrency int) error {
+func (t *AsyncTaskExt) StartWorker(queue string, concurrency int, enableHealthCheck bool) error {
 	t.lock.Lock()
 
 	if queue == "" {
@@ -103,7 +103,7 @@ func (t *AsyncTaskExt) StartWorker(queue string, concurrency int) error {
 	t.workers = append(t.workers, worker)
 
 	// run health check http server
-	if !t.healthHandlerRegistered {
+	if enableHealthCheck && !t.healthHandlerRegistered {
 		t.healthHandlerRegistered = true
 		healthSrv := http.Server{Addr: ":5000"}
 		http.Handle("/health", http.HandlerFunc(t.healthHttpHandler))

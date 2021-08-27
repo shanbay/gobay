@@ -9,22 +9,26 @@ import (
 
 	"github.com/RichardKnop/machinery/v1/backends/result"
 	"github.com/RichardKnop/machinery/v1/tasks"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/shanbay/gobay"
 )
 
 var (
-	task AsyncTaskExt
+	taskOne AsyncTaskExt
+	taskTwo AsyncTaskExt
 )
 
 func init() {
-	task = AsyncTaskExt{NS: "asynctask_"}
+	taskOne = AsyncTaskExt{NS: "one_asynctask_"}
+	taskTwo = AsyncTaskExt{NS: "two_asynctask_"}
 
 	app, _ := gobay.CreateApp(
 		"../../testdata",
 		"testing",
 		map[gobay.Key]gobay.Extension{
-			"asynctask": &task,
+			"oneasynctask": &taskOne,
+			"twoasynctask": &taskTwo,
 		},
 	)
 	if err := app.Init(); err != nil {
@@ -32,21 +36,40 @@ func init() {
 	}
 }
 
+func TaskAdd(args ...int64) (int64, error) {
+	sum := int64(0)
+	for _, arg := range args {
+		sum += arg
+	}
+	return sum, nil
+}
+
+func TaskSub(arg1, arg2 int64) (int64, error) {
+	return arg1 - arg2, nil
+}
+
+func TaskSubWithContext(ctx context.Context, arg1, arg2 int64) (int64, error) {
+	if err := ctx.Err(); err != nil {
+		return 0, err
+	}
+	return arg1 - arg2, nil
+}
+
 func TestPushConsume(t *testing.T) {
-	if err := task.RegisterWorkerHandlers(map[string]interface{}{
+	if err := taskOne.RegisterWorkerHandlers(map[string]interface{}{
 		"add": TaskAdd, "sub": TaskSub, "subCtx": TaskSubWithContext,
 	}); err != nil {
 		t.Error(err)
 	}
 	go func() {
 		// use default queue
-		if err := task.StartWorker("", 1); err != nil {
+		if err := taskOne.StartWorker("", 1, true); err != nil {
 			t.Error(err)
 		}
 	}()
 	time.Sleep(500 * time.Millisecond) // Make sure the worker is started
 	go func() {
-		if err := task.StartWorker("gobay.task_sub", 1); err != nil {
+		if err := taskOne.StartWorker("gobay.task_sub", 1, true); err != nil {
 			t.Error(err)
 		}
 	}()
@@ -123,9 +146,9 @@ func TestPushConsume(t *testing.T) {
 			err         error
 		)
 		if sign.Name == "subCtx" {
-			asyncResult, err = task.SendTaskWithContext(context.Background(), sign)
+			asyncResult, err = taskOne.SendTaskWithContext(context.Background(), sign)
 		} else {
-			asyncResult, err = task.SendTask(sign)
+			asyncResult, err = taskOne.SendTask(sign)
 		}
 		if err != nil {
 			t.Error(err)
@@ -136,21 +159,28 @@ func TestPushConsume(t *testing.T) {
 		}
 	}
 }
-func TaskAdd(args ...int64) (int64, error) {
-	sum := int64(0)
-	for _, arg := range args {
-		sum += arg
-	}
-	return sum, nil
-}
 
-func TaskSub(arg1, arg2 int64) (int64, error) {
-	return arg1 - arg2, nil
-}
+func TestMultiTaskExtStartWorker(t *testing.T) {
+	t.Run("1: 第一个 task StartWorker, 允许 healthcheck, 正常", func(t *testing.T) {
+		go func() {
+			// use default queue
+			if err := taskOne.StartWorker("", 1, true); err != nil {
+				t.Error(err)
+			}
+		}()
+	})
 
-func TaskSubWithContext(ctx context.Context, arg1, arg2 int64) (int64, error) {
-	if err := ctx.Err(); err != nil {
-		return 0, err
-	}
-	return arg1 - arg2, nil
+	t.Run("2: 第二个 task StartWorker, 不允许 healthcheck, 正常运行", func(t *testing.T) {
+		go func() {
+			if err := taskTwo.StartWorker("", 1, false); err != nil {
+				t.Error(err)
+			}
+		}()
+	})
+
+	t.Run("3: 第二个 task StartWorker, 允许 healthcheck, 会 panic", func(t *testing.T) {
+		assert.Panics(t, func() {
+			_ = taskTwo.StartWorker("", 1, true)
+		})
+	})
 }
