@@ -1,8 +1,6 @@
 package custom_logger
 
 import (
-	"errors"
-	"fmt"
 	"log"
 	"os"
 
@@ -26,42 +24,50 @@ func NewSentryErrorLogger() *sentryErrorLogger {
 	}
 }
 
+func (s *sentryErrorLogger) captureOriginException(v ...interface{}) {
+	for _, vv := range v {
+		if err, ok := vv.(error); ok {
+			sentry.CaptureException(err)
+		}
+	}
+}
+
 func (s *sentryErrorLogger) Print(v ...interface{}) {
-	sentry.CaptureException(errors.New(fmt.Sprint(v...)))
+	s.captureOriginException(v...)
 	s.Logger.Print(v...)
 }
 
 func (s *sentryErrorLogger) Printf(format string, v ...interface{}) {
-	sentry.CaptureException(fmt.Errorf(format, v...))
+	s.captureOriginException(v...)
 	s.Logger.Printf(format, v...)
 }
 func (s *sentryErrorLogger) Println(v ...interface{}) {
-	sentry.CaptureException(errors.New(fmt.Sprintln(v...)))
+	s.captureOriginException(v...)
 	s.Logger.Println(v...)
 }
 
 func (s *sentryErrorLogger) Fatal(v ...interface{}) {
-	sentry.CaptureException(errors.New(fmt.Sprint(v...)))
+	s.captureOriginException(v...)
 	s.Logger.Fatal(v...)
 }
 func (s *sentryErrorLogger) Fatalf(format string, v ...interface{}) {
-	sentry.CaptureException(fmt.Errorf(format, v...))
+	s.captureOriginException(v...)
 	s.Logger.Fatalf(format, v...)
 }
 func (s *sentryErrorLogger) Fatalln(v ...interface{}) {
-	sentry.CaptureException(errors.New(fmt.Sprintln(v...)))
+	s.captureOriginException(v...)
 	s.Logger.Fatalln(v...)
 }
 
 func (s *sentryErrorLogger) Panic(v ...interface{}) {
-	sentry.CaptureException(errors.New(fmt.Sprint(v...)))
+	s.captureOriginException(v...)
 	s.Logger.Panic(v...)
 }
 func (s *sentryErrorLogger) Panicf(format string, v ...interface{}) {
-	sentry.CaptureException(fmt.Errorf(format, v...))
+	s.captureOriginException(v...)
 	s.Logger.Panicf(format, v...)
 }
 func (s *sentryErrorLogger) Panicln(v ...interface{}) {
-	sentry.CaptureException(errors.New(fmt.Sprintln(v...)))
+	s.captureOriginException(v...)
 	s.Logger.Panicln(v...)
 }
