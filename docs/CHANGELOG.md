@@ -1,3 +1,12 @@
+# 0.17.0 (2021-10-09)
+
+- 修正 `DialOptions` 拼写
+- 修复启用 apm 的时候 retry 不生效的问题
+
+**BREAKING CHANGE**:
+
+初始化 stubext 时参数应该改叫 `DialOptions`
+
 # 0.16.0 (2021-08-16)
 
 - 改用 `shanbay/amqp`
