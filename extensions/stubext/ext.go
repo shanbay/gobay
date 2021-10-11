@@ -30,7 +30,7 @@ var (
 
 type StubExt struct {
 	NS             string
-	DailOptions    []grpc.DialOption
+	DialOptions    []grpc.DialOption
 	NewClientFuncs map[string]NewClientFunc
 	RetryCodes     []codes.Code
 	app            *gobay.Application
@@ -93,7 +93,7 @@ func (d *StubExt) Init(app *gobay.Application) error {
 	if d.Mocked {
 		return nil
 	}
-	if conn, err := d.GetConn(d.DailOptions...); err != nil {
+	if conn, err := d.GetConn(d.DialOptions...); err != nil {
 		return err
 	} else {
 		for k, v := range d.NewClientFuncs {
@@ -129,23 +129,23 @@ func (d *StubExt) getCallOpts() []grpc_retry.CallOption {
 func (d *StubExt) GetConn(userOpts ...grpc.DialOption) (*grpc.ClientConn, error) {
 	if d.conn == nil {
 		var opts []grpc.DialOption
-		// opts: per call opts
-		callOpts := d.getCallOpts()
-		opts = append(
-			opts,
-			grpc.WithUnaryInterceptor(grpc_retry.UnaryClientInterceptor(callOpts...)),
-			grpc.WithStreamInterceptor(grpc_retry.StreamClientInterceptor(callOpts...)),
-		)
 		// opts: authority
 		if d.Authority != "" {
 			opts = append(opts, grpc.WithAuthority(d.Authority))
 		}
 		// opts: apm
 		if d.enableApm {
-			opts = append(opts, grpc.WithUnaryInterceptor(apmgrpc.NewUnaryClientInterceptor()))
+			opts = append(opts, grpc.WithChainUnaryInterceptor(apmgrpc.NewUnaryClientInterceptor()))
 		}
 		// opts: user opts
 		opts = append(opts, userOpts...)
+		// opts: per call opts
+		callOpts := d.getCallOpts()
+		opts = append(
+			opts,
+			grpc.WithChainUnaryInterceptor(grpc_retry.UnaryClientInterceptor(callOpts...)),
+			grpc.WithChainStreamInterceptor(grpc_retry.StreamClientInterceptor(callOpts...)),
+		)
 		// connect
 		ctxDefault := context.Background()
 		if d.ConnTimeout > 0 {
