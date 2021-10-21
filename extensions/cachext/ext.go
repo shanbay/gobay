@@ -12,6 +12,7 @@ import (
 	"github.com/shanbay/gobay"
 	"github.com/spf13/viper"
 	"github.com/vmihailenco/msgpack"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
