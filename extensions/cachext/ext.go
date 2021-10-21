@@ -12,7 +12,6 @@ import (
 	"github.com/shanbay/gobay"
 	"github.com/spf13/viper"
 	"github.com/vmihailenco/msgpack"
-
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
@@ -43,28 +42,6 @@ const (
 )
 
 var cacheLabels = []string{prefixName, funcName}
-
-// Create a collector for total cache request counter
-func initCacheRequestCounter() *prometheus.CounterVec {
-	return promauto.NewCounterVec(
-		prometheus.CounterOpts{
-			Name: "cache_request_counter",
-			Help: "Number of cache requests",
-		},
-		cacheLabels,
-	)
-}
-
-// Create a collector for cache hit counter
-func initCacheHitCounter() *prometheus.CounterVec {
-	return promauto.NewCounterVec(
-		prometheus.CounterOpts{
-			Name: "cache_hit_counter",
-			Help: "Number of cache hits",
-		},
-		cacheLabels,
-	)
-}
 
 // CacheBackend
 type CacheBackend interface {
@@ -277,4 +254,26 @@ func decodeIsNil(data interface{}) bool {
 		return (err == nil)
 	}
 	return false
+}
+
+// Create a collector for total cache request counter
+func initCacheRequestCounter() *prometheus.CounterVec {
+	return promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "cache_request_counter",
+			Help: "Number of cache requests",
+		},
+		cacheLabels,
+	)
+}
+
+// Create a collector for cache hit counter
+func initCacheHitCounter() *prometheus.CounterVec {
+	return promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "cache_hit_counter",
+			Help: "Number of cache hits",
+		},
+		cacheLabels,
+	)
 }
