@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/RichardKnop/machinery/v1/log"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 const Nil = cacheNil("cache result is nil")
@@ -61,7 +62,16 @@ func (c *CachedConfig) GetResult(ctx context.Context, out interface{}, strArgs [
 	if err != nil {
 		return err
 	}
+	labels := prometheus.Labels{prefixName: c.cache.prefix, funcName: c.funcName}
+	if c.cache.requestCounter != nil {
+		// Increment request counter.
+		c.cache.requestCounter.With(labels).Inc()
+	}
 	if data != nil {
+		if c.cache.hitCounter != nil {
+			// Increment hit counter.
+			c.cache.hitCounter.With(labels).Inc()
+		}
 		if c.cacheNil && decodeIsNil(data) {
 			// 无法直接把out设置为nil，这里通过返回特殊的错误来表示nil。调用方需要判断
 			return Nil
