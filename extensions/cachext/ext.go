@@ -85,8 +85,8 @@ func (c *CacheExt) Init(app *gobay.Application) error {
 		return errors.New("No backend found for cache_backend:" + backendConfig)
 	}
 	if config.GetBool("monitor_enable") {
-		c.requestCounter = initCacheRequestCounter()
-		c.hitCounter = initCacheHitCounter()
+		c.requestCounter = newCacheRequestCounter()
+		c.hitCounter = newCacheHitCounter()
 	}
 
 	c.initialized = true
@@ -257,7 +257,7 @@ func decodeIsNil(data interface{}) bool {
 }
 
 // Create a collector for total cache request counter
-func initCacheRequestCounter() *prometheus.CounterVec {
+func newCacheRequestCounter() *prometheus.CounterVec {
 	return promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "cache_request_counter",
@@ -268,7 +268,7 @@ func initCacheRequestCounter() *prometheus.CounterVec {
 }
 
 // Create a collector for cache hit counter
-func initCacheHitCounter() *prometheus.CounterVec {
+func newCacheHitCounter() *prometheus.CounterVec {
 	return promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "cache_hit_counter",

@@ -76,6 +76,9 @@ grpcnoretry:
 grpcmocked:
   <<: *defaults
   stub_health_mocked: true
+cachemonitored:
+  <<: *defaults
+  cache_monitor_enable: true
 development:
   <<: *defaults
 production:

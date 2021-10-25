@@ -68,13 +68,13 @@ func (c *CachedConfig) GetResult(ctx context.Context, out interface{}, strArgs [
 		c.cache.requestCounter.With(labels).Inc()
 	}
 	if data != nil {
-		if c.cacheNil && decodeIsNil(data) {
-			// 无法直接把out设置为nil，这里通过返回特殊的错误来表示nil。调用方需要判断
-			return Nil
-		}
 		if c.cache.hitCounter != nil {
 			// Increment hit counter.
 			c.cache.hitCounter.With(labels).Inc()
+		}
+		if c.cacheNil && decodeIsNil(data) {
+			// 无法直接把out设置为nil，这里通过返回特殊的错误来表示nil。调用方需要判断
+			return Nil
 		}
 		return decode(data, out)
 	}
