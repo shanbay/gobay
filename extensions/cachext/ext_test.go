@@ -3,13 +3,19 @@ package cachext_test
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
+	"log"
 	"strings"
 	"testing"
 	"time"
 
+	"net/http"
+
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/shanbay/gobay"
 	"github.com/shanbay/gobay/extensions/cachext"
 	_ "github.com/shanbay/gobay/extensions/cachext/backend/memory"
+	"github.com/stretchr/testify/assert"
 )
 
 func ExampleCacheExt_Set() {
@@ -576,4 +582,53 @@ func Benchmark_Cached(b *testing.B) {
 			fmt.Println(err)
 		}
 	}
+}
+
+func TestCacheExt_Cached_Monitor(t *testing.T) {
+	// 准备数据
+	cache := &cachext.CacheExt{NS: "cache_"}
+	exts := map[gobay.Key]gobay.Extension{
+		"cache": cache,
+	}
+	_, err := gobay.CreateApp("../../testdata/", "cachemonitored", exts)
+	assert.Nil(t, err)
+
+	fetchMetricData := func() string {
+		resp, err := http.Get("http://localhost:2112/metrics")
+		if err != nil {
+			t.Error(err)
+		}
+		defer resp.Body.Close()
+		rawData, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			t.Error(err)
+		}
+		return string(rawData)
+	}
+
+	go func() {
+		http.Handle("/metrics", promhttp.Handler())
+		if err := http.ListenAndServe(":2112", nil); err != nil {
+			log.Fatalf("error when start prometheus server: %v\n", err)
+		}
+	}()
+
+	// Cache method
+	f_str := func(_ context.Context, keys []string, args []int64) (interface{}, error) {
+		return keys[0], nil
+	}
+	c_f_str := cache.Cached("f_str", f_str, cachext.WithTTL(10*time.Second))
+	str := ""
+
+	// Get result from function
+	c_f_str.GetResult(context.Background(), &str, []string{"hello"}, []int64{})
+	data := fetchMetricData()
+	assert.Contains(t, data, `cache_request_counter{func_name="f_str",prefix_name="github"} 1`)
+	assert.NotContains(t, data, `cache_hit_counter`)
+
+	// Get result from cache
+	c_f_str.GetResult(context.Background(), &str, []string{"hello"}, []int64{})
+	data = fetchMetricData()
+	assert.Contains(t, data, `cache_request_counter{func_name="f_str",prefix_name="github"} 2`)
+	assert.Contains(t, data, `cache_hit_counter{func_name="f_str",prefix_name="github"} 1`)
 }

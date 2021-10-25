@@ -12,6 +12,8 @@ import (
 	"github.com/shanbay/gobay"
 	"github.com/spf13/viper"
 	"github.com/vmihailenco/msgpack"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 type void struct{}
@@ -24,6 +26,8 @@ type CacheExt struct {
 	prefix         string
 	initialized    bool
 	cachedFuncName map[string]void
+	requestCounter *prometheus.CounterVec
+	hitCounter     *prometheus.CounterVec
 }
 
 var (
@@ -31,6 +35,13 @@ var (
 	backendMap                 = map[string](func() CacheBackend){}
 	mu         sync.Mutex
 )
+
+const (
+	prefixName = "prefix_name"
+	funcName   = "func_name"
+)
+
+var cacheLabels = []string{prefixName, funcName}
 
 // CacheBackend
 type CacheBackend interface {
@@ -72,6 +83,10 @@ func (c *CacheExt) Init(app *gobay.Application) error {
 		}
 	} else {
 		return errors.New("No backend found for cache_backend:" + backendConfig)
+	}
+	if config.GetBool("monitor_enable") {
+		c.requestCounter = newCacheRequestCounter()
+		c.hitCounter = newCacheHitCounter()
 	}
 
 	c.initialized = true
@@ -239,4 +254,26 @@ func decodeIsNil(data interface{}) bool {
 		return (err == nil)
 	}
 	return false
+}
+
+// Create a collector for total cache request counter
+func newCacheRequestCounter() *prometheus.CounterVec {
+	return promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "cache_request_counter",
+			Help: "Number of cache requests",
+		},
+		cacheLabels,
+	)
+}
+
+// Create a collector for cache hit counter
+func newCacheHitCounter() *prometheus.CounterVec {
+	return promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "cache_hit_counter",
+			Help: "Number of cache hits",
+		},
+		cacheLabels,
+	)
 }
