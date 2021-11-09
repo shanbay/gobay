@@ -2,6 +2,7 @@ package stubext
 
 import (
 	"context"
+	"github.com/stretchr/testify/assert"
 	"log"
 	"net"
 	"strconv"
@@ -103,20 +104,16 @@ func TestStubExt(t *testing.T) {
 		// set ctx
 		ctx := stubext.GetCtx(context.Background())
 		md, ok := metadata.FromOutgoingContext(ctx)
-		if !ok {
-			t.Errorf("ctx not ok: %v", ctx)
-		}
+		assert.True(t, ok)
+		//if !ok {
+		//	t.Errorf("ctx not ok: %v", ctx)
+		//}
 		t.Logf("md: %v", md)
 
 		// call
 		res, err := stubclient.Check(ctx, &protos_go.HealthCheckRequest{})
-		if err != nil {
-			t.Errorf("Check failed: %v", err)
-		}
-		if res.Status != protos_go.HealthCheckResponse_SERVING {
-			t.Errorf("Status should be SERVING")
-		}
-
+		assert.Nil(t, err)
+		assert.Equal(t, res.Status, protos_go.HealthCheckResponse_SERVING)
 		// tearDown
 		tearDownServer()
 	}
@@ -136,17 +133,13 @@ func TestStubExtServerStop(t *testing.T) {
 
 	// call
 	start := time.Now()
-	res, err := stubclient.Check(
+	_, err := stubclient.Check(
 		stubext.GetCtx(context.Background()),
 		&protos_go.HealthCheckRequest{},
 	)
-	if err == nil {
-		t.Errorf("Check not failed: %v", res)
-	}
+	assert.NotNil(t, err)
 	diff := time.Since(start)
-	if diff > 200*time.Millisecond {
-		t.Errorf("time shoud less than 200ms")
-	}
+	assert.True(t, diff < 200*time.Millisecond)
 	t.Logf("shorter duration: %v", diff)
 }
 
@@ -164,17 +157,14 @@ func TestStubExtServerStopRetryLonger(t *testing.T) {
 
 	// call
 	start := time.Now()
-	res, err := stubclient.Check(
+	_, err := stubclient.Check(
 		stubext.GetCtx(context.Background()),
 		&protos_go.HealthCheckRequest{},
 	)
-	if err == nil {
-		t.Errorf("Check not failed: %v", res)
-	}
+	assert.NotNil(t, err)
+
 	diff := time.Since(start)
-	if diff < 900*time.Millisecond {
-		t.Errorf("time shoud longer than 900ms")
-	}
+	assert.True(t, diff > 200*time.Millisecond)
 	t.Logf("longer duration: %v", diff)
 }
 
@@ -195,17 +185,13 @@ func TestStubExtServerStopRetryLongerUh(t *testing.T) {
 
 	// call
 	start := time.Now()
-	res, err := stubclient.Check(
+	_, err := stubclient.Check(
 		stubext.GetCtx(context.Background()),
 		&protos_go.HealthCheckRequest{},
 	)
-	if err == nil {
-		t.Errorf("Check not failed: %v", res)
-	}
+	assert.NotNil(t, err)
 	diff := time.Since(start)
-	if diff > 1*time.Millisecond {
-		t.Errorf("time shoud less than 1ms, got %v", diff)
-	}
+	assert.True(t, diff < 1*time.Millisecond)
 	t.Logf("longer duration: %v", diff)
 }
 
@@ -223,17 +209,13 @@ func TestStubExtServerStopNoRetry(t *testing.T) {
 
 	// call
 	start := time.Now()
-	res, err := stubclient.Check(
+	_, err := stubclient.Check(
 		stubext.GetCtx(context.Background()),
 		&protos_go.HealthCheckRequest{},
 	)
-	if err == nil {
-		t.Errorf("Check not failed: %v", res)
-	}
+	assert.NotNil(t, err)
 	diff := time.Since(start)
-	if diff > 1*time.Millisecond {
-		t.Errorf("time shoud less than 1ms, got %v", diff)
-	}
+	assert.True(t, diff < 1*time.Millisecond)
 	t.Logf("no retry duration: %v", diff)
 }
 
@@ -243,7 +225,5 @@ func TestStubExtServerStopMocked(t *testing.T) {
 
 	// init client
 	client := stubext.Clients["health"]
-	if client != nil {
-		t.Error("mocked failed")
-	}
+	assert.Nil(t, client)
 }
