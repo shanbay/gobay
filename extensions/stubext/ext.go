@@ -3,6 +3,7 @@ package stubext
 import (
 	"context"
 	"errors"
+	"google.golang.org/grpc/status"
 	"log"
 	"net"
 	"strconv"
@@ -26,6 +27,8 @@ var (
 	defaultRetryCodes   = []codes.Code{
 		codes.Unavailable,
 	}
+	uhUpstreamMsg        = "no healthy upstream"
+	ErrUnHealthyUpStream = errors.New("grpc response body is no healthy upstream")
 )
 
 type StubExt struct {
@@ -60,6 +63,22 @@ func (d *StubExt) Close() error {
 		return nil
 	}
 	return d.conn.Close()
+}
+
+// no healthy upstream的拦截器
+func uhInterceptor() grpc.UnaryClientInterceptor {
+	return func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
+		err := invoker(ctx, method, req, reply, cc, opts...)
+		if err == nil {
+			return nil
+		} else {
+			e, _ := status.FromError(err)
+			if e.Message() == uhUpstreamMsg {
+				return ErrUnHealthyUpStream
+			}
+		}
+		return err
+	}
 }
 
 func (d *StubExt) Init(app *gobay.Application) error {
@@ -144,6 +163,7 @@ func (d *StubExt) GetConn(userOpts ...grpc.DialOption) (*grpc.ClientConn, error)
 		opts = append(
 			opts,
 			grpc.WithChainUnaryInterceptor(grpc_retry.UnaryClientInterceptor(callOpts...)),
+			grpc.WithChainUnaryInterceptor(uhInterceptor()),
 			grpc.WithChainStreamInterceptor(grpc_retry.StreamClientInterceptor(callOpts...)),
 		)
 		// connect

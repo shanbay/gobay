@@ -178,6 +178,37 @@ func TestStubExtServerStopRetryLonger(t *testing.T) {
 	t.Logf("longer duration: %v", diff)
 }
 
+func TestStubExtServerStopRetryLongerUh(t *testing.T) {
+	// setup
+	setupServer()
+	setupStub("grpclong")
+
+	// test uhUpstreamMsg
+	// 当uhUpstreamMsg与grpc响应body相同时则不重试
+	uhUpstreamMsg = "connection error: desc = \"transport: Error while dialing dial tcp 127.0.0.1:5555: connect: connection refused\""
+	// init client
+	client := stubext.Clients["health"]
+	stubclient := client.(protos_go.HealthClient)
+
+	// stop server
+	server.GracefulStop()
+
+	// call
+	start := time.Now()
+	res, err := stubclient.Check(
+		stubext.GetCtx(context.Background()),
+		&protos_go.HealthCheckRequest{},
+	)
+	if err == nil {
+		t.Errorf("Check not failed: %v", res)
+	}
+	diff := time.Since(start)
+	if diff > 1*time.Millisecond {
+		t.Errorf("time shoud less than 1ms, got %v", diff)
+	}
+	t.Logf("longer duration: %v", diff)
+}
+
 func TestStubExtServerStopNoRetry(t *testing.T) {
 	// setup
 	setupServer()
