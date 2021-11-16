@@ -2,24 +2,44 @@ package stubext
 
 import (
 	"context"
-	"github.com/stretchr/testify/assert"
+	"errors"
 	"log"
 	"net"
 	"strconv"
 	"testing"
 	"time"
 
+	"github.com/golang/mock/gomock"
+
+	"github.com/stretchr/testify/assert"
+
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 
 	"github.com/shanbay/gobay"
-	"github.com/shanbay/gobay/testdata/health_pb"
+	protos_go "github.com/shanbay/gobay/testdata/health_pb"
+	mock_protos_go "github.com/shanbay/gobay/testdata/health_pb_mock"
 )
 
 var (
 	server  *grpc.Server
 	stubext StubExt
 )
+
+// mock Check function return Error body no healthy upstream
+func mockCheckRPC(t *testing.T) (*mock_protos_go.MockHealthClient, *gomock.Controller) {
+	ctrl := gomock.NewController(t)
+	mockedClient := mock_protos_go.NewMockHealthClient(ctrl)
+	stubclient := mockedClient
+	mockedClient.EXPECT().Check(gomock.Any(), gomock.Any(), gomock.Any()).Return(
+		nil, errors.New("no healthy upstream"),
+	).AnyTimes()
+	return stubclient, ctrl
+}
+
+func tearDownMmockCheckRPC(ctrl *gomock.Controller) {
+	ctrl.Finish()
+}
 
 func setupStub(env string) {
 	stubext = StubExt{
@@ -105,9 +125,6 @@ func TestStubExt(t *testing.T) {
 		ctx := stubext.GetCtx(context.Background())
 		md, ok := metadata.FromOutgoingContext(ctx)
 		assert.True(t, ok)
-		//if !ok {
-		//	t.Errorf("ctx not ok: %v", ctx)
-		//}
 		t.Logf("md: %v", md)
 
 		// call
@@ -172,19 +189,12 @@ func TestStubExtServerStopRetryLongerUh(t *testing.T) {
 	// setup
 	setupServer()
 	setupStub("grpclong")
-
-	// test uhUpstreamMsg
-	// 当uhUpstreamMsg与grpc响应body相同时则不重试
-	uhUpstreamMsg = "connection error: desc = \"transport: Error while dialing dial tcp 127.0.0.1:5555: connect: connection refused\""
-	// init client
-	client := stubext.Clients["health"]
-	stubclient := client.(protos_go.HealthClient)
-
 	// stop server
 	server.GracefulStop()
 
-	// call
 	start := time.Now()
+	stubclient, ctrl := mockCheckRPC(t)
+	defer tearDownMmockCheckRPC(ctrl)
 	_, err := stubclient.Check(
 		stubext.GetCtx(context.Background()),
 		&protos_go.HealthCheckRequest{},

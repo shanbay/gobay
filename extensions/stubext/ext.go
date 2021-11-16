@@ -3,11 +3,12 @@ package stubext
 import (
 	"context"
 	"errors"
-	"google.golang.org/grpc/status"
 	"log"
 	"net"
 	"strconv"
 	"time"
+
+	"google.golang.org/grpc/status"
 
 	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
 	"github.com/shanbay/gobay"
@@ -65,8 +66,8 @@ func (d *StubExt) Close() error {
 	return d.conn.Close()
 }
 
-// no healthy upstream的拦截器
-func uhInterceptor() grpc.UnaryClientInterceptor {
+// no healthy upstream的unary拦截器
+func newUHUnaryInterceptor() grpc.UnaryClientInterceptor {
 	return func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
 		err := invoker(ctx, method, req, reply, cc, opts...)
 		if err == nil {
@@ -78,6 +79,22 @@ func uhInterceptor() grpc.UnaryClientInterceptor {
 			}
 		}
 		return err
+	}
+}
+
+// no healthy upstream的stream拦截器
+func newUHStreamInterceptor() grpc.StreamClientInterceptor {
+	return func(ctx context.Context, desc *grpc.StreamDesc, cc *grpc.ClientConn, method string, streamer grpc.Streamer, opts ...grpc.CallOption) (grpc.ClientStream, error) {
+		clientStream, err := streamer(ctx, desc, cc, method, opts...)
+		if err == nil {
+			return clientStream, nil
+		} else {
+			e, _ := status.FromError(err)
+			if e.Message() == uhUpstreamMsg {
+				return nil, ErrUnHealthyUpStream
+			}
+		}
+		return clientStream, err
 	}
 }
 
@@ -163,8 +180,9 @@ func (d *StubExt) GetConn(userOpts ...grpc.DialOption) (*grpc.ClientConn, error)
 		opts = append(
 			opts,
 			grpc.WithChainUnaryInterceptor(grpc_retry.UnaryClientInterceptor(callOpts...)),
-			grpc.WithChainUnaryInterceptor(uhInterceptor()),
+			grpc.WithChainUnaryInterceptor(newUHUnaryInterceptor()),
 			grpc.WithChainStreamInterceptor(grpc_retry.StreamClientInterceptor(callOpts...)),
+			grpc.WithChainStreamInterceptor(newUHStreamInterceptor()),
 		)
 		// connect
 		ctxDefault := context.Background()
