@@ -72,7 +72,7 @@ jobs:
       - name: Before tests 1.15
         if: ${{ env.GOENV_VERSION == '1.15' }}
         run: |
-          go install github.com/golangci/golangci-lint/cmd/golangci-lint
+          go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.42.1
       - name: Before tests 1.16
         if: ${{ env.GOENV_VERSION == '1.16' }}
         run: |
