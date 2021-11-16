@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"time"
 
+	"google.golang.org/grpc/status"
+
 	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
 	"github.com/shanbay/gobay"
 	"go.elastic.co/apm/module/apmgrpc"
@@ -26,6 +28,8 @@ var (
 	defaultRetryCodes   = []codes.Code{
 		codes.Unavailable,
 	}
+	uhUpstreamMsg        = "no healthy upstream"
+	ErrUnHealthyUpStream = errors.New("grpc response body is no healthy upstream")
 )
 
 type StubExt struct {
@@ -60,6 +64,38 @@ func (d *StubExt) Close() error {
 		return nil
 	}
 	return d.conn.Close()
+}
+
+// no healthy upstream的unary拦截器
+func newUHUnaryInterceptor() grpc.UnaryClientInterceptor {
+	return func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
+		err := invoker(ctx, method, req, reply, cc, opts...)
+		if err == nil {
+			return nil
+		} else {
+			e, _ := status.FromError(err)
+			if e.Message() == uhUpstreamMsg {
+				return ErrUnHealthyUpStream
+			}
+		}
+		return err
+	}
+}
+
+// no healthy upstream的stream拦截器
+func newUHStreamInterceptor() grpc.StreamClientInterceptor {
+	return func(ctx context.Context, desc *grpc.StreamDesc, cc *grpc.ClientConn, method string, streamer grpc.Streamer, opts ...grpc.CallOption) (grpc.ClientStream, error) {
+		clientStream, err := streamer(ctx, desc, cc, method, opts...)
+		if err == nil {
+			return clientStream, nil
+		} else {
+			e, _ := status.FromError(err)
+			if e.Message() == uhUpstreamMsg {
+				return nil, ErrUnHealthyUpStream
+			}
+		}
+		return clientStream, err
+	}
 }
 
 func (d *StubExt) Init(app *gobay.Application) error {
@@ -144,7 +180,9 @@ func (d *StubExt) GetConn(userOpts ...grpc.DialOption) (*grpc.ClientConn, error)
 		opts = append(
 			opts,
 			grpc.WithChainUnaryInterceptor(grpc_retry.UnaryClientInterceptor(callOpts...)),
+			grpc.WithChainUnaryInterceptor(newUHUnaryInterceptor()),
 			grpc.WithChainStreamInterceptor(grpc_retry.StreamClientInterceptor(callOpts...)),
+			grpc.WithChainStreamInterceptor(newUHStreamInterceptor()),
 		)
 		// connect
 		ctxDefault := context.Background()

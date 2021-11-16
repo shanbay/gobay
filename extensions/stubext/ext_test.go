@@ -2,23 +2,44 @@ package stubext
 
 import (
 	"context"
+	"errors"
 	"log"
 	"net"
 	"strconv"
 	"testing"
 	"time"
 
+	"github.com/golang/mock/gomock"
+
+	"github.com/stretchr/testify/assert"
+
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 
 	"github.com/shanbay/gobay"
-	"github.com/shanbay/gobay/testdata/health_pb"
+	protos_go "github.com/shanbay/gobay/testdata/health_pb"
+	mock_protos_go "github.com/shanbay/gobay/testdata/health_pb_mock"
 )
 
 var (
 	server  *grpc.Server
 	stubext StubExt
 )
+
+// mock Check function return Error body no healthy upstream
+func mockCheckRPC(t *testing.T) (*mock_protos_go.MockHealthClient, *gomock.Controller) {
+	ctrl := gomock.NewController(t)
+	mockedClient := mock_protos_go.NewMockHealthClient(ctrl)
+	stubclient := mockedClient
+	mockedClient.EXPECT().Check(gomock.Any(), gomock.Any(), gomock.Any()).Return(
+		nil, errors.New("no healthy upstream"),
+	).AnyTimes()
+	return stubclient, ctrl
+}
+
+func tearDownMmockCheckRPC(ctrl *gomock.Controller) {
+	ctrl.Finish()
+}
 
 func setupStub(env string) {
 	stubext = StubExt{
@@ -103,20 +124,13 @@ func TestStubExt(t *testing.T) {
 		// set ctx
 		ctx := stubext.GetCtx(context.Background())
 		md, ok := metadata.FromOutgoingContext(ctx)
-		if !ok {
-			t.Errorf("ctx not ok: %v", ctx)
-		}
+		assert.True(t, ok)
 		t.Logf("md: %v", md)
 
 		// call
 		res, err := stubclient.Check(ctx, &protos_go.HealthCheckRequest{})
-		if err != nil {
-			t.Errorf("Check failed: %v", err)
-		}
-		if res.Status != protos_go.HealthCheckResponse_SERVING {
-			t.Errorf("Status should be SERVING")
-		}
-
+		assert.Nil(t, err)
+		assert.Equal(t, res.Status, protos_go.HealthCheckResponse_SERVING)
 		// tearDown
 		tearDownServer()
 	}
@@ -136,17 +150,13 @@ func TestStubExtServerStop(t *testing.T) {
 
 	// call
 	start := time.Now()
-	res, err := stubclient.Check(
+	_, err := stubclient.Check(
 		stubext.GetCtx(context.Background()),
 		&protos_go.HealthCheckRequest{},
 	)
-	if err == nil {
-		t.Errorf("Check not failed: %v", res)
-	}
+	assert.NotNil(t, err)
 	diff := time.Since(start)
-	if diff > 200*time.Millisecond {
-		t.Errorf("time shoud less than 200ms")
-	}
+	assert.True(t, diff < 200*time.Millisecond)
 	t.Logf("shorter duration: %v", diff)
 }
 
@@ -164,17 +174,34 @@ func TestStubExtServerStopRetryLonger(t *testing.T) {
 
 	// call
 	start := time.Now()
-	res, err := stubclient.Check(
+	_, err := stubclient.Check(
 		stubext.GetCtx(context.Background()),
 		&protos_go.HealthCheckRequest{},
 	)
-	if err == nil {
-		t.Errorf("Check not failed: %v", res)
-	}
+	assert.NotNil(t, err)
+
 	diff := time.Since(start)
-	if diff < 900*time.Millisecond {
-		t.Errorf("time shoud longer than 900ms")
-	}
+	assert.True(t, diff > 200*time.Millisecond)
+	t.Logf("longer duration: %v", diff)
+}
+
+func TestStubExtServerStopRetryLongerUh(t *testing.T) {
+	// setup
+	setupServer()
+	setupStub("grpclong")
+	// stop server
+	server.GracefulStop()
+
+	start := time.Now()
+	stubclient, ctrl := mockCheckRPC(t)
+	defer tearDownMmockCheckRPC(ctrl)
+	_, err := stubclient.Check(
+		stubext.GetCtx(context.Background()),
+		&protos_go.HealthCheckRequest{},
+	)
+	assert.NotNil(t, err)
+	diff := time.Since(start)
+	assert.True(t, diff < 1*time.Millisecond)
 	t.Logf("longer duration: %v", diff)
 }
 
@@ -192,17 +219,13 @@ func TestStubExtServerStopNoRetry(t *testing.T) {
 
 	// call
 	start := time.Now()
-	res, err := stubclient.Check(
+	_, err := stubclient.Check(
 		stubext.GetCtx(context.Background()),
 		&protos_go.HealthCheckRequest{},
 	)
-	if err == nil {
-		t.Errorf("Check not failed: %v", res)
-	}
+	assert.NotNil(t, err)
 	diff := time.Since(start)
-	if diff > 1*time.Millisecond {
-		t.Errorf("time shoud less than 1ms, got %v", diff)
-	}
+	assert.True(t, diff < 1*time.Millisecond)
 	t.Logf("no retry duration: %v", diff)
 }
 
@@ -212,7 +235,5 @@ func TestStubExtServerStopMocked(t *testing.T) {
 
 	// init client
 	client := stubext.Clients["health"]
-	if client != nil {
-		t.Error("mocked failed")
-	}
+	assert.Nil(t, client)
 }
