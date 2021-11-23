@@ -10,7 +10,7 @@ func Serve(app *gobay.Application) error {
 	myapp.InitExts(app)
 	RegisterAsyncTaskWorkerHandlers()
 
-	if err := myapp.AsyncTask.StartWorker("", 10); err != nil {
+	if err := myapp.AsyncTask.StartWorker("", 10, true); err != nil {
 		return err
 	}
 	return nil
