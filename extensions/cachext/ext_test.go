@@ -152,7 +152,7 @@ func TestCacheExt_Operation(t *testing.T) {
 	mydata := myData{}
 	mydata.Value1 = 100
 	mydata.Value2 = "thre si a verty conplex data {}{}"
-	mydata.Value3 = []node{node{"这是第一个node", []string{"id1", "id2", "id3"}}, node{"这是第二个node", []string{"id4", "id5", "id6"}}}
+	mydata.Value3 = []node{{"这是第一个node", []string{"id1", "id2", "id3"}}, {"这是第二个node", []string{"id4", "id5", "id6"}}}
 	if err := cache.Set(context.Background(), "cache_key_2", mydata, 10*time.Second); err != nil {
 		t.Log(err)
 		t.Errorf("Cache Set Failed")
@@ -392,7 +392,9 @@ func TestCacheExt_Cached_Common(t *testing.T) {
 	// nil
 	f_nil := func(_ context.Context, names []string, arg []int64) (interface{}, error) {
 		call_times += 1
-		return nil, nil
+		return func() (*string, error) {
+			return nil, nil
+		} ()
 	}
 	c_f_nil := cache.Cached("f_nil", f_nil, cachext.WithVersion(2), cachext.WithTTL(10*time.Second), cachext.WithCacheNil(false))
 	nil_res := ""
@@ -463,7 +465,7 @@ func TestCacheExt_Cached_Struct(t *testing.T) {
 		mydata.Value2 = "thre si a verty conplex data {}{}"
 		some_str := "some str"
 		mydata.Value4 = some_str
-		mydata.Value3 = []node{node{"这是第一个node", []string{"id1", "id2", "id3"}}, node{"这是第二个node", []string{"id4", "id5", "id6"}}}
+		mydata.Value3 = []node{{"这是第一个node", []string{"id1", "id2", "id3"}}, {"这是第二个node", []string{"id4", "id5", "id6"}}}
 		return mydata, nil
 	}
 	cached_complex_ff := cache.Cached("complex_ff", complex_ff, cachext.WithTTL(10*time.Second))

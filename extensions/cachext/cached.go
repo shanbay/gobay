@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -87,7 +88,12 @@ func (c *CachedConfig) GetResult(ctx context.Context, out interface{}, strArgs [
 		return errors.New("Your response is conflict with cacheNil value")
 	}
 
-	status := [2]bool{res == nil, c.cacheNil} // 函数返回值与是否cacheNil状态判断
+	resIsNil := false
+	// res 储存的是一个有类型的 nil 指针时，`== nil` 是 false
+	if res == nil || (reflect.ValueOf(res).Kind() == reflect.Ptr && reflect.ValueOf(res).IsNil()) {
+		resIsNil = true
+	}
+	status := [2]bool{resIsNil, c.cacheNil} // 函数返回值与是否cacheNil状态判断
 	cacheNilHited := [2]bool{true, true}      // 函数返回值是nil，同时cacheNil。
 	noNeedCacheNil := [2]bool{true, false}    // 函数返回值是nil，不cacheNil。
 
