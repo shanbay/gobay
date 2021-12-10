@@ -1,0 +1,85 @@
+defaults: &defaults
+  db_driver: mysql
+  db_url: "root:toor333666@(mysql:3306)/quest?charset=utf8mb4&parseTime=true&loc=UTC&interpolateParams=true"
+
+  redis_addr: "redis:6379"
+  redis_password: ""
+  redis_db: 0
+  cache_backend: "redis"
+  cache_prefix: "quest"
+  cache_host: "redis:6379"
+  cache_password: ""
+  cache_db: 0
+
+  seqgen_sequence_base: 0
+  seqgen_sequence_key: "quest:global_id"
+
+  sentry_dsn: "https://user:pass@sentry.abc.com/90"
+  sentry_environment: "development"
+
+  stub_permission_host: "127.0.0.1"
+  stub_permission_port: 6000
+  stub_permission_authority: "permission-rpc.xyz"
+  stub_permission_metadata:
+    svc_auth_token: "abcdefg"
+  stub_permission_retrybackoff: 50ms
+  stub_permission_retrytimes: 3
+  stub_permission_conntimeout: 5s
+
+  elastic_apm_service_name: "quest-rpc-go"
+  elastic_apm_service_version: "1"
+  elastic_apm_server_url: ""
+  elastic_apm_transaction_sample_rate: 0.01
+  elastic_apm_enable: false
+
+  elasticsearch_addresses:
+    - "http://elasticsearch:9200"
+
+  openapi_listen_host: "0.0.0.0"
+  openapi_listen_port: 5000
+
+  grpc_listen_host: 0.0.0.0
+  grpc_conn_timeout: 1s
+
+  asynctask_concurrency: 10
+  asynctask_broker: "redis://redis:6379/8"
+  asynctask_default_queue: "quest.task"
+  asynctask_result_backend: "redis://redis:6379/8"
+  asynctask_results_expire_in: 3600
+  asynctask_redis: {}
+
+  sensors_ns: "xyz"
+  encoder_short_url_alphabet: "abcdefghijklmnopqrstuvwxyz"
+
+  sensorsexport_project: "default"
+  sensorsexport_token: ""
+
+  sensorskafka_enabled: true
+  sensorskafka_version: "2.2.0"
+  sensorskafka_assignor: "range"
+  sensorskafka_brokers: "127.0.0.1:9092"
+  sensorskafka_group: "quest1"
+  sensorskafka_from_beginning: false
+
+  questkafkaconsumer_version: "2.2.0"
+  questkafkaconsumer_assignor: "range"
+  questkafkaconsumer_brokers: "127.0.0.1:9092"
+  questkafkaconsumer_group: "quest"
+  questkafkaconsumer_from_beginning: true
+  questkafkaconsumer_enabled: "true"
+
+  questkafkaproducer_version: "2.2.0"
+  questkafkaproducer_brokers: "127.0.0.1:9092"
+
+development:
+  <<: *defaults
+
+  stub_permission_mocked: true
+testing:
+  <<: *defaults
+  stub_permission_mocked: true
+  db_url: "root:toor333666@(mysql:3306)/quest_test?charset=utf8mb4&parseTime=true&loc=UTC&interpolateParams=true"
+  asynctask_broker: "redis://redis:6379/0"
+  asynctask_result_backend: "redis://redis:6379/0"
+  elasticsearch_addresses:
+    - "http://elasticsearch:9200"

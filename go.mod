@@ -5,6 +5,8 @@ go 1.15
 require (
 	github.com/RichardKnop/logging v0.0.0-20190827224416-1a693bdd4fae
 	github.com/RichardKnop/machinery v1.10.6
+	github.com/Shopify/sarama v1.30.1 // indirect
+	github.com/Shopify/toxiproxy v2.1.4+incompatible // indirect
 	github.com/elastic/go-sysinfo v1.7.0 // indirect
 	github.com/elastic/go-windows v1.0.1 // indirect
 	github.com/facebook/ent v0.4.0
@@ -26,6 +28,7 @@ require (
 	github.com/prometheus/client_golang v1.11.0
 	github.com/prometheus/procfs v0.7.1 // indirect
 	github.com/satori/go.uuid v1.2.0
+	github.com/spf13/afero v1.1.2 // indirect
 	github.com/spf13/cobra v1.1.1
 	github.com/spf13/viper v1.7.1
 	github.com/streadway/amqp v1.0.0
@@ -41,6 +44,11 @@ require (
 	golang.org/x/tools v0.1.5 // indirect
 	google.golang.org/grpc v1.35.0
 	google.golang.org/grpc/examples v0.0.0-20200925170654-e6c98a478e62 // indirect
+	gopkg.in/jcmturner/aescts.v1 v1.0.1 // indirect
+	gopkg.in/jcmturner/dnsutils.v1 v1.0.1 // indirect
+	gopkg.in/jcmturner/goidentity.v3 v3.0.0 // indirect
+	gopkg.in/jcmturner/gokrb5.v7 v7.2.3 // indirect
+	gopkg.in/jcmturner/rpc.v1 v1.1.0 // indirect
 	howett.net/plist v0.0.0-20201203080718-1454fab16a06 // indirect
 )
 
