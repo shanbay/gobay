@@ -1,3 +1,9 @@
+# 0.16.4 (2021-12-11)
+
+- 添加 kafka producer extension
+- 添加 kafka consumer extension
+- 添加 kafka batch consumer 功能
+
 # 0.16.3 (2021-10-09)
 
 - 修正 `DialOptions` 拼写
@@ -11,7 +17,7 @@
 
 - 改用 `shanbay/amqp`
 - 增加 asynctask ext 的健康检查
-    - 使用方法：`curl 127.0.0.1:9000/health?timeout=5&queue=gobay.task_sub`
+  - 使用方法：`curl 127.0.0.1:9000/health?timeout=5&queue=gobay.task_sub`
 
 # 0.14.0 (2020-11-19)
 

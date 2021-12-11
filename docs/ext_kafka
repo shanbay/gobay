@@ -1,0 +1,194 @@
+# 接入kafka
+
+kafka有两部分:
+- 向kafka里写入消息, kafka producer
+- 从kafka里读取消息，kafka consumer
+
+## kafka producer
+
+### config 配置
+
+首先，配置config.yaml
+
+```yaml
+	mykafkaproducer_version: "2.2.0"
+	mykafkaproducer_brokers: "127.0.0.1:9092"
+	mykafkaproducer_enabled: "true"
+```
+
+考虑到项目里的一些服务可能不用 kafka producer，那么可以用environment variable来关闭这个功能。
+`_enabled`是string类型，为了方便配合env var使用。
+
+```
+mykafkaproducer_enabled: ${KAFKA_PRODUCER_ENABLED}
+```
+
+### 设置加载时用的 extension
+
+- `app/extensions.go`
+
+```go
+package app
+
+import (
+  "github.com/shanbay/gobay/extensions/kafkaproducerext"
+)
+
+func Extensions() map[gobay.Key]gobay.Extension {
+  return map[gobay.Key]gobay.Extension{
+    // ...
+    "questKafkaProducer": &kafkaproducerext.KafkaProducerExt{NS: "mykafkaproducer_"},
+    // ...
+  }
+}
+
+var (
+  // ...
+  QuestKafkaProducerClient *kafkaproducerext.KafkaProducerExt
+  // ...
+)
+
+func InitExts(app *gobay.Application) {
+  // ...
+  QuestKafkaProducerClient = app.Get("questKafkaProducer").Object().(*kafkaproducerext.KafkaProducerExt)
+  // ...
+}
+```
+
+### 使用
+
+```go
+	message := &sarama.ProducerMessage{Topic: app.KafkaAsyncTaskTopic, Value: sarama.ByteEncoder(requestData)}
+	(*app.QuestKafkaProducerClient.Client()).Input() <- message
+```
+
+## kafka consumer
+
+### config 配置
+
+首先，配置config.yaml
+
+```yaml
+mykafkaconsumer_enabled: "true"
+mykafkaconsumer_version: "2.2.0"
+mykafkaconsumer_assignor: "range"
+mykafkaconsumer_brokers: "127.0.0.1:9092"
+mykafkaconsumer_group: "quest1"
+mykafkaconsumer_from_beginning: false
+```
+
+考虑到项目里的一些服务可能不用 kafka consumer，那么可以用environment variable来关闭这个功能。
+`_enabled`是string类型，为了方便配合env var使用。
+
+```
+mykafkaconsumer_enabled: ${KAFKA_PRODUCER_ENABLED}
+```
+
+### 设置加载时用的 extension
+
+- `app/extensions.go`
+
+```go
+package app
+
+import (
+  "github.com/shanbay/gobay/extensions/kafkaconsumerext"
+)
+
+func Extensions() map[gobay.Key]gobay.Extension {
+  return map[gobay.Key]gobay.Extension{
+    // ...
+    "questKafkaConsumer": &kafkaconsumerext.KafkaConsumerExt{NS: "mykafkaconsumer_"},
+    // ...
+  }
+}
+
+var (
+  // ...
+  QuestKafkaConsumerClient *kafkaconsumerext.KafkaConsumerExt
+  // ...
+)
+
+func InitExts(app *gobay.Application) {
+  // ...
+  QuestKafkaConsumerClient = app.Get("questKafkaConsumer").Object().(*kafkaconsumerext.KafkaConsumerExt)
+  // ...
+}
+```
+
+- 使用 kafka consumer extension
+
+也可以参考[官方 example](https://github.com/Shopify/sarama/blob/main/examples/consumergroup/main.go)
+
+```go
+	consumer := SensorsKafkaConsumer{
+		ready: make(chan bool),
+	}
+
+	topics := "some_topic" // TODO: set topic to consume here
+
+	defer func() {
+		if err := app.SensorsKafkaClient.Close(); err != nil {
+			log.Panicf("Error closing client: %v", err)
+		}
+	}()
+
+	for {
+		if err := (*app.SensorsKafkaClient.Client()).Consume(ctx, []string{"some-topic"}, &consumer); err != nil {
+			log.Panicf("Error from consumer: %v", err)
+		}
+		if ctx.Err() != nil {
+			return
+		}
+		consumer.ready = make(chan bool)
+	}
+	...
+```
+
+## 使用 batch consumer 功能
+
+主要是为了实现一些批量处理消息的能力。比如一条一条写入elasticsearch会比较慢（每条insert都是一个api请求），而批量insert则性能更好（多个insert放在一个api请求里执行）
+
+我们添加了批量处理消息的能力，也就是把kafka消息放在一个buffer力，定期定量的批量处理。
+
+这个consumer helper放在了`extensions/kafkaconsumerext/kafkaconsumers`，下面一个使用案例:
+
+```go
+import (
+  "github.com/shanbay/gobay/extensions/kafkaconsumerext/kafkaconsumers"
+)
+
+func HandleBatchMessages(messages []*kafkaconsumers.ConsumerSessionMessage) error {
+	....
+}
+
+
+func main() {
+	handler := kafkaconsumers.NewBatchConsumerGroupHandler(&kafka.BatchConsumerConfig{
+		MaxBufSize:            1000, // buffer 大小极限值，到达极限值就立刻运行batch处理任务
+		TickerIntervalSeconds: 3, // 每3秒处理一下buffer内所有剩余message
+		Callback:              HandleBatchMessages, // 处理message的handler function
+	})
+
+	defer func() {
+		if err := myapp.SensorsKafkaClient.Close(); err != nil {
+			log.Panicf("Error closing client: %v", err)
+		}
+	}()
+
+	for {
+		err := (*myapp.QuestKafkaConsumerClient.Client()).Consume(ctx, []string{"some-topic"}, handler)
+		if err != nil {
+			if err == sarama.ErrClosedConsumerGroup {
+				break
+			} else {
+				panic(err)
+			}
+		}
+		if ctx.Err() != nil {
+			return nil
+		}
+		handler.Reset()
+	}
+}
+```
