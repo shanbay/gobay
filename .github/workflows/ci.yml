@@ -18,6 +18,12 @@ jobs:
         os: [ubuntu-latest]
 
     services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
       rabbitmq:
         image: rabbitmq:3.8
         env:
@@ -49,8 +55,7 @@ jobs:
     steps:
       - name: Set up MySQL
         run: |
-          sudo /etc/init.d/mysql start
-          mysql -e 'CREATE DATABASE ${{ env.DB_DATABASE }};' -u${{ env.DB_USER }} -p${{ env.DB_PASSWORD }}
+          mysql -e 'CREATE DATABASE ${{ env.DB_DATABASE }};' -u${{ env.DB_USER }} -p${{ env.DB_PASSWORD }} -h 127.0.0.1
       - name: Check out code into Go module directory 
         uses: actions/checkout@v2
 
