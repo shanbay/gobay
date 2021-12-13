@@ -80,7 +80,11 @@ func (encoder *UrlEncoder) debase(x string) uint64 {
 	result := uint64(0)
 	bits := []byte(x)
 	for _, bitValue := range bits {
-		result = result*n + uint64(strings.IndexByte(encoder.opt.Alphabet, bitValue))
+		index := strings.IndexByte(encoder.opt.Alphabet, bitValue)
+		if index == -1 {
+			panic(x + " is not a valid string for encoder")
+		}
+		result = result*n + uint64(index)
 	}
 	return result
 }
