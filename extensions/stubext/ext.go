@@ -165,6 +165,8 @@ func (d *StubExt) getCallOpts() []grpc_retry.CallOption {
 func (d *StubExt) GetConn(userOpts ...grpc.DialOption) (*grpc.ClientConn, error) {
 	if d.conn == nil {
 		var opts []grpc.DialOption
+		// x-down-stream-name
+		opts = append(opts, grpc.WithUnaryInterceptor(DownSteamNameHeaderInterceptorForK8sPod))
 		// opts: authority
 		if d.Authority != "" {
 			opts = append(opts, grpc.WithAuthority(d.Authority))

@@ -13,7 +13,6 @@ require (
 	github.com/go-redis/redis v6.15.9+incompatible
 	github.com/go-sql-driver/mysql v1.5.1-0.20200311113236-681ffa848bae
 	github.com/golang/mock v1.4.4
-	github.com/golang/protobuf v1.4.3
 	github.com/google/uuid v1.2.0
 	github.com/grpc-ecosystem/go-grpc-middleware v1.2.2
 	github.com/hashicorp/go-multierror v1.1.0
@@ -39,8 +38,9 @@ require (
 	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616 // indirect
 	golang.org/x/sys v0.0.0-20210630005230-0f9fa26af87c // indirect
 	golang.org/x/tools v0.1.5 // indirect
-	google.golang.org/grpc v1.35.0
-	google.golang.org/grpc/examples v0.0.0-20200925170654-e6c98a478e62 // indirect
+	google.golang.org/grpc v1.36.0
+	google.golang.org/grpc/examples v0.0.0-20211213215630-a32d2778f37b // indirect
+	google.golang.org/protobuf v1.26.0-rc.1
 	howett.net/plist v0.0.0-20201203080718-1454fab16a06 // indirect
 )
 
