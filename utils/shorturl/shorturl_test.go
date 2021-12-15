@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestUrlEncoder(t *testing.T) {
@@ -28,4 +30,7 @@ func TestUrlEncoder(t *testing.T) {
 			t.Errorf("result was incorrect, got: %d, want: %d.", resultNumber, number)
 		}
 	}
+
+	// wrong string
+	assert.Panics(t, func () { encoder.DecodeURL("1") })
 }
