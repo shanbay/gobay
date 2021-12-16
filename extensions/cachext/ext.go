@@ -1,7 +1,6 @@
 package cachext
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -246,14 +245,6 @@ func encode(value interface{}) ([]byte, error) {
 
 func decode(data []byte, out interface{}) error {
 	return msgpack.Unmarshal(data, out)
-}
-
-func decodeIsNil(data interface{}) bool {
-	if byteData, ok := data.([]byte); ok {
-		err := msgpack.NewDecoder(bytes.NewReader(byteData)).DecodeNil()
-		return (err == nil)
-	}
-	return false
 }
 
 // Create a collector for total cache request counter

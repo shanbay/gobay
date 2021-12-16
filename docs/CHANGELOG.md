@@ -1,3 +1,12 @@
+# 1.0.0 (2022-01-05)
+
+- 删除 cachext 的 cacheNil 逻辑
+
+**BREAKING CHANGE**:
+
+- 去掉 WithCacheNil 配置
+- 以前判断了 cachext.Nil 的地方，应该改为判断响应后 out 值是否为空值
+
 # 0.16.3 (2021-10-09)
 
 - 修正 `DialOptions` 拼写
