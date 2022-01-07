@@ -13,16 +13,9 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-const Nil = cacheNil("cache result is nil")
-
-type cacheNil string
-
-func (e cacheNil) Error() string { return string(e) }
-
 // CachedConfig save the param and config for a cached func
 type CachedConfig struct {
 	cache        *CacheExt
-	cacheNil     bool
 	ttl          time.Duration
 	version      int64
 	funcName     string
@@ -72,46 +65,22 @@ func (c *CachedConfig) GetResult(ctx context.Context, out interface{}, strArgs [
 			// Increment hit counter.
 			c.cache.hitCounter.With(labels).Inc()
 		}
-		if c.cacheNil && decodeIsNil(data) {
-			// 无法直接把out设置为nil，这里通过返回特殊的错误来表示nil。调用方需要判断
-			return Nil
-		}
 		return decode(data, out)
 	}
 	res, err := c.getResult(ctx, strArgs, intArgs)
 	if err != nil {
 		return err
 	}
-	// 函数返回值与cacheNil需要设置的值相同，报错
-	if c.cacheNil && decodeIsNil(res) {
-		return errors.New("Your response is conflict with cacheNil value")
-	}
 
-	status := [2]bool{res == nil, c.cacheNil} // 函数返回值与是否cacheNil状态判断
-	cacheNilHited := [2]bool{true, true}      // 函数返回值是nil，同时cacheNil。
-	noNeedCacheNil := [2]bool{true, false}    // 函数返回值是nil，不cacheNil。
-
-	switch status {
-	case cacheNilHited:
-		// Set nil 会保存一个[]byte{192}的结构到backend中
-		nilBytes, _ := encode(nil)
-		if err = c.cache.backend.Set(ctx, c.cache.transKey(cacheKey), nilBytes, c.ttl); err != nil {
+	// 把结果放入缓存
+	if encodedBytes, err := encode(res); err != nil {
+		return err
+	} else {
+		err = c.cache.backend.Set(ctx, c.cache.transKey(cacheKey), encodedBytes, c.ttl)
+		if err != nil {
 			return err
 		}
-		return Nil
-	case noNeedCacheNil:
-		return Nil
-	default:
-		// 函数返回值非空，把结果放入缓存。不管是否cacheNil
-		if encodedBytes, err := encode(res); err != nil {
-			return err
-		} else {
-			err = c.cache.backend.Set(ctx, c.cache.transKey(cacheKey), encodedBytes, c.ttl)
-			if err != nil {
-				return err
-			}
-			return decode(encodedBytes, out)
-		}
+		return decode(encodedBytes, out)
 	}
 }
 
@@ -125,7 +94,6 @@ func (c *CacheExt) Cached(funcName string, f cachedFunc, options ...cacheOption)
 	c.cachedFuncName[funcName] = void{}
 	cacheFuncConf := &CachedConfig{
 		ttl:          24 * 2 * time.Hour,
-		cacheNil:     false,
 		version:      1,
 		cache:        c,
 		getResult:    f,
@@ -156,15 +124,6 @@ func WithTTL(ttl time.Duration) cacheOption {
 func WithVersion(version int64) cacheOption {
 	return func(config *CachedConfig) error {
 		config.version = version
-		return nil
-	}
-}
-
-// WithCacheNil set whether cacheNil to cacheFuncConfig, if cacheNil seted and function returns nil, GetResult will return Nil
-// cacheNil stored in redis with []byte{192} 0xC0
-func WithCacheNil(cacheNil bool) cacheOption {
-	return func(config *CachedConfig) error {
-		config.cacheNil = cacheNil
 		return nil
 	}
 }

@@ -152,7 +152,7 @@ func TestCacheExt_Operation(t *testing.T) {
 	mydata := myData{}
 	mydata.Value1 = 100
 	mydata.Value2 = "thre si a verty conplex data {}{}"
-	mydata.Value3 = []node{node{"这是第一个node", []string{"id1", "id2", "id3"}}, node{"这是第二个node", []string{"id4", "id5", "id6"}}}
+	mydata.Value3 = []node{{"这是第一个node", []string{"id1", "id2", "id3"}}, {"这是第二个node", []string{"id4", "id5", "id6"}}}
 	if err := cache.Set(context.Background(), "cache_key_2", mydata, 10*time.Second); err != nil {
 		t.Log(err)
 		t.Errorf("Cache Set Failed")
@@ -392,44 +392,33 @@ func TestCacheExt_Cached_Common(t *testing.T) {
 	// nil
 	f_nil := func(_ context.Context, names []string, arg []int64) (interface{}, error) {
 		call_times += 1
-		return nil, nil
+		return func() (*string, error) {
+			return nil, nil
+		}()
 	}
-	c_f_nil := cache.Cached("f_nil", f_nil, cachext.WithVersion(2), cachext.WithTTL(10*time.Second), cachext.WithCacheNil(false))
-	nil_res := ""
+	c_f_nil := cache.Cached("f_nil", f_nil, cachext.WithVersion(2), cachext.WithTTL(10*time.Second))
+	nil_res := "content"
 	call_times = 0
 	for i := 0; i <= 3; i++ {
 		err := c_f_nil.GetResult(context.Background(), &nil_res, []string{}, []int64{})
-		if err != cachext.Nil {
-			t.Errorf("Not Cache Nil failed")
+		if err != nil || nil_res != "" {
+			t.Errorf(err.Error())
 		}
 	}
 	if call_times != 4 {
 		t.Log(nil_res, call_times)
 	}
-	cn_f_nil := cache.Cached("cn_f_nil", f_nil, cachext.WithVersion(5), cachext.WithTTL(10*time.Second), cachext.WithCacheNil(true))
+	nil_res = "content"
+	cn_f_nil := cache.Cached("cn_f_nil", f_nil, cachext.WithVersion(5), cachext.WithTTL(10*time.Second))
 	call_times = 0
 	for i := 0; i <= 3; i++ {
 		err := cn_f_nil.GetResult(context.Background(), &nil_res, []string{}, []int64{})
-		if err != cachext.Nil {
-			t.Errorf("Cache Nil failed")
+		if err != nil || nil_res != "" {
+			t.Errorf(err.Error())
 		}
 	}
 	if call_times != 1 {
 		t.Log(nil_res, call_times)
-	}
-	// nil 测试函数返回值与cacheNil预设值冲突时，报错情况
-	f_evil_nil := func(_ context.Context, names []string, arg []int64) (interface{}, error) {
-		return []byte{192}, nil
-	}
-	c_f_evil_nil := cache.Cached("f_evil_nil", f_evil_nil, cachext.WithTTL(10*time.Second), cachext.WithVersion(2), cachext.WithCacheNil(true))
-	if err := c_f_evil_nil.GetResult(context.Background(), &nil_res, []string{}, []int64{}); err == nil {
-		t.Log(nil_res, err, call_times)
-		t.Errorf("Evil Cache Nil happened")
-	}
-	c_f_kind_nil := cache.Cached("c_f_kind_nil", f_evil_nil, cachext.WithTTL(10*time.Second), cachext.WithVersion(2))
-	if err := c_f_kind_nil.GetResult(context.Background(), &nil_res, []string{}, []int64{}); err != nil {
-		t.Log(nil_res, err, call_times)
-		t.Errorf("Evil Cache Nil happened")
 	}
 }
 
@@ -463,7 +452,7 @@ func TestCacheExt_Cached_Struct(t *testing.T) {
 		mydata.Value2 = "thre si a verty conplex data {}{}"
 		some_str := "some str"
 		mydata.Value4 = some_str
-		mydata.Value3 = []node{node{"这是第一个node", []string{"id1", "id2", "id3"}}, node{"这是第二个node", []string{"id4", "id5", "id6"}}}
+		mydata.Value3 = []node{{"这是第一个node", []string{"id1", "id2", "id3"}}, {"这是第二个node", []string{"id4", "id5", "id6"}}}
 		return mydata, nil
 	}
 	cached_complex_ff := cache.Cached("complex_ff", complex_ff, cachext.WithTTL(10*time.Second))
