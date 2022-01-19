@@ -13,7 +13,7 @@ require (
 	github.com/go-redis/redis v6.15.9+incompatible
 	github.com/go-sql-driver/mysql v1.5.1-0.20200311113236-681ffa848bae
 	github.com/golang/mock v1.4.4
-	github.com/golang/protobuf v1.4.3
+	github.com/golang/protobuf v1.5.2
 	github.com/google/uuid v1.2.0
 	github.com/grpc-ecosystem/go-grpc-middleware v1.2.2
 	github.com/hashicorp/go-multierror v1.1.0
@@ -23,8 +23,7 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.6
 	github.com/mitchellh/mapstructure v1.4.1
 	github.com/pkg/errors v0.9.1
-	github.com/prometheus/client_golang v1.11.0
-	github.com/prometheus/procfs v0.7.1 // indirect
+	github.com/prometheus/client_golang v1.12.0
 	github.com/satori/go.uuid v1.2.0
 	github.com/spf13/cobra v1.1.1
 	github.com/spf13/viper v1.7.1
@@ -37,7 +36,6 @@ require (
 	go.elastic.co/apm/module/apmgrpc v1.9.0
 	go.elastic.co/apm/module/apmsql v1.9.0
 	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616 // indirect
-	golang.org/x/sys v0.0.0-20210630005230-0f9fa26af87c // indirect
 	golang.org/x/tools v0.1.5 // indirect
 	google.golang.org/grpc v1.35.0
 	google.golang.org/grpc/examples v0.0.0-20200925170654-e6c98a478e62 // indirect
