@@ -5,7 +5,7 @@ import (
 	"log"
 	"github.com/spf13/cobra"
 
-	"{{ $.Url }}/app"
+	myapp "{{ $.Url }}/app"
 	appoapi "{{ $.Url }}/app/oapi"
 )
 
@@ -19,11 +19,15 @@ func RunOapiSvc(cmd *cobra.Command, args []string) {
 		log.Fatalf("get root failed: %v\n", err)
 	}
 
-	bapp, err := gobay.CreateApp(root, env, app.Extensions())
+	bapp, err := gobay.CreateApp(root, env, myapp.Extensions())
 	if err != nil {
 		log.Fatalf("app init failed: %v\n", err)
 	}
-	if err := appoapi.Serve(bapp); err != nil {
+	if err := appoapi.Serve(
+		bapp,
+		appoapi.PreInitFunc,
+		appoapi.PreStartFunc,
+	); err != nil {
 		log.Fatalf("openapi serve failed: %v\n", err)
 	}
 }

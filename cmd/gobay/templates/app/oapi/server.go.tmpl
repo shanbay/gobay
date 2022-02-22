@@ -5,10 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	myapp "{{ $.Url }}/app"
 	// schema "{{ $.Url }}/gen/entschema"
@@ -29,8 +29,15 @@ import (
 )
 
 // Serve serve OpenAPI http server
-func Serve(app *gobay.Application) error {
-	myapp.InitExts(app)
+func Serve(
+	app *gobay.Application,
+	preInitFunc func(a *gobay.Application),
+	preStartFunc func(e *echo.Echo, a *gobay.Application, enableAPM bool, enableDoc bool),
+	mocked bool,
+) error {
+	// Initialize the project before loading the configuration
+	// including some configuration that initializes the extension
+	preInitFunc(app)
 
 	config := app.Config()
 
@@ -43,7 +50,21 @@ func Serve(app *gobay.Application) error {
 {{- else }}
 	enableAPM := false
 {{- end }}
-	configureMiddlewares(e, &{{ toLowerCamel $.Name }}Server{app: app}, enableAPM, true)
+
+	// config http keep-alive
+	var keepAlive time.Duration
+	if !config.InConfig("oapi_keep_alive") {
+		ttl, err := time.ParseDuration("30s")
+		if err != nil {
+			return err
+		}
+		keepAlive = ttl
+	} else {
+		keepAlive = config.GetDuration("oapi_keep_alive")
+	}
+
+	// Do something before start echo server
+	preStartFunc(e, app, enableAPM, true)
 
 	// 启动 prometheus handler
 	promSrv := http.Server{Addr: fmt.Sprintf(":%d", config.GetInt("oapi_prom_listen_port"))}
@@ -58,6 +79,7 @@ func Serve(app *gobay.Application) error {
 	stopchan := make(chan os.Signal, 1)
 	signal.Notify(stopchan, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM)
 
+	e.Serve.IdleTimeout = keepAlive
 	go func(c <-chan os.Signal) {
 		<-c
 		err := e.Shutdown(context.Background())
@@ -69,8 +91,10 @@ func Serve(app *gobay.Application) error {
 		}
 	}(stopchan)
 
-	if err := e.Start(fmt.Sprintf("%s:%d", host, port)); err != nil {
-		return err
+	if !mocked {
+		if err := e.Start(fmt.Sprintf("%s:%d", host, port)); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -112,6 +136,11 @@ func configureMiddlewares(e *echo.Echo, impls *{{ toLowerCamel $.Name }}Server, 
 	// Validator
 	e.Use(oapimw.OapiRequestValidatorWithOptions(swg, &oapimw.Options{}))
 
+	// request log
+	e.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
+		Format: `${remote_ip} - - [${time_rfc3339_nano}] "${method} ${uri} ${protocol}" ${status} ${bytes_out} "${referer}" "${user_agent}"`,
+	}))
+
 	e.HTTPErrorHandler = customHTTPErrorHandler
 }
 
@@ -131,4 +160,13 @@ func customHTTPErrorHandler(err error, c echo.Context) {
 
 func reqDetail(c echo.Context) string {
 	return fmt.Sprintf("\nPath: %s,\nParamNames: %s,\nParamValues: %s,\nQueryString: %s\n", c.Path(), c.ParamNames(), c.ParamValues(), c.QueryString())
+}
+
+func PreInitFunc(app *gobay.Application) {
+	myapp.InitExts(app)
+}
+
+func PreStartFunc func(e *echo.Echo, app *gobay.Application, enableAPM, enableDoc bool) {
+	impls := &{{ toLowerCamel $.Name }}Server{app: app}
+	configureMiddlewares(e, impls, enableAPM, enableDoc)
 }
