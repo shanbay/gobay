@@ -9,6 +9,17 @@ on:
       - master
 
 jobs:
+  golangci:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-go@v2
+      - uses: actions/checkout@v2
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v3.1.0
+        with:
+          args: --timeout=10m --skip-dirs=testdata --tests=false
+
   tests:
     name: "Golang ${{ matrix.go-version }} ${{ matrix.os }}"
     runs-on: "${{ matrix.os }}"
@@ -70,19 +81,6 @@ jobs:
           path: $GOPATH/pkg/mod
           key: ${{ runner.os }}-go-${{ matrix.go-version }}-${{ hashFiles('**/go.sum') }}
 
-      - name: Before tests 1.14
-        if: ${{ env.GOENV_VERSION == '1.14' }}
+      - name: Run tests
         run: |
-          go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.39.0
-      - name: Before tests 1.15
-        if: ${{ env.GOENV_VERSION == '1.15' }}
-        run: |
-          go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.42.1
-      - name: Before tests 1.16
-        if: ${{ env.GOENV_VERSION == '1.16' }}
-        run: |
-          go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
-      - name: Run tests and lint
-        run: |
-          golangci-lint run --timeout=10m --skip-dirs=testdata --tests=false
           go test -v -count=1 ./...
