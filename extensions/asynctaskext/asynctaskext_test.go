@@ -15,20 +15,23 @@ import (
 )
 
 var (
-	taskOne AsyncTaskExt
-	taskTwo AsyncTaskExt
+	taskOne   AsyncTaskExt
+	taskTwo   AsyncTaskExt
+	taskThree AsyncTaskExt
 )
 
 func init() {
 	taskOne = AsyncTaskExt{NS: "one_asynctask_"}
 	taskTwo = AsyncTaskExt{NS: "two_asynctask_"}
+	taskThree = AsyncTaskExt{NS: "two_asynctask_"}
 
 	app, _ := gobay.CreateApp(
 		"../../testdata",
 		"testing",
 		map[gobay.Key]gobay.Extension{
-			"oneasynctask": &taskOne,
-			"twoasynctask": &taskTwo,
+			"oneasynctask":   &taskOne,
+			"twoasynctask":   &taskTwo,
+			"threeasynctask": &taskThree,
 		},
 	)
 	if err := app.Init(); err != nil {
@@ -183,4 +186,34 @@ func TestMultiTaskExtStartWorker(t *testing.T) {
 			_ = taskTwo.StartWorker("", 1, true)
 		})
 	})
+}
+
+func TestStartWorkerLimitConcurrency(t *testing.T) {
+	t.Run("concurrency 1", func(t *testing.T) {
+		go func() {
+			if err := taskThree.StartWorker("", 1, false); err != nil {
+				t.Error(err)
+			}
+		}()
+	})
+	t.Run("concurrency 1000", func(t *testing.T) {
+		go func() {
+			if err := taskThree.StartWorker("", 1000, false); err != nil {
+				t.Error(err)
+			}
+		}()
+	})
+	t.Run("concurrency 20", func(t *testing.T) {
+		go func() {
+			if err := taskThree.StartWorker("", 20, false); err != nil {
+				t.Error(err)
+			}
+		}()
+	})
+
+	time.Sleep(5 * time.Second) // wait for all workers got to running
+	assert.Len(t, taskThree.workers, 3)
+	for _, w := range taskThree.workers {
+		assert.EqualValues(t, concurrency_limit, w.Concurrency)
+	}
 }

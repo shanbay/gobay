@@ -1,3 +1,9 @@
+# Unreleased
+
+**BREAKING CHANGE**:
+
+- asynctaskext/AsyncTaskExt.StartWorker 的 concurrency 参数不再生效，默认值为20，需要修改项目的资源配置
+
 # 1.0.0 (2022-01-05)
 
 - 删除 cachext 的 cacheNil 逻辑

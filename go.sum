@@ -636,8 +636,8 @@ github.com/shanbay/amqp v1.0.1-0.20210728052407-b63250c049f2 h1:fc3CZIsyZTW2mfv+
 github.com/shanbay/amqp v1.0.1-0.20210728052407-b63250c049f2/go.mod h1:AZpEONHx3DKn8O/DFsRAY58/XVQiIPMTMB1SddzLXVw=
 github.com/shanbay/ent v0.4.0 h1:m42idGGCGUv3yhdQNr6It+6v+9Vezri1T+1e+AB/QNg=
 github.com/shanbay/ent v0.4.0/go.mod h1:XNXcXzku5gLERdrvUOZD5bsYu+hOIWzR3wWtlHQP4Mo=
-github.com/shanbay/machinery v1.10.7-0.20210806005400-45afbf2ee694 h1:FqzAJtPKnYyuUZ1Wd7VbKOC6pzXTuS2n3GEfrUtMCFI=
-github.com/shanbay/machinery v1.10.7-0.20210806005400-45afbf2ee694/go.mod h1:qT0dXDPzsGqwHoYWO12Gb25MxA/9HfxaqdIaZp9ofWM=
+github.com/shanbay/machinery v1.10.7-0.20211122094032-89c5c12d758a h1:FhYI6QKZiDkq+8fcQCcuZ4vGKolTLoqNeTh4eI1Qwg8=
+github.com/shanbay/machinery v1.10.7-0.20211122094032-89c5c12d758a/go.mod h1:qT0dXDPzsGqwHoYWO12Gb25MxA/9HfxaqdIaZp9ofWM=
 github.com/shopspring/decimal v0.0.0-20180709203117-cd690d0c9e24/go.mod h1:M+9NzErvs504Cn4c5DxATwIqPbtswREoFCre64PpcG4=
 github.com/shopspring/decimal v0.0.0-20200227202807-02e2044944cc/go.mod h1:DKyhrW/HYNuLGql+MJL6WCR6knT2jwCFRcu2hWCYk4o=
 github.com/shurcooL/sanitized_anchor_name v1.0.0/go.mod h1:1NzhyTcUVG4SuEtjjoZeVRXNmyL/1OwPU0+IJeTBvfc=

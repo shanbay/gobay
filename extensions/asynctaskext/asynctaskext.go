@@ -26,6 +26,7 @@ import (
 )
 
 const (
+	concurrency_limit   = 20
 	healthCheckTaskName = "gobay-asynctask-health-check"
 )
 
@@ -98,6 +99,10 @@ func (t *AsyncTaskExt) StartWorker(queue string, concurrency int, enableHealthCh
 		queue = t.config.DefaultQueue
 	}
 	tag := t.genConsumerTag(queue)
+	if concurrency != concurrency_limit {
+		concurrency = concurrency_limit
+		log.WARNING.Println("Parameter <concurrency> is deprecated. The default value is 20.")
+	}
 	worker := t.server.NewWorker(tag, concurrency)
 	worker.Queue = queue
 	t.workers = append(t.workers, worker)
