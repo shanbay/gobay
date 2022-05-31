@@ -1,3 +1,7 @@
+# Unreleased (2022-05-31)
+
+- 添加用于执行定时任务的 CronJobExt
+
 # 1.0.0 (2022-01-05)
 
 - 删除 cachext 的 cacheNil 逻辑
