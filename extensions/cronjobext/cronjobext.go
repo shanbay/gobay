@@ -25,6 +25,7 @@ type Config struct {
 	HealthCheckPort int    `yaml:"health_check_port"` // default is 5000
 }
 
+// TZ converts TimeZone to a pointer of time.Location
 func (c *Config) TZ() (*time.Location, error) {
 	tz, err := time.LoadLocation(c.TimeZone)
 	if err != nil {
@@ -68,6 +69,7 @@ func (t *CronJobExt) Init(app *gobay.Application) error {
 
 	asyncTaskNS := t.NS
 	if t.config.ReuseOther != "" {
+		// reuse other AsyncTaskExt configurations
 		asyncTaskNS = t.config.ReuseOther
 		asyncExtCfg := app.Config()
 		asyncExtCfg = gobay.GetConfigByPrefix(asyncExtCfg, asyncTaskNS, true)
@@ -113,15 +115,19 @@ func (t *CronJobExt) Close() error {
 type CronJobSchedulerType string
 
 const (
-	DurationScheduler = "duration"
-	CronScheduler     = "crontab"
+	DurationScheduler = "duration" // time.ParseDuration style expressions
+	CronScheduler     = "crontab"  // crontab style expressions
 )
 
 type CronJobTask struct {
 	Type CronJobSchedulerType
 	// Spec Scheduled interval or cron expression
-	Spec          string
-	TaskFunc      interface{}
+	Spec string
+	// TaskFunc the function be registered into AsyncTaskExt.
+	// This function must also be registered on the async task worker side.
+	TaskFunc interface{}
+	// TaskSignature the args of the TaskFunc,
+	// The value of tasks.Signature.Name must be the same as the Name with which the TaskFunc was registered.
 	TaskSignature *tasks.Signature
 }
 
@@ -136,6 +142,7 @@ func (t *CronJobExt) jobWrapper(task *CronJobTask) func() error {
 	}
 }
 
+// RemoveAllJobs stops and deletes all scheduled tasks, but the scheduler itself does not stop running
 func (t *CronJobExt) RemoveAllJobs() {
 	t.scheduler.Clear()
 }
@@ -185,7 +192,7 @@ func (t *CronJobExt) StartCronJob(enableHealthCheck bool) {
 	t.scheduler.StartBlocking()
 }
 
-func (t *CronJobExt) healthHttpHandler(w http.ResponseWriter, r *http.Request) {
+func (t *CronJobExt) healthHttpHandler(w http.ResponseWriter, _ *http.Request) {
 	if !t.scheduler.IsRunning() {
 		w.WriteHeader(http.StatusBadRequest)
 		if _, err := w.Write([]byte("scheduler down!")); err != nil {
