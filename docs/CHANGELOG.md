@@ -1,4 +1,4 @@
-# Unreleased (2022-05-31)
+# Unreleased
 
 - 添加用于执行定时任务的 CronJobExt
 

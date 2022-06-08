@@ -147,12 +147,15 @@ func (t *CronJobExt) RemoveAllJobs() {
 	t.scheduler.Clear()
 }
 
+// RegisterTasks this function can only be used before the scheduler starting.
 func (t *CronJobExt) RegisterTasks(ts map[string]*CronJobTask) error {
+	if t.scheduler.IsRunning() {
+		return errors.New("scheduler is running")
+	}
 	for _, ct := range ts {
-		_, exists := t.registeredTasks.Load(ct.TaskSignature.Name)
-		if !exists {
-			// TaskFunc with same task names will only register once
-			t.registeredTasks.Store(ct.TaskSignature.Name, struct{}{})
+		// TaskFunc with same task names will only register once
+		_, loaded := t.registeredTasks.LoadOrStore(ct.TaskSignature.Name, struct{}{})
+		if !loaded {
 			if err := t.server.RegisterWorkerHandler(ct.TaskSignature.Name, ct.TaskFunc); err != nil {
 				return err
 			}
