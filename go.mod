@@ -9,6 +9,7 @@ require (
 	github.com/elastic/go-windows v1.0.1 // indirect
 	github.com/facebook/ent v0.4.0
 	github.com/getsentry/sentry-go v0.13.0
+	github.com/go-co-op/gocron v1.13.0
 	github.com/go-openapi/runtime v0.23.2
 	github.com/go-redis/redis v6.15.9+incompatible
 	github.com/go-sql-driver/mysql v1.5.1-0.20200311113236-681ffa848bae
@@ -43,7 +44,7 @@ require (
 )
 
 replace (
-	github.com/RichardKnop/machinery => github.com/shanbay/machinery v1.10.7-0.20210806005400-45afbf2ee694
+	github.com/RichardKnop/machinery => github.com/shanbay/machinery v1.10.7-0.20211122094032-89c5c12d758a
 	github.com/facebook/ent => github.com/shanbay/ent v0.4.0
 	github.com/streadway/amqp => github.com/shanbay/amqp v1.0.1-0.20210728052407-b63250c049f2
 )

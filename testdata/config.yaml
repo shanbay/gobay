@@ -39,6 +39,13 @@ defaults: &defaults
   two_asynctask_results_expire_in: 1
   two_asynctask_redis: {}
 
+  one_cronjob_bind_to: "one_asynctask_"
+  one_cronjob_tz: "Asia/Shanghai"
+  one_cronjob_health_check_port: 5001
+
+  two_cronjob_bind_to: "two_asynctask_"
+  two_cronjob_health_check_port: 5001
+
   db_driver: sqlite3
   db_url: ":memory:"
 
