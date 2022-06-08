@@ -18,21 +18,17 @@ CronJobExt 的主要特点：
 
 首先，配置 config.yaml
 
-```yaml
-  cronjob_concurrency: 10
-  cronjob_broker: "redis://redis:6379/8"
-  cronjob_default_queue: "gobay.task"
-  cronjob_result_backend: "redis://redis:6379/8"
-  cronjob_results_expire_in: 600
-  cronjob_redis: {}
-  cronjob_tz: "Asia/Tokyo"  # 默认为 UTC
-  cronjob_health_check_port: 8080  # 默认为5000
-```
-
-如果想要复用 async task 的配置（比如需要像某个特定的任务队列发送定时任务）：
+cronjob必须要和asynctaskext一起使用，因此需要先创建asynctask的配置，然后使用`bind_to`，指定要使用的异步任务队列的配置：
 
 ```yaml
-cronjob_reuse_other: "other_asynctask_"  # 复用other_asynctask的配置，other_asynctask_为配置项的前缀
+other_asynctask_concurrency: 10
+other_asynctask_broker: "redis://127.0.0.1:6379/8"
+other_asynctask_default_queue: "gobay.asynctask.queue"
+other_asynctask_result_backend: "redis://127.0.0.1:6379/8"
+other_asynctask_results_expire_in: 1
+other_asynctask_redis: {}
+
+cronjob_bind_to: "other_asynctask_"  # 使用other_asynctask的配置，other_asynctask_为配置项的前缀
 cronjob_health_check_port: 5001
 ```
 
@@ -139,3 +135,5 @@ CronJob.StartCronJob()
 2. 如果不能设置专用队列，且无法接受执行延迟，可以使用 k8s 的 cronjob，但要注意 k8s 的 cronjob 只支持 crontab 表达式。
 
 worker 需要自己处理任务超时和防止任务重叠运行，因为 machinery 的机制导致这些功能在 worker 上处理会比较方便，CronJobExt暂不支持。
+
+**任务超时和重叠运行都不是cronjob的关注点，未来应该也不会支持。**

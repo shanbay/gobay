@@ -19,10 +19,10 @@ import (
 
 // Config configuration of cronjobext
 type Config struct {
-	*config.Config  `mapstructure:",squash"`
-	ReuseOther      string `yaml:"reuse_other"`
-	TimeZone        string `yaml:"tz"`
-	HealthCheckPort int    `yaml:"health_check_port"` // default is 5000
+	AsyncTaskConfig *config.Config `yaml:"-" ignored:"true"`
+	BindTo          string         `yaml:"bind_to"`
+	TimeZone        string         `yaml:"tz"`
+	HealthCheckPort int            `yaml:"health_check_port"` // default is 5000
 }
 
 // TZ converts TimeZone to a pointer of time.Location
@@ -59,7 +59,7 @@ func (t *CronJobExt) Init(app *gobay.Application) error {
 	t.app = app
 	extCfg := app.Config()
 	extCfg = gobay.GetConfigByPrefix(extCfg, t.NS, true)
-	t.config = &Config{Config: &config.Config{}, TimeZone: "UTC", HealthCheckPort: 5000}
+	t.config = &Config{AsyncTaskConfig: &config.Config{}, TimeZone: "UTC", HealthCheckPort: 5000}
 	if err := extCfg.Unmarshal(t.config, func(config *mapstructure.DecoderConfig) {
 		config.TagName = "yaml"
 		config.Squash = true
@@ -67,20 +67,17 @@ func (t *CronJobExt) Init(app *gobay.Application) error {
 		return err
 	}
 
-	asyncTaskNS := t.NS
-	if t.config.ReuseOther != "" {
-		// reuse other AsyncTaskExt configurations
-		asyncTaskNS = t.config.ReuseOther
-		asyncExtCfg := app.Config()
-		asyncExtCfg = gobay.GetConfigByPrefix(asyncExtCfg, asyncTaskNS, true)
-		asyncConf := &config.Config{}
-		if err := asyncExtCfg.Unmarshal(asyncConf, func(config *mapstructure.DecoderConfig) {
-			config.TagName = "yaml"
-		}); err != nil {
-			return err
-		}
-		t.config.Config = asyncConf
+	// bind to other AsyncTaskExt configurations
+	asyncTaskNS := t.config.BindTo
+	asyncExtCfg := app.Config()
+	asyncExtCfg = gobay.GetConfigByPrefix(asyncExtCfg, asyncTaskNS, true)
+	asyncConf := &config.Config{}
+	if err := asyncExtCfg.Unmarshal(asyncConf, func(config *mapstructure.DecoderConfig) {
+		config.TagName = "yaml"
+	}); err != nil {
+		return err
 	}
+	t.config.AsyncTaskConfig = asyncConf
 	t.server = &asynctaskext.AsyncTaskExt{
 		NS: asyncTaskNS,
 	}

@@ -43,15 +43,18 @@ func TestCronJobExtTimeZone(t *testing.T) {
 }
 
 func TestReuseOtherConfig(t *testing.T) {
-	if cronjobOne.config.DefaultQueue != "gobay.task.one" {
-		t.Errorf("reuse error: want: %v got: %v", "gobay.task.one", cronjobOne.config.DefaultQueue)
+	if cronjobOne.config.BindTo != "one_asynctask_" {
+		t.Errorf("reuse error: want: %v got: %v", "one_asynctask_", cronjobOne.config.BindTo)
+	}
+	if cronjobOne.config.AsyncTaskConfig.DefaultQueue != "gobay.task.one" {
+		t.Errorf("reuse error: want: %v got: %v", "gobay.task.one", cronjobOne.config.AsyncTaskConfig.DefaultQueue)
 	}
 
-	if cronjobTwo.config.ReuseOther != "two_asynctask_" {
-		t.Errorf("reuse error: want: %v got: %v", "two_asynctask_", cronjobTwo.config.ReuseOther)
+	if cronjobTwo.config.BindTo != "two_asynctask_" {
+		t.Errorf("reuse error: want: %v got: %v", "two_asynctask_", cronjobTwo.config.BindTo)
 	}
-	if cronjobTwo.config.DefaultQueue != "gobay.task.two" {
-		t.Errorf("reuse error: want: %v got: %v", "gobay.task.two", cronjobTwo.config.DefaultQueue)
+	if cronjobTwo.config.AsyncTaskConfig.DefaultQueue != "gobay.task.two" {
+		t.Errorf("reuse error: want: %v got: %v", "gobay.task.two", cronjobTwo.config.AsyncTaskConfig.DefaultQueue)
 	}
 }
 
