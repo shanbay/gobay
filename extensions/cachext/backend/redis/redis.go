@@ -30,6 +30,10 @@ func (b *redisBackend) Init(config *viper.Viper) error {
 	if err := config.Unmarshal(&opt); err != nil {
 		return err
 	}
+	// Compatible with old version configuration
+	if opt.Addr == "" {
+		opt.Addr = config.GetString("host")
+	}
 	redisClient := redis.NewClient(&opt)
 	b.client = redisClient
 	_, err := redisClient.Ping().Result()
