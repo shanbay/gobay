@@ -26,14 +26,11 @@ func (b *redisBackend) withContext(ctx context.Context) *redis.Client {
 }
 
 func (b *redisBackend) Init(config *viper.Viper) error {
-	host := config.GetString("host")
-	password := config.GetString("password")
-	dbNum := config.GetInt("db")
-	redisClient := redis.NewClient(&redis.Options{
-		Addr:     host,
-		Password: password,
-		DB:       dbNum,
-	})
+	opt := redis.Options{}
+	if err := config.Unmarshal(&opt); err != nil {
+		return err
+	}
+	redisClient := redis.NewClient(&opt)
 	b.client = redisClient
 	_, err := redisClient.Ping().Result()
 	return err
