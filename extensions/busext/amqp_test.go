@@ -72,6 +72,12 @@ func TestPushConsume(t *testing.T) {
 	time.Sleep(2 * time.Second)
 	assert.Len(t, result, 100)
 
+	// check config works
+	assert.NotEqual(t, defaultPublishRetry, bus.publishRetry)
+	assert.Equal(t, 5, bus.publishRetry)
+	assert.NotEqual(t, defaultPushTimeout, bus.pushTimeout)
+	assert.Equal(t, time.Second * 3, bus.pushTimeout)
+
 	// mock amqp 的 publish, 使其 sleep 一个远比设置的 pushTimeout 长的时间, 模拟其卡死的情况
 	bus.publishFunc = func(exchange, key string, mandatory, immediate bool, msg amqp.Publishing) error {
 		dur := 100 * bus.pushTimeout

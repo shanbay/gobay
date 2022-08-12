@@ -166,7 +166,7 @@ func GetConfigByPrefix(config *viper.Viper, prefix string, trimPrefix bool) *vip
 		if trimPrefix {
 			key = k[len(prefix):]
 		}
-		subConfig.SetDefault(key, v)
+		subConfig.Set(key, v)
 	}
 	return subConfig
 }

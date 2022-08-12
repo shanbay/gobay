@@ -169,7 +169,7 @@ func (b *BusExt) Push(exchange, routingKey string, data amqp.Publishing) error {
 
 func (b *BusExt) doPush(ctx context.Context, exchange, routingKey string, data amqp.Publishing, result chan error) {
 	log.Printf("Trying to publish: %s\n", data.Headers["id"])
-	for i := 0; i <= b.publishRetry; i++ {
+	for i := 0; i < b.publishRetry; i++ {
 		// clear staled confirmnation
 		// 有可能在超时之后才收到 confirm，会堵塞 channel，最终造成死锁
 		select {

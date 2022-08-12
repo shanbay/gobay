@@ -7,7 +7,8 @@ defaults: &defaults
   bus_queues:
     - test
   bus_resend_delay: "1s"
-  bus_publish_retry: 3
+  bus_publish_retry: 5
+  bus_push_timeout: "3s"
   bus_prefetch: 10
   bus_quit_consumer_on_empty_queue: false
   bus_bindings:
