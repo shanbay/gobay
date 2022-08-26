@@ -2,6 +2,7 @@ package busext
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -96,9 +97,17 @@ func (b *BusExt) Init(app *gobay.Application) error {
 	b.pushFunc = b.doPush
 	b.notifyChanBlock = make(chan error)
 
+	var tlsConfig *tls.Config
+	if b.config.GetBool("tls") {
+		if err := b.config.UnmarshalKey("TLSConfig", &tlsConfig); err != nil {
+			b.ErrorLogger.Printf("unmarshal TLSConfig failed: %v\n", err)
+			return err
+		}
+	}
+
 	b.mocked = b.config.GetBool("mocked")
 	if !b.mocked {
-		go b.handleReconnect(b.brokerUrl)
+		go b.handleReconnect(b.brokerUrl, tlsConfig)
 	} else {
 		b.isReady = true
 	}
@@ -295,12 +304,12 @@ func (b *BusExt) Consume() error {
 	return nil
 }
 
-func (b *BusExt) handleReconnect(brokerUrl string) {
+func (b *BusExt) handleReconnect(brokerUrl string, tlsConfig *tls.Config) {
 	for {
 		b.isReady = false
-		log.Printf("Attempting to connect to %v\n", brokerUrl)
+		log.Printf("Attempting to connect to %v tlsConfig: %v\n", brokerUrl, tlsConfig)
 
-		conn, err := b.connect(brokerUrl)
+		conn, err := b.connect(brokerUrl, tlsConfig)
 
 		if err != nil {
 			b.ErrorLogger.Printf("Failed to connect: %v. Retrying...\n", err)
@@ -318,8 +327,14 @@ func (b *BusExt) handleReconnect(brokerUrl string) {
 	}
 }
 
-func (b *BusExt) connect(brokerUrl string) (*amqp.Connection, error) {
-	conn, err := amqp.Dial(brokerUrl)
+func (b *BusExt) connect(brokerUrl string, tlsConfig *tls.Config) (*amqp.Connection, error) {
+	var conn *amqp.Connection
+	var err error
+	if tlsConfig != nil {
+		conn, err = amqp.DialTLS(brokerUrl, tlsConfig)
+	} else {
+		conn, err = amqp.Dial(brokerUrl)
+	}
 
 	if err != nil {
 		return nil, err
