@@ -2,6 +2,7 @@ package redis
 
 import (
 	"context"
+	"crypto/tls"
 	"time"
 
 	"github.com/go-redis/redis"
@@ -29,10 +30,19 @@ func (b *redisBackend) Init(config *viper.Viper) error {
 	host := config.GetString("host")
 	password := config.GetString("password")
 	dbNum := config.GetInt("db")
+
+	var tlsConfig *tls.Config
+	if config.GetBool("tls") {
+		if err := config.UnmarshalKey("TLSConfig", &tlsConfig); err != nil {
+			return err
+		}
+	}
+
 	redisClient := redis.NewClient(&redis.Options{
 		Addr:     host,
 		Password: password,
 		DB:       dbNum,
+		TLSConfig: tlsConfig,
 	})
 	b.client = redisClient
 	_, err := redisClient.Ping().Result()
