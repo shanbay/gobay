@@ -62,7 +62,6 @@ func (t *CronJobExt) Init(app *gobay.Application) error {
 	t.config = &Config{AsyncTaskConfig: &config.Config{}, TimeZone: "UTC", HealthCheckPort: 5000}
 	if err := extCfg.Unmarshal(t.config, func(config *mapstructure.DecoderConfig) {
 		config.TagName = "yaml"
-		config.Squash = true
 	}); err != nil {
 		return err
 	}
@@ -112,8 +111,8 @@ func (t *CronJobExt) Close() error {
 type CronJobSchedulerType string
 
 const (
-	DurationScheduler = "duration" // time.ParseDuration style expressions
-	CronScheduler     = "crontab"  // crontab style expressions
+	DurationScheduler CronJobSchedulerType = "duration" // time.ParseDuration style expressions
+	CronScheduler     CronJobSchedulerType = "crontab"  // crontab style expressions
 )
 
 type CronJobTask struct {
