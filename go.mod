@@ -19,7 +19,7 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware v1.2.2
 	github.com/hashicorp/go-multierror v1.1.0
 	github.com/iancoleman/strcase v0.1.3
-	github.com/labstack/echo/v4 v4.5.0
+	github.com/labstack/echo/v4 v4.10.0
 	github.com/markbates/pkger v0.17.1
 	github.com/mattn/go-sqlite3 v1.14.6
 	github.com/mitchellh/mapstructure v1.4.3
@@ -29,8 +29,8 @@ require (
 	github.com/spf13/cobra v1.4.0
 	github.com/spf13/viper v1.7.1
 	github.com/streadway/amqp v1.0.0
-	github.com/stretchr/objx v0.4.0
-	github.com/stretchr/testify v1.8.0
+	github.com/stretchr/objx v0.5.0
+	github.com/stretchr/testify v1.8.1
 	github.com/vmihailenco/msgpack v4.0.4+incompatible
 	go.elastic.co/apm v1.13.0
 	go.elastic.co/apm/module/apmgoredis v1.9.0
@@ -38,7 +38,6 @@ require (
 	go.elastic.co/apm/module/apmsql v1.9.0
 	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616 // indirect
 	golang.org/x/sync v0.1.0 // indirect
-	golang.org/x/tools v0.1.5 // indirect
 	google.golang.org/grpc v1.35.0
 	google.golang.org/grpc/examples v0.0.0-20200925170654-e6c98a478e62 // indirect
 	howett.net/plist v0.0.0-20201203080718-1454fab16a06 // indirect
