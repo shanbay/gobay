@@ -45,7 +45,7 @@ golangci-lint --version
 - [ORM 工具: ent](https://github.com/shanbay/ent)
 
 ```sh
-go get github.com/facebook/ent/cmd/entc@v0.4.0
+go install entgo.io/ent/cmd/ent@latest
 ```
 
 - [测试工具: gotests](https://github.com/cweill/gotests)

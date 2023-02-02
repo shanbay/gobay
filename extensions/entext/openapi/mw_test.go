@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/facebook/ent/dialect"
+	"entgo.io/ent/dialect"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/shanbay/gobay"
 	"github.com/shanbay/gobay/extensions/entext"
@@ -29,7 +29,7 @@ func init() {
 				return ent.Driver(drv)
 			},
 			IsNotFound:          ent.IsNotFound,
-			IsConstraintFailure: ent.IsConstraintFailure,
+			IsConstraintFailure: ent.IsConstraintError,
 			IsNotSingular:       ent.IsNotSingular,
 		},
 	}
@@ -104,7 +104,7 @@ func TestOpenAPIEntPanicWithoutMw(t *testing.T) {
 	}()
 
 	var handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		panic(&ent.ErrNotFound{})
+		panic(&ent.NotFoundError{})
 	})
 
 	req := httptest.NewRequest("GET", "/hello", nil)
@@ -124,7 +124,7 @@ func TestOpenAPIWithMwAndEntNotFoundPanic(t *testing.T) {
 	}()
 
 	var handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		panic(&ent.ErrNotFound{})
+		panic(&ent.NotFoundError{})
 	})
 	req := httptest.NewRequest("GET", "/hello", nil)
 	w := httptest.NewRecorder()
@@ -144,7 +144,7 @@ func TestOpenAPIWithMwAndEntAlreadyExistsPanic(t *testing.T) {
 	}()
 
 	var handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		panic(&ent.ErrConstraintFailed{})
+		panic(&ent.ConstraintError{})
 	})
 	req := httptest.NewRequest("GET", "/hello", nil)
 	w := httptest.NewRecorder()
