@@ -63,7 +63,7 @@ func Asc(fields ...string) OrderFunc {
 			if err := check(f); err != nil {
 				s.AddError(&ValidationError{Name: f, err: fmt.Errorf("ent: %w", err)})
 			}
-			s.OrderBy(sql.Asc(s.C(f)))
+			s.OrderBy(sql.Asc(f))
 		}
 	}
 }
@@ -76,7 +76,7 @@ func Desc(fields ...string) OrderFunc {
 			if err := check(f); err != nil {
 				s.AddError(&ValidationError{Name: f, err: fmt.Errorf("ent: %w", err)})
 			}
-			s.OrderBy(sql.Desc(s.C(f)))
+			s.OrderBy(sql.Desc(f))
 		}
 	}
 }

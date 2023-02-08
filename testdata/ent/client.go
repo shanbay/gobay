@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/shanbay/gobay/testdata/ent/migrate"
 
@@ -37,6 +38,13 @@ func NewClient(opts ...Option) *Client {
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
 	c.User = NewUserClient(c.config)
+}
+
+func (c *Client) CheckHealth(ctx context.Context) error {
+	if err := c.User.CheckHealth(ctx); err != nil {
+		return err
+	}
+	return nil
 }
 
 // Open opens a database/sql.DB specified by the driver name and
@@ -230,6 +238,57 @@ func (c *UserClient) GetX(ctx context.Context, id int) *User {
 		panic(err)
 	}
 	return obj
+}
+
+// CheckHealth try to read a first User entity, okay if NotFound, returns the error if any other error happens.
+func (c *UserClient) CheckHealth(ctx context.Context) error {
+	_, err := c.Query().Limit(1).All(ctx)
+	if err != nil && !IsNotFound(err) {
+		return err
+	}
+	return nil
+}
+
+// CreateManyOnConflict by UserCreate slice
+func (c *UserClient) CreateManyOnConflict(ctx context.Context, objs []*UserCreate, extra string, ignore bool) error {
+	tx, err := c.config.driver.Tx(ctx)
+	if err != nil {
+		return err
+	}
+	sIndex := 0
+	if objs[0].mutation.id == nil {
+		sIndex = 1
+	}
+	columns := user.Columns[sIndex:]
+	inserter := sql.Insert(user.Table).Columns(columns...)
+	for _, obj := range objs {
+		obj.defaults()
+		values := []interface{}{}
+		_, spec := obj.createSpec()
+		if sIndex == 0 {
+			values = append(values, spec.ID.Value)
+		}
+		for _, field := range spec.Fields {
+			values = append(values, field.Value)
+		}
+		if len(values) != len(columns) {
+			return errors.New("CreateManyOnConflict user: Columns length not match")
+		}
+		inserter.Values(values...)
+	}
+	var res sql.Result
+	sql, args := inserter.Query()
+	if ignore {
+		sql = strings.Replace(sql, "INSERT INTO", "INSERT IGNORE INTO", 1)
+	}
+	sql = sql + " " + extra
+	if err := tx.Exec(ctx, sql, args, &res); err != nil {
+		if err_roll := tx.Rollback(); err_roll != nil {
+			return errors.New(err.Error() + "\n" + err_roll.Error())
+		}
+		return err
+	}
+	return tx.Commit()
 }
 
 // Hooks returns the client hooks.

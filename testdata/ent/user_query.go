@@ -4,6 +4,7 @@ package ent
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math"
 
@@ -26,7 +27,7 @@ type UserQuery struct {
 	path func(context.Context) (*sql.Selector, error)
 }
 
-// Where adds a new predicate for the UserQuery builder.
+// Where adds a new predicate for the builder.
 func (uq *UserQuery) Where(ps ...predicate.User) *UserQuery {
 	uq.predicates = append(uq.predicates, ps...)
 	return uq
@@ -447,6 +448,8 @@ func (uq *UserQuery) sqlQuery(ctx context.Context) *sql.Selector {
 type UserGroupBy struct {
 	selector
 	build *UserQuery
+
+	fields []string
 }
 
 // Aggregate adds the given aggregation functions to the group-by query.
@@ -462,6 +465,201 @@ func (ugb *UserGroupBy) Scan(ctx context.Context, v any) error {
 		return err
 	}
 	return scanWithInterceptors[*UserQuery, *UserGroupBy](ctx, ugb.build, ugb, ugb.build.inters, v)
+}
+
+// ScanX is like Scan, but panics if an error occurs.
+func (ugb *UserGroupBy) ScanX(ctx context.Context, v interface{}) {
+	if err := ugb.Scan(ctx, v); err != nil {
+		panic(err)
+	}
+}
+
+// Strings returns list of strings from group-by. It is only allowed when querying group-by with one field.
+func (ugb *UserGroupBy) Strings(ctx context.Context) ([]string, error) {
+	if len(ugb.fields) > 1 {
+		return nil, errors.New("ent: UserGroupBy.Strings is not achievable when grouping more than 1 field")
+	}
+	var v []string
+	if err := ugb.Scan(ctx, &v); err != nil {
+		return nil, err
+	}
+	return v, nil
+}
+
+// StringsX is like Strings, but panics if an error occurs.
+func (ugb *UserGroupBy) StringsX(ctx context.Context) []string {
+	v, err := ugb.Strings(ctx)
+	if err != nil {
+		panic(err)
+	}
+	return v
+}
+
+// String returns a single string from group-by. It is only allowed when querying group-by with one field.
+func (ugb *UserGroupBy) String(ctx context.Context) (_ string, err error) {
+	var v []string
+	if v, err = ugb.Strings(ctx); err != nil {
+		return
+	}
+	switch len(v) {
+	case 1:
+		return v[0], nil
+	case 0:
+		err = &NotFoundError{user.Label}
+	default:
+		err = fmt.Errorf("ent: UserGroupBy.Strings returned %d results when one was expected", len(v))
+	}
+	return
+}
+
+// StringX is like String, but panics if an error occurs.
+func (ugb *UserGroupBy) StringX(ctx context.Context) string {
+	v, err := ugb.String(ctx)
+	if err != nil {
+		panic(err)
+	}
+	return v
+}
+
+// Ints returns list of ints from group-by. It is only allowed when querying group-by with one field.
+func (ugb *UserGroupBy) Ints(ctx context.Context) ([]int, error) {
+	if len(ugb.fields) > 1 {
+		return nil, errors.New("ent: UserGroupBy.Ints is not achievable when grouping more than 1 field")
+	}
+	var v []int
+	if err := ugb.Scan(ctx, &v); err != nil {
+		return nil, err
+	}
+	return v, nil
+}
+
+// IntsX is like Ints, but panics if an error occurs.
+func (ugb *UserGroupBy) IntsX(ctx context.Context) []int {
+	v, err := ugb.Ints(ctx)
+	if err != nil {
+		panic(err)
+	}
+	return v
+}
+
+// Int returns a single int from group-by. It is only allowed when querying group-by with one field.
+func (ugb *UserGroupBy) Int(ctx context.Context) (_ int, err error) {
+	var v []int
+	if v, err = ugb.Ints(ctx); err != nil {
+		return
+	}
+	switch len(v) {
+	case 1:
+		return v[0], nil
+	case 0:
+		err = &NotFoundError{user.Label}
+	default:
+		err = fmt.Errorf("ent: UserGroupBy.Ints returned %d results when one was expected", len(v))
+	}
+	return
+}
+
+// IntX is like Int, but panics if an error occurs.
+func (ugb *UserGroupBy) IntX(ctx context.Context) int {
+	v, err := ugb.Int(ctx)
+	if err != nil {
+		panic(err)
+	}
+	return v
+}
+
+// Float64s returns list of float64s from group-by. It is only allowed when querying group-by with one field.
+func (ugb *UserGroupBy) Float64s(ctx context.Context) ([]float64, error) {
+	if len(ugb.fields) > 1 {
+		return nil, errors.New("ent: UserGroupBy.Float64s is not achievable when grouping more than 1 field")
+	}
+	var v []float64
+	if err := ugb.Scan(ctx, &v); err != nil {
+		return nil, err
+	}
+	return v, nil
+}
+
+// Float64sX is like Float64s, but panics if an error occurs.
+func (ugb *UserGroupBy) Float64sX(ctx context.Context) []float64 {
+	v, err := ugb.Float64s(ctx)
+	if err != nil {
+		panic(err)
+	}
+	return v
+}
+
+// Float64 returns a single float64 from group-by. It is only allowed when querying group-by with one field.
+func (ugb *UserGroupBy) Float64(ctx context.Context) (_ float64, err error) {
+	var v []float64
+	if v, err = ugb.Float64s(ctx); err != nil {
+		return
+	}
+	switch len(v) {
+	case 1:
+		return v[0], nil
+	case 0:
+		err = &NotFoundError{user.Label}
+	default:
+		err = fmt.Errorf("ent: UserGroupBy.Float64s returned %d results when one was expected", len(v))
+	}
+	return
+}
+
+// Float64X is like Float64, but panics if an error occurs.
+func (ugb *UserGroupBy) Float64X(ctx context.Context) float64 {
+	v, err := ugb.Float64(ctx)
+	if err != nil {
+		panic(err)
+	}
+	return v
+}
+
+// Bools returns list of bools from group-by. It is only allowed when querying group-by with one field.
+func (ugb *UserGroupBy) Bools(ctx context.Context) ([]bool, error) {
+	if len(ugb.fields) > 1 {
+		return nil, errors.New("ent: UserGroupBy.Bools is not achievable when grouping more than 1 field")
+	}
+	var v []bool
+	if err := ugb.Scan(ctx, &v); err != nil {
+		return nil, err
+	}
+	return v, nil
+}
+
+// BoolsX is like Bools, but panics if an error occurs.
+func (ugb *UserGroupBy) BoolsX(ctx context.Context) []bool {
+	v, err := ugb.Bools(ctx)
+	if err != nil {
+		panic(err)
+	}
+	return v
+}
+
+// Bool returns a single bool from group-by. It is only allowed when querying group-by with one field.
+func (ugb *UserGroupBy) Bool(ctx context.Context) (_ bool, err error) {
+	var v []bool
+	if v, err = ugb.Bools(ctx); err != nil {
+		return
+	}
+	switch len(v) {
+	case 1:
+		return v[0], nil
+	case 0:
+		err = &NotFoundError{user.Label}
+	default:
+		err = fmt.Errorf("ent: UserGroupBy.Bools returned %d results when one was expected", len(v))
+	}
+	return
+}
+
+// BoolX is like Bool, but panics if an error occurs.
+func (ugb *UserGroupBy) BoolX(ctx context.Context) bool {
+	v, err := ugb.Bool(ctx)
+	if err != nil {
+		panic(err)
+	}
+	return v
 }
 
 func (ugb *UserGroupBy) sqlScan(ctx context.Context, root *UserQuery, v any) error {
@@ -495,6 +693,9 @@ func (ugb *UserGroupBy) sqlScan(ctx context.Context, root *UserQuery, v any) err
 type UserSelect struct {
 	*UserQuery
 	selector
+
+	distinct bool
+	fields   []string
 }
 
 // Aggregate adds the given aggregation functions to the selector query.
@@ -510,6 +711,221 @@ func (us *UserSelect) Scan(ctx context.Context, v any) error {
 		return err
 	}
 	return scanWithInterceptors[*UserQuery, *UserSelect](ctx, us.UserQuery, us, us.inters, v)
+}
+
+/*
+// Scan applies the selector query and scan the result into the given value.
+func (us *UserSelect) Scan(ctx context.Context, v interface{}) error {
+	query, err := us.path(ctx)
+	if err != nil {
+		return err
+	}
+	us.sql = query
+		if us.distinct {
+		us.sql.Distinct()
+	}
+	return us.sqlScan(ctx, v)
+}
+*/
+
+func (us *UserSelect) Distinct() *UserSelect {
+	us.distinct = true
+	return us
+}
+
+// ScanX is like Scan, but panics if an error occurs.
+func (us *UserSelect) ScanX(ctx context.Context, v interface{}) {
+	if err := us.Scan(ctx, v); err != nil {
+		panic(err)
+	}
+}
+
+// Strings returns list of strings from selector. It is only allowed when selecting one field.
+func (us *UserSelect) Strings(ctx context.Context) ([]string, error) {
+	if len(us.fields) > 1 {
+		return nil, errors.New("ent: UserSelect.Strings is not achievable when selecting more than 1 field")
+	}
+	var v []string
+	if err := us.Scan(ctx, &v); err != nil {
+		return nil, err
+	}
+	return v, nil
+}
+
+// StringsX is like Strings, but panics if an error occurs.
+func (us *UserSelect) StringsX(ctx context.Context) []string {
+	v, err := us.Strings(ctx)
+	if err != nil {
+		panic(err)
+	}
+	return v
+}
+
+// String returns a single string from selector. It is only allowed when selecting one field.
+func (us *UserSelect) String(ctx context.Context) (_ string, err error) {
+	var v []string
+	if v, err = us.Strings(ctx); err != nil {
+		return
+	}
+	switch len(v) {
+	case 1:
+		return v[0], nil
+	case 0:
+		err = &NotFoundError{user.Label}
+	default:
+		err = fmt.Errorf("ent: UserSelect.Strings returned %d results when one was expected", len(v))
+	}
+	return
+}
+
+// StringX is like String, but panics if an error occurs.
+func (us *UserSelect) StringX(ctx context.Context) string {
+	v, err := us.String(ctx)
+	if err != nil {
+		panic(err)
+	}
+	return v
+}
+
+// Ints returns list of ints from selector. It is only allowed when selecting one field.
+func (us *UserSelect) Ints(ctx context.Context) ([]int, error) {
+	if len(us.fields) > 1 {
+		return nil, errors.New("ent: UserSelect.Ints is not achievable when selecting more than 1 field")
+	}
+	var v []int
+	if err := us.Scan(ctx, &v); err != nil {
+		return nil, err
+	}
+	return v, nil
+}
+
+// IntsX is like Ints, but panics if an error occurs.
+func (us *UserSelect) IntsX(ctx context.Context) []int {
+	v, err := us.Ints(ctx)
+	if err != nil {
+		panic(err)
+	}
+	return v
+}
+
+// Int returns a single int from selector. It is only allowed when selecting one field.
+func (us *UserSelect) Int(ctx context.Context) (_ int, err error) {
+	var v []int
+	if v, err = us.Ints(ctx); err != nil {
+		return
+	}
+	switch len(v) {
+	case 1:
+		return v[0], nil
+	case 0:
+		err = &NotFoundError{user.Label}
+	default:
+		err = fmt.Errorf("ent: UserSelect.Ints returned %d results when one was expected", len(v))
+	}
+	return
+}
+
+// IntX is like Int, but panics if an error occurs.
+func (us *UserSelect) IntX(ctx context.Context) int {
+	v, err := us.Int(ctx)
+	if err != nil {
+		panic(err)
+	}
+	return v
+}
+
+// Float64s returns list of float64s from selector. It is only allowed when selecting one field.
+func (us *UserSelect) Float64s(ctx context.Context) ([]float64, error) {
+	if len(us.fields) > 1 {
+		return nil, errors.New("ent: UserSelect.Float64s is not achievable when selecting more than 1 field")
+	}
+	var v []float64
+	if err := us.Scan(ctx, &v); err != nil {
+		return nil, err
+	}
+	return v, nil
+}
+
+// Float64sX is like Float64s, but panics if an error occurs.
+func (us *UserSelect) Float64sX(ctx context.Context) []float64 {
+	v, err := us.Float64s(ctx)
+	if err != nil {
+		panic(err)
+	}
+	return v
+}
+
+// Float64 returns a single float64 from selector. It is only allowed when selecting one field.
+func (us *UserSelect) Float64(ctx context.Context) (_ float64, err error) {
+	var v []float64
+	if v, err = us.Float64s(ctx); err != nil {
+		return
+	}
+	switch len(v) {
+	case 1:
+		return v[0], nil
+	case 0:
+		err = &NotFoundError{user.Label}
+	default:
+		err = fmt.Errorf("ent: UserSelect.Float64s returned %d results when one was expected", len(v))
+	}
+	return
+}
+
+// Float64X is like Float64, but panics if an error occurs.
+func (us *UserSelect) Float64X(ctx context.Context) float64 {
+	v, err := us.Float64(ctx)
+	if err != nil {
+		panic(err)
+	}
+	return v
+}
+
+// Bools returns list of bools from selector. It is only allowed when selecting one field.
+func (us *UserSelect) Bools(ctx context.Context) ([]bool, error) {
+	if len(us.fields) > 1 {
+		return nil, errors.New("ent: UserSelect.Bools is not achievable when selecting more than 1 field")
+	}
+	var v []bool
+	if err := us.Scan(ctx, &v); err != nil {
+		return nil, err
+	}
+	return v, nil
+}
+
+// BoolsX is like Bools, but panics if an error occurs.
+func (us *UserSelect) BoolsX(ctx context.Context) []bool {
+	v, err := us.Bools(ctx)
+	if err != nil {
+		panic(err)
+	}
+	return v
+}
+
+// Bool returns a single bool from selector. It is only allowed when selecting one field.
+func (us *UserSelect) Bool(ctx context.Context) (_ bool, err error) {
+	var v []bool
+	if v, err = us.Bools(ctx); err != nil {
+		return
+	}
+	switch len(v) {
+	case 1:
+		return v[0], nil
+	case 0:
+		err = &NotFoundError{user.Label}
+	default:
+		err = fmt.Errorf("ent: UserSelect.Bools returned %d results when one was expected", len(v))
+	}
+	return
+}
+
+// BoolX is like Bool, but panics if an error occurs.
+func (us *UserSelect) BoolX(ctx context.Context) bool {
+	v, err := us.Bool(ctx)
+	if err != nil {
+		panic(err)
+	}
+	return v
 }
 
 func (us *UserSelect) sqlScan(ctx context.Context, root *UserQuery, v any) error {
