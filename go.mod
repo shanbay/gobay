@@ -9,7 +9,7 @@ require (
 	github.com/elastic/go-windows v1.0.1 // indirect
 	github.com/facebook/ent v0.4.0
 	github.com/getsentry/sentry-go v0.13.0
-	github.com/go-co-op/gocron v1.17.1
+	github.com/go-co-op/gocron v1.20.1
 	github.com/go-openapi/runtime v0.23.2
 	github.com/go-redis/redis v6.15.9+incompatible
 	github.com/go-sql-driver/mysql v1.5.1-0.20200311113236-681ffa848bae
@@ -29,15 +29,14 @@ require (
 	github.com/spf13/cobra v1.4.0
 	github.com/spf13/viper v1.7.1
 	github.com/streadway/amqp v1.0.0
-	github.com/stretchr/objx v0.4.0
-	github.com/stretchr/testify v1.8.0
+	github.com/stretchr/objx v0.5.0
+	github.com/stretchr/testify v1.8.2
 	github.com/vmihailenco/msgpack v4.0.4+incompatible
 	go.elastic.co/apm v1.13.0
 	go.elastic.co/apm/module/apmgoredis v1.9.0
 	go.elastic.co/apm/module/apmgrpc v1.9.0
 	go.elastic.co/apm/module/apmsql v1.9.0
 	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616 // indirect
-	golang.org/x/sync v0.1.0 // indirect
 	golang.org/x/tools v0.1.5 // indirect
 	google.golang.org/grpc v1.35.0
 	google.golang.org/grpc/examples v0.0.0-20200925170654-e6c98a478e62 // indirect
