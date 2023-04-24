@@ -110,10 +110,10 @@ s.SetHandler(gmw(api.Serve(openapi.ChainMiddlewares(...
 ```
 github.com/facebookincubator/ent
 // 这行，改为
-github.com/facebook/ent v0.4.0
+entgo.io/ent v0.4.0
 
 // 并把下面的 replace 改为
-replace github.com/facebook/ent => github.com/shanbay/ent v0.4.0
+replace entgo.io/ent => github.com/shanbay/ent v0.4.0
 ```
 
 2. 处理所有 \*.go 代码

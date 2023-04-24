@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/facebook/ent/dialect"
+	"entgo.io/ent/dialect"
 	_ "github.com/go-sql-driver/mysql"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpc_testing "github.com/grpc-ecosystem/go-grpc-middleware/testing"
@@ -38,7 +38,7 @@ func setup() func() error {
 				return ent.Driver(drv)
 			},
 			IsNotFound:          ent.IsNotFound,
-			IsConstraintFailure: ent.IsConstraintFailure,
+			IsConstraintFailure: ent.IsConstraintError,
 			IsNotSingular:       ent.IsNotSingular,
 		},
 	}
@@ -57,7 +57,7 @@ type recoveryAssertService struct {
 
 func (s *recoveryAssertService) Ping(ctx context.Context, ping *pb_testproto.PingRequest) (*pb_testproto.PingResponse, error) {
 	if ping.Value == "error" {
-		return nil, &ent.ErrNotFound{}
+		return nil, &ent.NotFoundError{}
 	}
 	return s.TestServiceServer.Ping(ctx, ping)
 }

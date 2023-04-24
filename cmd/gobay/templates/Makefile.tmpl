@@ -300,10 +300,10 @@ $(EMPTY_SCHEMA_PATH): $(DIR_SCHEMA_GEN)
 	echo "package entschema" > $(EMPTY_SCHEMA_PATH)
 
 entinit:
-	entc init --target $(DIR_SCHEMA) $(ARGS)
+	ent init --target $(DIR_SCHEMA) $(ARGS)
 
 entgen: $(EMPTY_SCHEMA_PATH)
-	entc generate --target $(DIR_SCHEMA_GEN) --template $(DIR_SCHEMA_TMPL) $(DIR_SCHEMA)
+	ent generate --target $(DIR_SCHEMA_GEN) --template $(DIR_SCHEMA_TMPL) $(DIR_SCHEMA)
 
 entdesc:
-	entc describe $(DIR_SCHEMA)
+	ent describe $(DIR_SCHEMA)

@@ -11,7 +11,7 @@ updates:
     versions:
     - 1.36.0
     - 1.36.1
-  - dependency-name: github.com/facebook/ent
+  - dependency-name: entgo.io/ent
     versions:
     - 0.5.4
     - 0.6.0

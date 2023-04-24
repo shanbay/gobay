@@ -25,7 +25,7 @@ import (
   "git.17bdc.com/backend-lib/gordon/sensorext"
   "git.17bdc.com/shanbay/protos-go/xyz"
   elasticsearchv7 "github.com/elastic/go-elasticsearch/v7"
-  "github.com/facebook/ent/dialect"
+  "entgo.io/ent/dialect"
 
 "github.com/shanbay/gobay"
   "github.com/shanbay/gobay/extensions/redisext"

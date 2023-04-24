@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/facebook/ent/dialect"
+	"entgo.io/ent/dialect"
 	_ "github.com/go-sql-driver/mysql"
 
 	"github.com/shanbay/gobay"

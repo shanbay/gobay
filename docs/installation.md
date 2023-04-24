@@ -45,7 +45,7 @@ golangci-lint --version
 - [orm tool: ent, make sure to install version v0.4.0](https://github.com/shanbay/ent)
 
 ```sh
-go get github.com/facebook/ent/cmd/entc@v0.4.0
+go install entgo.io/ent/cmd/ent@latest
 ```
 
 - [test tool: gotests](https://github.com/cweill/gotests)

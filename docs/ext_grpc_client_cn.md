@@ -32,7 +32,7 @@ package app
 
 import (
   schema "git.17bdc.com/backend/helloworld/gen/entschema"
-  "github.com/facebook/ent/dialect"
+  "entgo.io/ent/dialect"
   _ "github.com/go-sql-driver/mysql"
   "github.com/shanbay/gobay"
   "github.com/shanbay/gobay/extensions/entext"

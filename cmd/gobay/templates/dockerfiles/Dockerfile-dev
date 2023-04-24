@@ -24,7 +24,7 @@ ENV GO111MODULE=on
 RUN go get github.com/shanbay/gobay/cmd/gobay
 
 # ent orm
-RUN go get github.com/facebook/ent/cmd/entc@v0.4.0
+RUN go install entgo.io/ent/cmd/ent@latest
 
 # grpc
 RUN apt-get install protobuf-compiler -y
