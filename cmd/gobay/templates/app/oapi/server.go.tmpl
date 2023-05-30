@@ -62,6 +62,7 @@ func Serve(
 	} else {
 		keepAlive = config.GetDuration("oapi_keep_alive")
 	}
+	e.Server.IdleTimeout = keepAlive
 
 	// Do something before start echo server
 	preStartFunc(e, app, enableAPM, true)
@@ -79,7 +80,6 @@ func Serve(
 	stopchan := make(chan os.Signal, 1)
 	signal.Notify(stopchan, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM)
 
-	e.Serve.IdleTimeout = keepAlive
 	go func(c <-chan os.Signal) {
 		<-c
 		err := e.Shutdown(context.Background())
@@ -166,7 +166,7 @@ func PreInitFunc(app *gobay.Application) {
 	myapp.InitExts(app)
 }
 
-func PreStartFunc func(e *echo.Echo, app *gobay.Application, enableAPM, enableDoc bool) {
+func PreStartFunc(e *echo.Echo, app *gobay.Application, enableAPM, enableDoc bool) {
 	impls := &{{ toLowerCamel $.Name }}Server{app: app}
 	configureMiddlewares(e, impls, enableAPM, enableDoc)
 }

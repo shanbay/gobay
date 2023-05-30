@@ -27,6 +27,7 @@ func RunOapiSvc(cmd *cobra.Command, args []string) {
 		bapp,
 		appoapi.PreInitFunc,
 		appoapi.PreStartFunc,
+		false,
 	); err != nil {
 		log.Fatalf("openapi serve failed: %v\n", err)
 	}
