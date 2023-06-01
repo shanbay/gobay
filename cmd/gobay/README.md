@@ -3,7 +3,7 @@
 ## 生成项目文件夹
 
 ```bash
-# go get github.com/shanbay/gobay/cmd/gobay
+# git clone && go install ./cmd/gobay/
 gobay new github.com/shanbay/my_proj
 ```
 
@@ -115,6 +115,6 @@ lint 检查
 更新完静态文件（templates 目录），需要将静态文件打包成.go 文件：
 
 ```bash
-# go get github.com/markbates/pkger/cmd/pkger
+# go install github.com/markbates/pkger/cmd/pkger@latest
 pkger -include /cmd/gobay/templates -o cmd/gobay/
 ```
