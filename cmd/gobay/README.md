@@ -12,7 +12,7 @@ gobay new github.com/shanbay/my_proj
 - openapi 工具: [oapi-codegen](https://github.com/shanbay/oapi-codegen/releases)
 - grpc/protobuf 工具: [grpc-go](https://github.com/grpc/grpc-go) [protobuf](https://github.com/golang/protobuf)
 - lint 工具: [golangci-lint](https://github.com/golangci/golangci-lint#binary)
-- orm 代码生成(ent): [ent](https://github.com/shanbay/ent) 请安装这个版本的 entc `go install entgo.io/ent/cmd/ent@latest`
+- orm 代码生成(ent): [ent](https://github.com/shanbay/ent) 请安装这个版本 `go install entgo.io/ent/cmd/ent@version` version与项目内使用的ent版本一致，不然生成可能报错
 - gocovmerge: [gocovmerge](https://github.com/wadey/gocovmerge)
 - pre-commit: [pre-commit](https://pre-commit.com/#installation)
 - gotests: [gotests](https://github.com/cweill/gotests)
