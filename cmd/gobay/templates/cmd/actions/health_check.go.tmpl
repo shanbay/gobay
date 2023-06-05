@@ -27,10 +27,10 @@ func checkRPCHealth(service string) {
 		context.Background(),
 		&grpc_health_v1.HealthCheckRequest{Service: service})
 	if err != nil {
-		log.Fatalf("get health heck res failed: %v\n", err)
+		log.Panicf("get health heck res failed: %v\n", err)
 	}
 	if res.Status != grpc_health_v1.HealthCheckResponse_SERVING {
-		log.Fatalf(" health check response status error: %v\n", res.Status)
+		log.Panicf(" health check response status error: %v\n", res.Status)
 	} else {
 		log.Println("health check response success")
 	}
@@ -43,11 +43,11 @@ func checkAPIHealth(service string) {
 	var resp *http.Response
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		log.Fatalf("did not connect: %v\n", err)
+		log.Panicf("did not connect: %v\n", err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
-		log.Fatalf("health check response status error: %v\n", resp.Status)
+		log.Panicf("health check response status error: %v\n", resp.Status)
 	} else {
 		log.Println("health check response success")
 	}
@@ -59,12 +59,13 @@ func CheckHealth(cmd *cobra.Command, args []string) {
 		log.Fatalf("get service failed: %v\n", err)
 	}
 	SvcType, _ := cmd.Flags().GetString("svc_type")
-	if SvcType == "httpsvc" {
+	switch SvcType {
+	case "httpsvc":
 		checkAPIHealth(service)
-	} else if SvcType == "grpcsvc" {
+	case "grpcsvc":
 		checkRPCHealth(service)
-	} else {
-		log.Fatalln("unknown svc type!")
+	default:
+		log.Fatalln("Unknown service type!")
 	}
 }
 
