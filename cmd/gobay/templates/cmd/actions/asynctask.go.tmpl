@@ -27,7 +27,7 @@ func RunAsyncTaskWorker(cmd *cobra.Command, args []string) {
 	}
 	defer bapp.Close()
 	if err := asynctask.Serve(bapp); err != nil {
-		log.Fatal("grpc serve failed\n", err)
+		log.Panicf("grpc serve failed %v\n", err)
 	}
 }
 
