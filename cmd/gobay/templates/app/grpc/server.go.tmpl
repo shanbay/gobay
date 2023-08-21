@@ -24,6 +24,7 @@ import (
 	"google.golang.org/grpc/health/grpc_health_v1"
 
 	myapp "{{ $.Url }}/app"
+	"google.golang.org/grpc/reflection"
 )
 
 // Serve grpc server
@@ -64,6 +65,8 @@ func Serve(app *gobay.Application) error {
 
 	configureAPI(server, &{{ toLowerCamel $.Name}}Server{app: app})
 
+	// Register reflection service on gRPC server.
+	reflection.Register(server)
 	// 启动 prometheus handler
 	grpc_prometheus.Register(server)
 	promSrv := http.Server{Addr: ":9000"}
