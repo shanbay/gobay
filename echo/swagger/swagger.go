@@ -78,7 +78,7 @@ func SwaggerDoc(basePath string, swaggerJson []byte, opts ...Opts) echo.Middlewa
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			path := c.Request().URL.Path
-			if path == docPath || path == config.SpecURL {
+			if (path == docPath || path == config.SpecURL) && c.Request().Method == http.MethodGet {
 				if config.Authorizer != nil {
 					if !config.Authorizer(c.Request()) {
 						return c.String(403, "Forbidden")
