@@ -12,7 +12,7 @@ import (
 )
 
 func init() {
-	if err := cachext.RegisteBackend("redis", func() cachext.CacheBackend { return &redisBackend{} }); err != nil {
+	if err := cachext.RegisterBackend("redis", func() cachext.CacheBackend { return &redisBackend{} }); err != nil {
 		panic("RedisBackend init error")
 	}
 }

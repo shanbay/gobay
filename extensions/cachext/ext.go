@@ -8,11 +8,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/shanbay/gobay"
 	"github.com/spf13/viper"
 	"github.com/vmihailenco/msgpack"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 type void struct{}
@@ -119,16 +119,16 @@ func (c *CacheExt) CheckHealth(ctx context.Context) error {
 	return nil
 }
 
-// RegisteBackend if you want a new backend, use this func to registe your backend
+// RegisterBackend if you want a new backend, use this func to registe your backend
 // then load it by config
-func RegisteBackend(configBackend string, backendFunc func() CacheBackend) error {
+func RegisterBackend(configBackend string, backendFunc func() CacheBackend) error {
 	mu.Lock()
 	defer mu.Unlock()
 	if _, exist := backendMap[configBackend]; !exist {
 		backendMap[configBackend] = backendFunc
 		return nil
 	} else {
-		return errors.New("Backend already registered")
+		return errors.New("backend already registered")
 	}
 }
 
