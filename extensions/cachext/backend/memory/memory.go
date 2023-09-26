@@ -2,6 +2,7 @@ package memory
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/spf13/viper"
@@ -10,7 +11,7 @@ import (
 )
 
 func init() {
-	if err := cachext.RegisteBackend("memory", func() cachext.CacheBackend { return &memoryBackend{} }); err != nil {
+	if err := cachext.RegisterBackend("memory", func() cachext.CacheBackend { return &memoryBackend{} }); err != nil {
 		panic("MemoryBackend Init error")
 	}
 }
@@ -21,6 +22,7 @@ type memoryBackendNode struct {
 }
 
 type memoryBackend struct {
+	lock   sync.Mutex
 	client map[string]*memoryBackendNode
 }
 
@@ -47,6 +49,8 @@ func (m *memoryBackend) Get(ctx context.Context, key string) ([]byte, error) {
 }
 
 func (m *memoryBackend) Set(ctx context.Context, key string, value []byte, ttl time.Duration) error {
+	m.lock.Lock()
+	defer m.lock.Unlock()
 	node := &memoryBackendNode{Value: value, ExpiredAt: time.Now().Add(ttl)}
 	m.client[key] = node
 	return nil
@@ -70,16 +74,20 @@ func (m *memoryBackend) GetMany(ctx context.Context, keys []string) [][]byte {
 }
 
 func (m *memoryBackend) Delete(ctx context.Context, key string) bool {
-	exists := m.Exists(ctx, key)
-	delete(m.client, key)
-	return exists
+	m.lock.Lock()
+	defer m.lock.Unlock()
+	if _, ok := m.client[key]; ok {
+		delete(m.client, key)
+		return true
+	}
+	return false
 }
 
 func (m *memoryBackend) DeleteMany(ctx context.Context, keys []string) bool {
-	var res bool
+	res := true
 	for _, key := range keys {
-		if m.Delete(ctx, key) {
-			res = true
+		if !m.Delete(ctx, key) {
+			res = false
 		}
 	}
 	return res
@@ -90,6 +98,8 @@ func (m *memoryBackend) Expire(ctx context.Context, key string, ttl time.Duratio
 	if val == nil {
 		return false
 	}
+	m.lock.Lock()
+	defer m.lock.Unlock()
 	m.client[key].ExpiredAt = time.Now().Add(ttl)
 	return true
 }
