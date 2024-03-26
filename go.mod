@@ -10,7 +10,7 @@ require (
 	github.com/go-co-op/gocron v1.17.1
 	github.com/go-openapi/runtime v0.23.2
 	github.com/go-redis/redis v6.15.9+incompatible
-	github.com/go-sql-driver/mysql v1.7.0
+	github.com/go-sql-driver/mysql v1.8.1
 	github.com/golang/mock v1.4.4
 	github.com/golang/protobuf v1.5.2
 	github.com/google/uuid v1.3.0
@@ -41,6 +41,7 @@ require (
 	ariga.io/atlas v0.9.1-0.20230119145809-92243f7c55cb // indirect
 	cloud.google.com/go v0.76.0 // indirect
 	cloud.google.com/go/pubsub v1.10.0 // indirect
+	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/PuerkitoBio/purell v1.1.1 // indirect
 	github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578 // indirect
 	github.com/agext/levenshtein v1.2.1 // indirect
