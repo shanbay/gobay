@@ -6,7 +6,7 @@ package mock_protos_go
 
 import (
 	context "context"
-	protos_go "github.com/shanbay/gobay/testdata/health_pb"
+	"google.golang.org/grpc/health/grpc_health_v1"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
@@ -37,14 +37,14 @@ func (m *MockHealthClient) EXPECT() *MockHealthClientMockRecorder {
 }
 
 // Check mocks base method.
-func (m *MockHealthClient) Check(ctx context.Context, in *protos_go.HealthCheckRequest, opts ...grpc.CallOption) (*protos_go.HealthCheckResponse, error) {
+func (m *MockHealthClient) Check(ctx context.Context, in *grpc_health_v1.HealthCheckRequest, opts ...grpc.CallOption) (*grpc_health_v1.HealthCheckResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
 	for _, a := range opts {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "Check", varargs...)
-	ret0, _ := ret[0].(*protos_go.HealthCheckResponse)
+	ret0, _ := ret[0].(*grpc_health_v1.HealthCheckResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -80,10 +80,10 @@ func (m *MockHealthServer) EXPECT() *MockHealthServerMockRecorder {
 }
 
 // Check mocks base method.
-func (m *MockHealthServer) Check(arg0 context.Context, arg1 *protos_go.HealthCheckRequest) (*protos_go.HealthCheckResponse, error) {
+func (m *MockHealthServer) Check(arg0 context.Context, arg1 *grpc_health_v1.HealthCheckRequest) (*grpc_health_v1.HealthCheckResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Check", arg0, arg1)
-	ret0, _ := ret[0].(*protos_go.HealthCheckResponse)
+	ret0, _ := ret[0].(*grpc_health_v1.HealthCheckResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

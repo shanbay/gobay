@@ -3,7 +3,7 @@ package cachext_test
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"strings"
 	"testing"
@@ -588,7 +588,7 @@ func TestCacheExt_Cached_Monitor(t *testing.T) {
 			t.Error(err)
 		}
 		defer resp.Body.Close()
-		rawData, err := ioutil.ReadAll(resp.Body)
+		rawData, err := io.ReadAll(resp.Body)
 		if err != nil {
 			t.Error(err)
 		}

@@ -8,7 +8,7 @@
 │   │   ├── handlers.go
 │   │   └── server.go
 │   ├── constant.go # 设定常量
-│   ├── extensions.go # 配置extension (redis/mysql/grpc/cache/sentry/elasicApm/etc.)
+│   ├── extensions.go # 配置extension (redis/mysql/grpc/cache/sentry/etc.)
 │   ├── grpc # GRPC 服务
 │   │   ├── handlers.go
 │   │   └── server.go

@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"io/ioutil"
 	"log"
 	"os"
 	"path"
@@ -26,12 +25,12 @@ type _projDir struct {
 }
 
 type _projConfig struct {
-	Url            string
-	Name           string
-	SkipSentry     bool
-	SkipAsyncTask  bool
-	SkipCache      bool
-	SkipElasticApm bool
+	Url           string
+	Name          string
+	SkipSentry    bool
+	SkipAsyncTask bool
+	SkipCache     bool
+	SkipOtel      bool
 }
 
 var (
@@ -78,7 +77,7 @@ func main() {
 	}
 	cmdNew.Flags().StringVar(&projConfig.Name, "name", "", "specific project name")
 	cmdNew.Flags().BoolVar(&projConfig.SkipSentry, "skip-sentry", false, "skip sentry")
-	cmdNew.Flags().BoolVar(&projConfig.SkipElasticApm, "skip-elasticapm", false, "skip elastic APM")
+	cmdNew.Flags().BoolVar(&projConfig.SkipOtel, "skip-otel", false, "skip otel")
 	cmdNew.Flags().BoolVar(&projConfig.SkipCache, "skip-cache", false, "skip cache")
 	cmdNew.Flags().BoolVar(&projConfig.SkipAsyncTask, "skip-asynctask", false, "skip asynctask")
 
@@ -174,7 +173,7 @@ func renderTemplates() {
 		if b.Len() <= 1 {
 			continue
 		}
-		if err := ioutil.WriteFile(f.dstPath, b.Bytes(), f.mode); err != nil {
+		if err := os.WriteFile(f.dstPath, b.Bytes(), f.mode); err != nil {
 			log.Fatalln(err)
 		}
 	}
@@ -195,7 +194,7 @@ func copyTmplFiles() {
 		if _, err := file.Read(b); err != nil {
 			panic(err)
 		}
-		check(ioutil.WriteFile(targetPath, b, FILEMODE))
+		check(os.WriteFile(targetPath, b, FILEMODE))
 	}
 }
 

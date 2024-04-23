@@ -1,9 +1,9 @@
-# [Unreleased]
+# 1.2.0
 
-## Added:
-
+- 升级 go1.21
 - 添加用于执行定时任务的 CronJobExt
-- 添加 golang 1.18 测试
+- 新增 go-redis/v9 作为可选升级项
+- 将 APM 替换成 OpenTelemetry 实现
 
 # 1.0.0 (2022-01-05)
 

@@ -92,7 +92,7 @@ make genswagger
 
 ```go
 // i.e.
-func configureAPI(s *restapi.Server, api *operations.HelloworldProjectAPI, impls *helloworldProjectServer, enableApm bool) {
+func configureAPI(s *restapi.Server, api *operations.HelloworldProjectAPI, impls *helloworldProjectServer) {
   // ...
   api.HealthHealthCheckHandler = impls.healthCheckHealthHandler()
   // ...

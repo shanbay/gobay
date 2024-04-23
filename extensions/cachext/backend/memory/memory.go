@@ -84,10 +84,10 @@ func (m *memoryBackend) Delete(ctx context.Context, key string) bool {
 }
 
 func (m *memoryBackend) DeleteMany(ctx context.Context, keys []string) bool {
-	res := true
+	var res bool
 	for _, key := range keys {
-		if !m.Delete(ctx, key) {
-			res = false
+		if m.Delete(ctx, key) {
+			res = true
 		}
 	}
 	return res

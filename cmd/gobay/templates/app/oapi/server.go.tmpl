@@ -24,16 +24,13 @@ import (
 	"github.com/shanbay/gobay"
 	"github.com/shanbay/gobay/echo/swagger"
 	"github.com/shanbay/gobay/extensions/sentryext/custom_logger"
-{{- if not $.SkipElasticApm }}
-	"go.elastic.co/apm/module/apmechov4"
-{{- end }}
 )
 
 // Serve serve OpenAPI http server
 func Serve(
 	app *gobay.Application,
 	preInitFunc func(a *gobay.Application),
-	preStartFunc func(e *echo.Echo, a *gobay.Application, enableAPM bool, enableDoc bool),
+	preStartFunc func(e *echo.Echo, a *gobay.Application, enableDoc bool),
 	mocked bool,
 ) error {
 	// Initialize the project before loading the configuration
@@ -46,11 +43,6 @@ func Serve(
 	e := echo.New()
 	host := config.GetString("oapi_listen_host")
 	port := config.GetInt("oapi_listen_port")
-{{- if not $.SkipElasticApm }}
-	enableAPM := config.GetBool("elastic_apm_enable")
-{{- else }}
-	enableAPM := false
-{{- end }}
 
 	// config http keep-alive
 	var keepAlive time.Duration
@@ -66,7 +58,7 @@ func Serve(
 	e.Server.IdleTimeout = keepAlive
 
 	// Do something before start echo server
-	preStartFunc(e, app, enableAPM, true)
+	preStartFunc(e, app, true)
 
 	// 启动 prometheus handler
 	promSrv := http.Server{Addr: fmt.Sprintf(":%d", config.GetInt("oapi_prom_listen_port"))}
@@ -100,7 +92,7 @@ func Serve(
 	return nil
 }
 
-func configureMiddlewares(e *echo.Echo, impls *{{ toLowerCamel $.Name }}Server, enableAPM, enableDoc bool) {
+func configureMiddlewares(e *echo.Echo, impls *{{ toLowerCamel $.Name }}Server, enableDoc bool) {
 	oapi.RegisterHandlersWithBaseURL(e, impls, "/{{ $.Name }}")
 
 	// swagger
@@ -117,21 +109,12 @@ func configureMiddlewares(e *echo.Echo, impls *{{ toLowerCamel $.Name }}Server, 
 		}
 	}
 
-	// APM or recover
-	if enableAPM {
-{{- if not $.SkipElasticApm }}
-		// APM middleware 会做 recover，但是不打印错误
-		// APM 会把 transaction 放在 echo.Context.Request().Context() 里
-		e.Use(apmechov4.Middleware(apmechov4.WithTracer(myapp.ApmTracer)))
-{{- end }}
-	} else {
-		e.Use(middleware.RecoverWithConfig(middleware.RecoverConfig{
-			StackSize: 1 << 10, // 1 KB
-			LogLevel:  echolog.ERROR,
-		}))
-	}
+	e.Use(middleware.RecoverWithConfig(middleware.RecoverConfig{
+		StackSize: 1 << 10, // 1 KB
+		LogLevel:  echolog.ERROR,
+	}))
 
-	// 错误处理流程（靠左的更外层）: recover (apm) => sentry => custom error handler
+	// 错误处理流程（靠左的更外层）: recover => sentry => custom error handler
 	e.Use(sentryecho.New(sentryecho.Options{Repanic: true}))
 
 	// Validator
@@ -167,7 +150,7 @@ func PreInitFunc(app *gobay.Application) {
 	myapp.InitExts(app)
 }
 
-func PreStartFunc(e *echo.Echo, app *gobay.Application, enableAPM, enableDoc bool) {
+func PreStartFunc(e *echo.Echo, app *gobay.Application, enableDoc bool) {
 	impls := &{{ toLowerCamel $.Name }}Server{app: app}
-	configureMiddlewares(e, impls, enableAPM, enableDoc)
+	configureMiddlewares(e, impls, enableDoc)
 }

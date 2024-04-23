@@ -17,8 +17,8 @@ import (
 	"google.golang.org/grpc/metadata"
 
 	"github.com/shanbay/gobay"
-	protos_go "github.com/shanbay/gobay/testdata/health_pb"
 	mock_protos_go "github.com/shanbay/gobay/testdata/health_pb_mock"
+	"google.golang.org/grpc/health/grpc_health_v1"
 )
 
 var (
@@ -47,7 +47,7 @@ func setupStub(env string) {
 		DialOptions: []grpc.DialOption{grpc.WithInsecure(), grpc.WithBlock()},
 		NewClientFuncs: map[string]NewClientFunc{
 			"health": func(conn *grpc.ClientConn) interface{} {
-				return protos_go.NewHealthClient(conn)
+				return grpc_health_v1.NewHealthClient(conn)
 			},
 		},
 	}
@@ -76,7 +76,7 @@ func setupStub(env string) {
 
 type healthServer struct{}
 
-func (h *healthServer) Check(ctx context.Context, req *protos_go.HealthCheckRequest) (*protos_go.HealthCheckResponse, error) {
+func (h *healthServer) Check(ctx context.Context, req *grpc_health_v1.HealthCheckRequest) (*grpc_health_v1.HealthCheckResponse, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
 		panic(md)
@@ -88,12 +88,16 @@ func (h *healthServer) Check(ctx context.Context, req *protos_go.HealthCheckRequ
 	if md["svc_auth_token"][0] != "abcdefg" {
 		panic("authority should be \"abcdefg\"")
 	}
-	return &protos_go.HealthCheckResponse{Status: protos_go.HealthCheckResponse_SERVING}, nil
+	return &grpc_health_v1.HealthCheckResponse{Status: grpc_health_v1.HealthCheckResponse_SERVING}, nil
+}
+
+func (h *healthServer) Watch(req *grpc_health_v1.HealthCheckRequest, srv grpc_health_v1.Health_WatchServer) error {
+	return nil
 }
 
 func setupServer() {
 	server = grpc.NewServer()
-	protos_go.RegisterHealthServer(server, &healthServer{})
+	grpc_health_v1.RegisterHealthServer(server, &healthServer{})
 	lis, err := net.Listen("tcp", net.JoinHostPort("127.0.0.1", "5555"))
 	if err != nil {
 		panic(err)
@@ -119,7 +123,7 @@ func TestStubExt(t *testing.T) {
 
 		// init client
 		client := stubext.Clients["health"]
-		stubclient := client.(protos_go.HealthClient)
+		stubclient := client.(grpc_health_v1.HealthClient)
 
 		// set ctx
 		ctx := stubext.GetCtx(context.Background())
@@ -128,9 +132,9 @@ func TestStubExt(t *testing.T) {
 		t.Logf("md: %v", md)
 
 		// call
-		res, err := stubclient.Check(ctx, &protos_go.HealthCheckRequest{})
+		res, err := stubclient.Check(ctx, &grpc_health_v1.HealthCheckRequest{})
 		assert.Nil(t, err)
-		assert.Equal(t, res.Status, protos_go.HealthCheckResponse_SERVING)
+		assert.Equal(t, res.Status, grpc_health_v1.HealthCheckResponse_SERVING)
 		// tearDown
 		tearDownServer()
 	}
@@ -143,7 +147,7 @@ func TestStubExtServerStop(t *testing.T) {
 
 	// init client
 	client := stubext.Clients["health"]
-	stubclient := client.(protos_go.HealthClient)
+	stubclient := client.(grpc_health_v1.HealthClient)
 
 	// stop server
 	server.GracefulStop()
@@ -152,7 +156,7 @@ func TestStubExtServerStop(t *testing.T) {
 	start := time.Now()
 	_, err := stubclient.Check(
 		stubext.GetCtx(context.Background()),
-		&protos_go.HealthCheckRequest{},
+		&grpc_health_v1.HealthCheckRequest{},
 	)
 	assert.NotNil(t, err)
 	diff := time.Since(start)
@@ -167,7 +171,7 @@ func TestStubExtServerStopRetryLonger(t *testing.T) {
 
 	// init client
 	client := stubext.Clients["health"]
-	stubclient := client.(protos_go.HealthClient)
+	stubclient := client.(grpc_health_v1.HealthClient)
 
 	// stop server
 	server.GracefulStop()
@@ -176,7 +180,7 @@ func TestStubExtServerStopRetryLonger(t *testing.T) {
 	start := time.Now()
 	_, err := stubclient.Check(
 		stubext.GetCtx(context.Background()),
-		&protos_go.HealthCheckRequest{},
+		&grpc_health_v1.HealthCheckRequest{},
 	)
 	assert.NotNil(t, err)
 
@@ -197,7 +201,7 @@ func TestStubExtServerStopRetryLongerUh(t *testing.T) {
 	defer tearDownMmockCheckRPC(ctrl)
 	_, err := stubclient.Check(
 		stubext.GetCtx(context.Background()),
-		&protos_go.HealthCheckRequest{},
+		&grpc_health_v1.HealthCheckRequest{},
 	)
 	assert.NotNil(t, err)
 	diff := time.Since(start)
@@ -212,7 +216,7 @@ func TestStubExtServerStopNoRetry(t *testing.T) {
 
 	// init client
 	client := stubext.Clients["health"]
-	stubclient := client.(protos_go.HealthClient)
+	stubclient := client.(grpc_health_v1.HealthClient)
 
 	// stop server
 	server.GracefulStop()
@@ -221,7 +225,7 @@ func TestStubExtServerStopNoRetry(t *testing.T) {
 	start := time.Now()
 	_, err := stubclient.Check(
 		stubext.GetCtx(context.Background()),
-		&protos_go.HealthCheckRequest{},
+		&grpc_health_v1.HealthCheckRequest{},
 	)
 	assert.NotNil(t, err)
 	diff := time.Since(start)

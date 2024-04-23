@@ -8,7 +8,7 @@
 │   │   ├── handlers.go
 │   │   └── server.go
 │   ├── constant.go # define constants here
-│   ├── extensions.go # define and prepare extensions (redis/mysql/grpc/cache/sentry/elasicApm/etc.)
+│   ├── extensions.go # define and prepare extensions (redis/mysql/grpc/cache/sentry/etc.)
 │   ├── grpc # GRPC service controllers
 │   │   ├── handlers.go
 │   │   └── server.go
