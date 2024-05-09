@@ -1,13 +1,16 @@
 package entext
 
 import (
+	"context"
 	"database/sql"
+	"database/sql/driver"
 	"errors"
 
 	"entgo.io/ent/dialect"
 	entsql "entgo.io/ent/dialect/sql"
+	"github.com/XSAM/otelsql"
 	"github.com/shanbay/gobay"
-	"go.elastic.co/apm/module/apmsql"
+	"go.opentelemetry.io/otel/trace"
 )
 
 const (
@@ -50,8 +53,13 @@ func (d *EntExt) Init(app *gobay.Application) error {
 
 	var db *sql.DB
 	var err error
-	if app.Config().GetBool("elastic_apm_enable") {
-		db, err = apmsql.Open(dbDriver, dbURL)
+	if app.Config().GetBool("otel_enable") {
+		db, err = otelsql.Open(dbDriver, dbURL,
+			otelsql.WithSpanOptions(otelsql.SpanOptions{
+				SpanFilter: func(ctx context.Context, method otelsql.Method, query string, args []driver.NamedValue) bool {
+					return trace.SpanContextFromContext(ctx).IsValid()
+				}}),
+		)
 	} else {
 		db, err = sql.Open(dbDriver, dbURL)
 	}

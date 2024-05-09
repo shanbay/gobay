@@ -22,14 +22,6 @@ defaults: &defaults
   sentry_environment: 'development'
 {{- end }}
 
-{{- if not $.SkipElasticApm }}
-  elastic_apm_service_name: '{{ $.Name }}-rpc-go'
-  elastic_apm_service_version: '1'
-  elastic_apm_server_url: ''
-  elastic_apm_transaction_sample_rate: 0.01
-  elastic_apm_enable: false
-{{- end }}
-
   oapi_listen_host: "0.0.0.0"
   oapi_listen_port: 5000
   oapi_prom_listen_port: 9000
@@ -55,9 +47,6 @@ testing:
 {{- end }}
 integration: &integration
   <<: *defaults
-{{- if not $.SkipElasticApm }}
-  elastic_apm_enable: true
-{{- end }}
   redis_addr: ${REDIS_ADDR}
   redis_password: ${REDIS_PASSWORD}
 {{- if not $.SkipSentry }}
@@ -71,11 +60,5 @@ integration: &integration
   db_url: ${DB_URL}
 staging: &staging
   <<: *integration
-{{- if not $.SkipElasticApm }}
-  elastic_apm_enable: false
-{{- end }}
 production:
   <<: *staging
-{{- if not $.SkipElasticApm }}
-  elastic_apm_enable: true
-{{- end }}

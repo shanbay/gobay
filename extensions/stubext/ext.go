@@ -12,7 +12,6 @@ import (
 
 	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
 	"github.com/shanbay/gobay"
-	"go.elastic.co/apm/module/apmgrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -51,8 +50,6 @@ type StubExt struct {
 
 	Clients map[string]interface{}
 	conn    *grpc.ClientConn
-
-	enableApm bool
 }
 
 func (d *StubExt) Application() *gobay.Application { return d.app }
@@ -115,7 +112,6 @@ func (d *StubExt) Init(app *gobay.Application) error {
 	// init from config
 	d.app = app
 	config := app.Config()
-	d.enableApm = config.GetBool("elastic_apm_enable")
 	config = gobay.GetConfigByPrefix(config, d.NS, true)
 	if err := config.Unmarshal(d); err != nil {
 		return err
@@ -168,10 +164,6 @@ func (d *StubExt) GetConn(userOpts ...grpc.DialOption) (*grpc.ClientConn, error)
 		// opts: authority
 		if d.Authority != "" {
 			opts = append(opts, grpc.WithAuthority(d.Authority))
-		}
-		// opts: apm
-		if d.enableApm {
-			opts = append(opts, grpc.WithChainUnaryInterceptor(apmgrpc.NewUnaryClientInterceptor()))
 		}
 		// opts: user opts
 		opts = append(opts, userOpts...)

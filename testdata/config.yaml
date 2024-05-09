@@ -71,6 +71,7 @@ defaults: &defaults
   redisnoprefix_password: ""
   redisnoprefix_db: 0
   redisnoprefix_prefix: ""
+  otel_enable: true
 testing:
   <<: *defaults
   db_driver: mysql

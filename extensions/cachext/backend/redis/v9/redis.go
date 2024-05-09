@@ -4,8 +4,10 @@ import (
 	"context"
 	"time"
 
-	"github.com/go-redis/redis"
+	"github.com/redis/go-redis/v9"
+	"github.com/redis/go-redis/extra/redisotel/v9"
 	"github.com/spf13/viper"
+	"go.opentelemetry.io/otel"
 
 	"github.com/shanbay/gobay/extensions/cachext"
 )
@@ -20,10 +22,6 @@ type redisBackend struct {
 	client *redis.Client
 }
 
-func (b *redisBackend) withContext(ctx context.Context) *redis.Client {
-	return b.client.WithContext(ctx)
-}
-
 func (b *redisBackend) Init(config *viper.Viper) error {
 	host := config.GetString("host")
 	password := config.GetString("password")
@@ -33,14 +31,17 @@ func (b *redisBackend) Init(config *viper.Viper) error {
 		Password: password,
 		DB:       dbNum,
 	})
+	tp := otel.GetTracerProvider()
+	if err := redisotel.InstrumentTracing(redisClient, redisotel.WithTracerProvider(tp)); err != nil {
+		return err
+	}
 	b.client = redisClient
-	_, err := redisClient.Ping().Result()
+	_, err := redisClient.Ping(context.Background()).Result()
 	return err
 }
 
 func (b *redisBackend) CheckHealth(ctx context.Context) error {
-	client := b.withContext(ctx)
-	_, err := client.Ping().Result()
+	_, err := b.client.Ping(ctx).Result()
 	if err != nil {
 		return err
 	}
@@ -48,8 +49,7 @@ func (b *redisBackend) CheckHealth(ctx context.Context) error {
 }
 
 func (b *redisBackend) Get(ctx context.Context, key string) ([]byte, error) {
-	client := b.withContext(ctx)
-	val, err := client.Get(key).Result()
+	val, err := b.client.Get(ctx, key).Result()
 	if err == redis.Nil {
 		return nil, nil
 	}
@@ -57,8 +57,7 @@ func (b *redisBackend) Get(ctx context.Context, key string) ([]byte, error) {
 }
 
 func (b *redisBackend) Set(ctx context.Context, key string, value []byte, ttl time.Duration) error {
-	client := b.withContext(ctx)
-	return client.Set(key, value, ttl).Err()
+	return b.client.Set(ctx, key, value, ttl).Err()
 }
 
 func (b *redisBackend) SetMany(ctx context.Context, keyValues map[string][]byte, ttl time.Duration) error {
@@ -66,18 +65,16 @@ func (b *redisBackend) SetMany(ctx context.Context, keyValues map[string][]byte,
 	for key, value := range keyValues {
 		pairs = append(pairs, key, value)
 	}
-	client := b.withContext(ctx)
-	client.MSet(pairs...)
+	b.client.MSet(ctx, pairs...)
 	for key := range keyValues {
-		client.Expire(key, ttl)
+		b.client.Expire(ctx, key, ttl)
 	}
 	return nil
 }
 
 func (b *redisBackend) GetMany(ctx context.Context, keys []string) [][]byte {
 	res := make([][]byte, len(keys))
-	client := b.withContext(ctx)
-	for i, value := range client.MGet(keys...).Val() {
+	for i, value := range b.client.MGet(ctx, keys...).Val() {
 		if value != nil {
 			res[i] = ([]byte)(value.(string))
 		}
@@ -92,25 +89,21 @@ func (b *redisBackend) Delete(ctx context.Context, key string) bool {
 }
 
 func (b *redisBackend) DeleteMany(ctx context.Context, keys []string) bool {
-	client := b.withContext(ctx)
-	return client.Del(keys...).Val() == 1
+	return b.client.Del(ctx, keys...).Val() == 1
 }
 
 func (b *redisBackend) Expire(ctx context.Context, key string, ttl time.Duration) bool {
-	client := b.withContext(ctx)
-	return client.Expire(key, ttl).Val()
+	return b.client.Expire(ctx, key, ttl).Val()
 }
 
 func (b *redisBackend) TTL(ctx context.Context, key string) time.Duration {
-	client := b.withContext(ctx)
-	return client.TTL(key).Val()
+	return b.client.TTL(ctx, key).Val()
 }
 
 func (b *redisBackend) Exists(ctx context.Context, key string) bool {
 	keys := make([]string, 1)
 	keys[0] = key
-	client := b.withContext(ctx)
-	res := client.Exists(keys...)
+	res := b.client.Exists(ctx, keys...)
 	return res.Val() == 1
 }
 

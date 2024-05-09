@@ -2,16 +2,17 @@ package gobay
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
 
-	"github.com/spf13/viper"
 	"github.com/hashicorp/go-multierror"
+	"github.com/shanbay/gobay/observability"
+	"github.com/spf13/viper"
 )
 
 // A Key represents a key for a Extension.
@@ -34,6 +35,7 @@ type Application struct {
 	initialized bool
 	closed      bool
 	mu          sync.Mutex
+	shutdown    func(context.Context) error
 }
 
 // Get the extension at the specified key, return nil when the component doesn't exist
@@ -72,6 +74,7 @@ func (d *Application) Init() error {
 	if err := d.initConfig(); err != nil {
 		return err
 	}
+	d.setup()
 	if err := d.initExtensions(); err != nil {
 		return err
 	}
@@ -81,7 +84,7 @@ func (d *Application) Init() error {
 
 func (d *Application) initConfig() error {
 	configfile := filepath.Join(d.rootPath, "config.yaml")
-	originConfig, err := ioutil.ReadFile(configfile)
+	originConfig, err := os.ReadFile(configfile)
 	if err != nil {
 		return err
 	}
@@ -101,10 +104,15 @@ func (d *Application) initConfig() error {
 	config.SetDefault("grpc_listen_port", 6000)
 	config.SetDefault("openapi_listen_host", "localhost")
 	config.SetDefault("openapi_listen_port", 3000)
+	config.SetDefault("otel_service_address", "otel-collector.guardian.svc.cluster.local:4317")
 
 	d.config = config
 
 	return nil
+}
+
+func (d *Application) setup() {
+	d.shutdown = observability.InitOtel(d.config)
 }
 
 func (d *Application) initExtensions() error {
@@ -128,6 +136,12 @@ func (d *Application) Close() error {
 
 	if err := d.closeExtensions(); err != nil {
 		return err
+	}
+	if d.shutdown != nil {
+		err := d.shutdown(context.Background())
+		if err != nil {
+			return err
+		}
 	}
 	d.closed = true
 	return nil

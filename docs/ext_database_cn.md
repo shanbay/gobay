@@ -22,7 +22,6 @@ import (
   _ "github.com/go-sql-driver/mysql"
   "github.com/shanbay/gobay"
   "github.com/shanbay/gobay/extensions/entext"
-  _ "go.elastic.co/apm/module/apmsql/mysql"
 )
 
 func Extensions() map[gobay.Key]gobay.Extension {

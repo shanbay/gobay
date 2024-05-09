@@ -1,4 +1,4 @@
-package redisext
+package redisv9ext
 
 import (
 	"context"
@@ -8,8 +8,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-redis/redis"
+	"github.com/redis/go-redis/v9"
 	"github.com/shanbay/gobay"
+	"github.com/redis/go-redis/extra/redisotel/v9"
+	"go.opentelemetry.io/otel"
 )
 
 // RedisExt redis扩展，处理client的初始化工作
@@ -17,7 +19,7 @@ type RedisExt struct {
 	NS          string
 	app         *gobay.Application
 	prefix      string
-	redisclient *redis.Client
+	redisClient *redis.Client
 }
 
 var _ gobay.Extension = (*RedisExt)(nil)
@@ -34,24 +36,30 @@ func (c *RedisExt) Init(app *gobay.Application) error {
 		return err
 	}
 	c.prefix = config.GetString("prefix")
-	c.redisclient = redis.NewClient(&opt)
-	_, err := c.redisclient.Ping().Result()
+	c.redisClient = redis.NewClient(&opt)
+	if app.Config().GetBool("otel_enable") {
+		tp := otel.GetTracerProvider()
+		if err := redisotel.InstrumentTracing(c.redisClient, redisotel.WithTracerProvider(tp)); err != nil {
+			return err
+		}
+	}
+	_, err := c.redisClient.Ping(context.Background()).Result()
 	return err
 }
 
 func (c *RedisExt) CheckHealth(ctx context.Context) error {
-	_, err := c.redisclient.Ping().Result()
+	_, err := c.redisClient.Ping(ctx).Result()
 	if err != nil {
 		return err
 	}
 
 	cacheKey := c.prefix + "&GobayRedisExtensionHealthCheck&" + fmt.Sprint(time.Now().Local().UnixNano())
 	cacheValue := fmt.Sprint(rand.Int63())
-	err = c.Client(ctx).Set(cacheKey, cacheValue, 10*time.Second).Err()
+	err = c.redisClient.Set(ctx, cacheKey, cacheValue, 10*time.Second).Err()
 	if err != nil {
 		return err
 	}
-	gotValue, err := c.Client(ctx).Get(cacheKey).Result()
+	gotValue, err := c.redisClient.Get(ctx, cacheKey).Result()
 	if err != nil {
 		return err
 	}
@@ -60,7 +68,7 @@ func (c *RedisExt) CheckHealth(ctx context.Context) error {
 	}
 
 	// test delete cache
-	c.Client(ctx).Del(cacheKey)
+	c.redisClient.Del(ctx, cacheKey)
 
 	return nil
 }
@@ -80,7 +88,7 @@ func (c *RedisExt) AddPrefix(key string) string {
 
 // Close close redis client
 func (c *RedisExt) Close() error {
-	return c.redisclient.Close()
+	return c.redisClient.Close()
 }
 
 // Application
@@ -88,6 +96,6 @@ func (c *RedisExt) Application() *gobay.Application {
 	return c.app
 }
 
-func (c *RedisExt) Client(ctx context.Context) *redis.Client {
-	return c.redisclient.WithContext(ctx)
+func (c *RedisExt) Client() *redis.Client {
+	return c.redisClient
 }
