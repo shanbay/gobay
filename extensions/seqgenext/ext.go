@@ -15,7 +15,6 @@ import (
 	"sync"
 
 	"github.com/shanbay/gobay"
-	"github.com/shanbay/gobay/extensions/redisext"
 )
 
 const (
@@ -38,8 +37,12 @@ return {sq, tonumber(t[1]), tonumber(t[2])}
 `
 )
 
+type ISeqRedis interface {
+	EvalLua(ctx context.Context, script string, keys []string, args ...any) (any, error)
+}
+
 type SequenceGeneratorExt struct {
-	redisExt     *redisext.RedisExt
+	redis        ISeqRedis
 	app          *gobay.Application
 	NS           string
 	RedisExtName gobay.Key
@@ -80,12 +83,10 @@ func (g *SequenceGeneratorExt) getSequence(ctx context.Context, step uint64) (ui
 	if step < 1 || step > maxSequence {
 		return 0, fmt.Errorf("step should not less than 1 or greater than MAX_STEP(%d)", maxStep)
 	}
-	if g.redisExt == nil {
-		g.redisExt = g.app.Get(g.RedisExtName).Object().(*redisext.RedisExt)
+	if g.redis == nil {
+		g.redis = g.app.Get(g.RedisExtName).Object().(ISeqRedis)
 	}
-	redisclient := g.redisExt.Client(ctx)
-	cmd := redisclient.Eval(luaScript, []string{g.SequenceKey}, maxSequence, step)
-	result, err := cmd.Result()
+	result, err := g.redis.EvalLua(ctx, luaScript, []string{g.SequenceKey}, maxSequence, step)
 	if err != nil {
 		return 0, err
 	}

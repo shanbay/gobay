@@ -91,3 +91,8 @@ func (c *RedisExt) Application() *gobay.Application {
 func (c *RedisExt) Client(ctx context.Context) *redis.Client {
 	return c.redisclient.WithContext(ctx)
 }
+
+func (c *RedisExt) EvalLua(ctx context.Context, script string, keys []string, args ...any) (any, error) {
+	cmd := c.Client(ctx).Eval(script, keys, args...)
+	return cmd.Result()
+}

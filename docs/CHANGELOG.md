@@ -1,4 +1,8 @@
-# 1.2.0
+# 1.2.1 (2024-5-17)
+
+- 新增 ISeqRedis 抽象执行 Lua 脚本，隐藏 go-redis 版本差异
+
+# 1.2.0 (2024-5-1)
 
 - 升级 go1.21
 - 添加用于执行定时任务的 CronJobExt
@@ -27,7 +31,7 @@
 
 - 改用 `shanbay/amqp`
 - 增加 asynctask ext 的健康检查
-    - 使用方法：`curl 127.0.0.1:9000/health?timeout=5&queue=gobay.task_sub`
+  - 使用方法：`curl 127.0.0.1:9000/health?timeout=5&queue=gobay.task_sub`
 
 # 0.14.0 (2020-11-19)
 

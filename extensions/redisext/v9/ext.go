@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/redis/go-redis/extra/redisotel/v9"
 	"github.com/redis/go-redis/v9"
 	"github.com/shanbay/gobay"
-	"github.com/redis/go-redis/extra/redisotel/v9"
 	"go.opentelemetry.io/otel"
 )
 
@@ -98,4 +98,9 @@ func (c *RedisExt) Application() *gobay.Application {
 
 func (c *RedisExt) Client() *redis.Client {
 	return c.redisClient
+}
+
+func (c *RedisExt) EvalLua(ctx context.Context, script string, keys []string, args ...any) (any, error) {
+	cmd := c.redisClient.Eval(ctx, script, keys, args...)
+	return cmd.Result()
 }
