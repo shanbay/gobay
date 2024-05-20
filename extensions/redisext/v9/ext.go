@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"math/rand"
 	"strings"
 	"time"
@@ -39,7 +40,9 @@ func (c *RedisExt) Init(app *gobay.Application) error {
 	c.redisClient = redis.NewClient(&opt)
 	if app.Config().GetBool("otel_enable") {
 		tp := otel.GetTracerProvider()
+		log.Println("instrument tracing for redis client")
 		if err := redisotel.InstrumentTracing(c.redisClient, redisotel.WithTracerProvider(tp)); err != nil {
+			log.Println("failed to instrument tracing for redis client", err)
 			return err
 		}
 	}
