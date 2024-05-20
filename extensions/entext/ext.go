@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"errors"
+	"log"
 
 	"entgo.io/ent/dialect"
 	entsql "entgo.io/ent/dialect/sql"
@@ -54,6 +55,7 @@ func (d *EntExt) Init(app *gobay.Application) error {
 	var db *sql.DB
 	var err error
 	if app.Config().GetBool("otel_enable") {
+		log.Println("instrument tracing for ent client")
 		db, err = otelsql.Open(dbDriver, dbURL,
 			otelsql.WithSpanOptions(otelsql.SpanOptions{
 				SpanFilter: func(ctx context.Context, method otelsql.Method, query string, args []driver.NamedValue) bool {

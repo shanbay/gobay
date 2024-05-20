@@ -43,6 +43,7 @@ func InitOtel(config *viper.Viper) func(ctx context.Context) error {
 	)
 	otel.SetTracerProvider(tracerProvider)
 	otel.SetTextMapPropagator(propagation.TraceContext{})
+	log.Println("otel initialized")
 	return tracerProvider.Shutdown
 }
 
