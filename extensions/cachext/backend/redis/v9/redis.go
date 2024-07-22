@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/redis/go-redis/v9"
 	"github.com/redis/go-redis/extra/redisotel/v9"
+	"github.com/redis/go-redis/v9"
 	"github.com/spf13/viper"
 	"go.opentelemetry.io/otel"
 
@@ -31,11 +31,11 @@ func (b *redisBackend) Init(config *viper.Viper) error {
 		Password: password,
 		DB:       dbNum,
 	})
+	b.client = redisClient
 	tp := otel.GetTracerProvider()
 	if err := redisotel.InstrumentTracing(redisClient, redisotel.WithTracerProvider(tp)); err != nil {
 		return err
 	}
-	b.client = redisClient
 	_, err := redisClient.Ping(context.Background()).Result()
 	return err
 }
