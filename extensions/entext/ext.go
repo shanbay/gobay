@@ -56,6 +56,7 @@ func (d *EntExt) Init(app *gobay.Application) error {
 	if app.Config().GetBool("otel_enable") {
 		db, err = otelsql.Open(dbDriver, dbURL,
 			otelsql.WithSpanOptions(otelsql.SpanOptions{
+				DisableErrSkip: true,
 				SpanFilter: func(ctx context.Context, method otelsql.Method, query string, args []driver.NamedValue) bool {
 					return trace.SpanContextFromContext(ctx).IsValid()
 				}}),

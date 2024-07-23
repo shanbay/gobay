@@ -1,3 +1,7 @@
+# 1.2.2 (2024-7-23)
+
+- 对 otelsql 设置 `DisableErrSkip: true` 以忽略 ErrSkip
+
 # 1.2.1 (2024-5-17)
 
 - 新增 ISeqRedis 抽象执行 Lua 脚本，隐藏 go-redis 版本差异
