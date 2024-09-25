@@ -138,3 +138,25 @@ func (o *TestHandler) Run() error {
 	result = append(result, o)
 	return nil
 }
+
+func TestHealthCheck(t *testing.T) {
+	err := bus.BusHealthCheck()
+	assert.Nil(t, err)
+
+	// mock amqp 的 publish, 使其 sleep 一个远比设置的 pushTimeout 长的时间, 模拟其卡死的情况
+	bus.publishFunc = func(exchange, key string, mandatory, immediate bool, msg amqp.Publishing) error {
+		dur := 10 * bus.pushTimeout
+		time.Sleep(dur)
+		return nil
+	}
+
+	err = bus.BusHealthCheck()
+	assert.Equal(t, ErrTimeout, err)
+
+	err = bus.BusHealthCheck()
+	assert.Equal(t, ErrNotReady, err)
+
+	time.Sleep(3 * time.Second)
+	err = bus.BusHealthCheck()
+	assert.Nil(t, err)
+}

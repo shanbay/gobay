@@ -32,6 +32,7 @@ const (
 	defaultPrefetch       = 100
 	defaultPublishRetry   = 3
 	defaultPushTimeout    = "5s"
+	healthCheckRoutingKey    = "buses.health_check"
 )
 
 type customLoggerInterface interface {
@@ -498,4 +499,35 @@ func setDefaultConfig(v *viper.Viper) {
 	v.SetDefault("reconnect_delay", defaultReconnectDelay)
 	v.SetDefault("reinit_delay", defaultReinitDelay)
 	v.SetDefault("push_timeout", defaultPushTimeout)
+}
+
+func (b *BusExt) BusHealthCheck() error {
+	msg, _ := BuildMsg(
+		healthCheckRoutingKey,
+		[]interface{}{},
+		map[string]interface{}{},
+	)
+	if err := b.Push("sbay-exchange", healthCheckRoutingKey, *msg); err != nil {
+		return err
+	}
+	// consume
+	b.Register(healthCheckRoutingKey, &HealthCheckHandler{})
+	go func() {
+		err := b.Consume()
+		if err != nil {
+			panic(err)
+		}
+	}()
+	return nil
+}
+
+type HealthCheckHandler struct{}
+
+func (o *HealthCheckHandler) ParsePayload(args []byte, kwargs []byte) (err error) {
+	return nil
+}
+
+func (o *HealthCheckHandler) Run() error {
+	log.Println("bus health check response success")
+	return nil
 }
