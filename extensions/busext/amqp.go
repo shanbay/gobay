@@ -502,32 +502,11 @@ func setDefaultConfig(v *viper.Viper) {
 }
 
 func (b *BusExt) BusHealthCheck() error {
-	msg, _ := BuildMsg(
-		healthCheckRoutingKey,
-		[]interface{}{},
-		map[string]interface{}{},
-	)
-	if err := b.Push("sbay-exchange", healthCheckRoutingKey, *msg); err != nil {
-		return err
+	if b.mocked {
+		return nil
 	}
-	// consume
-	b.Register(healthCheckRoutingKey, &HealthCheckHandler{})
-	go func() {
-		err := b.Consume()
-		if err != nil {
-			panic(err)
-		}
-	}()
-	return nil
-}
-
-type HealthCheckHandler struct{}
-
-func (o *HealthCheckHandler) ParsePayload(args []byte, kwargs []byte) (err error) {
-	return nil
-}
-
-func (o *HealthCheckHandler) Run() error {
-	log.Println("bus health check response success")
+	if !b.isReady {
+		return ErrNotReady
+	}
 	return nil
 }
