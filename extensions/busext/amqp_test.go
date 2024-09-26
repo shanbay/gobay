@@ -36,6 +36,10 @@ func init() {
 }
 
 func TestPushConsume(t *testing.T) {
+	// health check
+	err := bus.HealthCheck()
+	assert.Nil(t, err)
+
 	// publish
 	routingKey := "gobay.buses.test"
 	for i := 0; i < 100; i++ {
@@ -99,7 +103,7 @@ func TestPushConsume(t *testing.T) {
 		},
 	)
 	// case-1: 超时后会结束本次 push 并返回 errTimeout error, 并且尝试重连
-	err := bus.Push("sbay-exchange", routingKey, *msg)
+	err = bus.Push("sbay-exchange", routingKey, *msg)
 	assert.NotNil(t, err)
 	assert.Equal(t, ErrTimeout, err)
 

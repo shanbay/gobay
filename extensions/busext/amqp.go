@@ -32,6 +32,8 @@ const (
 	defaultPrefetch       = 100
 	defaultPublishRetry   = 3
 	defaultPushTimeout    = "5s"
+	healthCheckRetryTimes      = 10
+	healthCheckRetryInterval   = 1 * time.Second
 )
 
 type customLoggerInterface interface {
@@ -498,4 +500,17 @@ func setDefaultConfig(v *viper.Viper) {
 	v.SetDefault("reconnect_delay", defaultReconnectDelay)
 	v.SetDefault("reinit_delay", defaultReinitDelay)
 	v.SetDefault("push_timeout", defaultPushTimeout)
+}
+
+func (b *BusExt) HealthCheck() error {
+	if b.mocked {
+		return nil
+	}
+	for i := 0; i < healthCheckRetryTimes; i++ {
+		if b.isReady {
+			return nil
+		}
+		time.Sleep(healthCheckRetryInterval)
+	}
+	return ErrNotReady
 }

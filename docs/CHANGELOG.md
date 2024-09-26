@@ -1,3 +1,22 @@
+# 1.2.3 (2024-9-26)
+
+- 新增 busext 的 HealthCheck 方法
+
+GRPC 和 OpenAPI 的 health check 检查时，可以添加检查 BusExt。
+
+```go
+func (s *myServer) Check(ctx context.Context, req *grpc_health_v1.HealthCheckRequest) (*grpc_health_v1.HealthCheckResponse, error) {
+	if req.Service == "liveness" || req.Service == "readiness" {
+		if app.BusExt != nil {
+			if err := app.BusExt.HealthCheck(); err != nil {
+				return &grpc_health_v1.HealthCheckResponse{Status: grpc_health_v1.HealthCheckResponse_NOT_SERVING}, nil
+			}
+		return &grpc_health_v1.HealthCheckResponse{Status: grpc_health_v1.HealthCheckResponse_SERVING}, nil
+	}
+	return &grpc_health_v1.HealthCheckResponse{Status: grpc_health_v1.HealthCheckResponse_UNKNOWN}, nil
+}
+```
+
 # 1.2.2 (2024-7-23)
 
 - 对 otelsql 设置 `DisableErrSkip: true` 以忽略 ErrSkip
