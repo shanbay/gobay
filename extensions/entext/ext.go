@@ -58,7 +58,8 @@ func (d *EntExt) Init(app *gobay.Application) error {
 			otelsql.WithSpanOptions(otelsql.SpanOptions{
 				DisableErrSkip: true,
 				SpanFilter: func(ctx context.Context, method otelsql.Method, query string, args []driver.NamedValue) bool {
-					return trace.SpanContextFromContext(ctx).IsValid()
+					sc := trace.SpanContextFromContext(ctx)
+					return sc.IsSampled() && sc.IsValid()
 				}}),
 		)
 	} else {
