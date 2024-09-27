@@ -1,3 +1,7 @@
+# 1.2.4 (2024-9-27)
+
+- otelsql 在过滤 Span 时增加对 TraceFlags 是否采样的判断
+
 # 1.2.3 (2024-9-26)
 
 - 新增 busext 的 HealthCheck 方法
