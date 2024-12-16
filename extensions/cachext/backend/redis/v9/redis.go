@@ -10,6 +10,7 @@ import (
 	"go.opentelemetry.io/otel"
 
 	"github.com/shanbay/gobay/extensions/cachext"
+	"github.com/shanbay/gobay/observability"
 )
 
 func init() {
@@ -32,9 +33,11 @@ func (b *redisBackend) Init(config *viper.Viper) error {
 		DB:       dbNum,
 	})
 	b.client = redisClient
-	tp := otel.GetTracerProvider()
-	if err := redisotel.InstrumentTracing(redisClient, redisotel.WithTracerProvider(tp)); err != nil {
-		return err
+	if observability.GetOtelEnable() {
+		tp := otel.GetTracerProvider()
+		if err := redisotel.InstrumentTracing(redisClient, redisotel.WithTracerProvider(tp)); err != nil {
+			return err
+		}
 	}
 	_, err := redisClient.Ping(context.Background()).Result()
 	return err

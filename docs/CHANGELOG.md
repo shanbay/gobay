@@ -1,3 +1,7 @@
+# 1.2.5 (2024-12-16)
+
+- Tracing 基础设施同时保留 APM 和 OpenTelemetry 并由从 config 中读取配置改为从环境变量中读取
+
 # 1.2.4 (2024-9-27)
 
 - otelsql 在过滤 Span 时增加对 TraceFlags 是否采样的判断

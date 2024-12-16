@@ -1,0 +1,9 @@
+run:
+  timeout: 3m
+  tests: false
+
+issues:
+  exclude-use-default: false
+  exclude-rules:
+    - linters: [staticcheck]
+      text: 'SA1019: grpc.DialContext is deprecated: use NewClient instead'

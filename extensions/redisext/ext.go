@@ -10,19 +10,22 @@ import (
 
 	"github.com/go-redis/redis"
 	"github.com/shanbay/gobay"
+	"github.com/shanbay/gobay/observability"
+	"go.elastic.co/apm/module/apmgoredis"
 )
 
 // RedisExt redis扩展，处理client的初始化工作
 type RedisExt struct {
-	NS          string
-	app         *gobay.Application
-	prefix      string
-	redisclient *redis.Client
+	NS             string
+	app            *gobay.Application
+	prefix         string
+	redisclient    *redis.Client
+	apmable        bool
+	apmredisclient apmgoredis.Client
 }
 
 var _ gobay.Extension = (*RedisExt)(nil)
 
-// Init
 func (c *RedisExt) Init(app *gobay.Application) error {
 	if c.NS == "" {
 		return errors.New("lack of NS")
@@ -35,6 +38,10 @@ func (c *RedisExt) Init(app *gobay.Application) error {
 	}
 	c.prefix = config.GetString("prefix")
 	c.redisclient = redis.NewClient(&opt)
+	if observability.GetApmEnable() {
+		c.apmable = true
+		c.apmredisclient = apmgoredis.Wrap(c.redisclient)
+	}
 	_, err := c.redisclient.Ping().Result()
 	return err
 }
@@ -89,6 +96,9 @@ func (c *RedisExt) Application() *gobay.Application {
 }
 
 func (c *RedisExt) Client(ctx context.Context) *redis.Client {
+	if c.apmable {
+		return c.apmredisclient.WithContext(ctx).RedisClient()
+	}
 	return c.redisclient.WithContext(ctx)
 }
 

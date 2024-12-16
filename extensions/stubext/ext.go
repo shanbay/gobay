@@ -8,10 +8,12 @@ import (
 	"strconv"
 	"time"
 
+	"go.elastic.co/apm/module/apmgrpc"
 	"google.golang.org/grpc/status"
 
 	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
 	"github.com/shanbay/gobay"
+	"github.com/shanbay/gobay/observability"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -50,6 +52,7 @@ type StubExt struct {
 
 	Clients map[string]interface{}
 	conn    *grpc.ClientConn
+	apmable bool
 }
 
 func (d *StubExt) Application() *gobay.Application { return d.app }
@@ -112,6 +115,7 @@ func (d *StubExt) Init(app *gobay.Application) error {
 	// init from config
 	d.app = app
 	config := app.Config()
+	d.apmable = observability.GetApmEnable()
 	config = gobay.GetConfigByPrefix(config, d.NS, true)
 	if err := config.Unmarshal(d); err != nil {
 		return err
@@ -164,6 +168,9 @@ func (d *StubExt) GetConn(userOpts ...grpc.DialOption) (*grpc.ClientConn, error)
 		// opts: authority
 		if d.Authority != "" {
 			opts = append(opts, grpc.WithAuthority(d.Authority))
+		}
+		if d.apmable {
+			opts = append(opts, grpc.WithChainUnaryInterceptor(apmgrpc.NewUnaryClientInterceptor()))
 		}
 		// opts: user opts
 		opts = append(opts, userOpts...)
