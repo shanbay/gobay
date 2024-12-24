@@ -12,6 +12,7 @@ import (
 	"github.com/shanbay/gobay"
 	"github.com/shanbay/gobay/observability"
 	"go.elastic.co/apm/module/apmsql"
+	_ "go.elastic.co/apm/module/apmsql/mysql"
 	"go.opentelemetry.io/otel/trace"
 )
 
