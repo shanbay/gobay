@@ -10,6 +10,9 @@ import (
 	entsql "entgo.io/ent/dialect/sql"
 	"github.com/XSAM/otelsql"
 	"github.com/shanbay/gobay"
+	"github.com/shanbay/gobay/observability"
+	"go.elastic.co/apm/module/apmsql"
+	_ "go.elastic.co/apm/module/apmsql/mysql"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -53,7 +56,9 @@ func (d *EntExt) Init(app *gobay.Application) error {
 
 	var db *sql.DB
 	var err error
-	if app.Config().GetBool("otel_enable") {
+	if observability.GetApmEnable() {
+		db, err = apmsql.Open(dbDriver, dbURL)
+	} else if observability.GetOtelEnable() {
 		db, err = otelsql.Open(dbDriver, dbURL,
 			otelsql.WithSpanOptions(otelsql.SpanOptions{
 				DisableErrSkip: true,

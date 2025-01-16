@@ -6,8 +6,10 @@ import (
 
 	"github.com/go-redis/redis"
 	"github.com/spf13/viper"
+	"go.elastic.co/apm/module/apmgoredis"
 
 	"github.com/shanbay/gobay/extensions/cachext"
+	"github.com/shanbay/gobay/observability"
 )
 
 func init() {
@@ -21,6 +23,9 @@ type redisBackend struct {
 }
 
 func (b *redisBackend) withContext(ctx context.Context) *redis.Client {
+	if observability.GetApmEnable() {
+		return apmgoredis.Wrap(b.client).WithContext(ctx).RedisClient()
+	}
 	return b.client.WithContext(ctx)
 }
 

@@ -4,8 +4,11 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
+	"sync"
+	"sync/atomic"
 
-	"github.com/spf13/viper"
+	"go.elastic.co/apm"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
@@ -16,12 +19,61 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-func InitOtel(config *viper.Viper) func(ctx context.Context) error {
-	if !config.GetBool("otel_enable") {
+var (
+	globalApmTracer  atomic.Value
+	setApmTracerOnce sync.Once
+)
+
+func Initialize() func(ctx context.Context) error {
+	initApm()
+	shutdownOtel := initOtel()
+	return func(ctx context.Context) error {
+		if shutdownOtel != nil {
+			return shutdownOtel(ctx)
+		}
+		if tracer := ApmTracer(); tracer != nil {
+			tracer.Close()
+		}
+		return nil
+	}
+}
+
+func GetApmEnable() bool {
+	return os.Getenv("APM_ENABLE") == "true"
+}
+
+func GetOtelEnable() bool {
+	return os.Getenv("OTEL_ENABLE") == "true"
+}
+
+type tracerHolder struct {
+	tracer *apm.Tracer
+}
+
+func ApmTracer() *apm.Tracer {
+	value := globalApmTracer.Load()
+	if value == nil {
+		return nil
+	}
+	return value.(tracerHolder).tracer
+}
+
+func initApm() {
+	if !GetApmEnable() {
+		return
+	}
+
+	setApmTracerOnce.Do(func() {
+		globalApmTracer.Store(tracerHolder{tracer: apm.DefaultTracer})
+	})
+}
+
+func initOtel() func(ctx context.Context) error {
+	if !GetOtelEnable() {
 		return nil
 	}
 
-	conn, err := initConn(config.GetString("otel_service_address"))
+	conn, err := initConn(os.Getenv("OTEL_SERVER_URL"))
 	if err != nil {
 		log.Fatalf("failed to create gRPC connection: %v\n", err)
 	}
@@ -30,7 +82,7 @@ func InitOtel(config *viper.Viper) func(ctx context.Context) error {
 		resource.WithAttributes(
 			attribute.KeyValue{
 				Key:   attribute.Key("service.name"),
-				Value: attribute.StringValue(config.GetString("otel_service_name")),
+				Value: attribute.StringValue(os.Getenv("OTEL_SERVICE_NAME")),
 			}))
 	traceExporter, err := otlptracegrpc.New(ctx, otlptracegrpc.WithGRPCConn(conn))
 	if err != nil {

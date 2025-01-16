@@ -30,7 +30,6 @@ type _projConfig struct {
 	SkipSentry    bool
 	SkipAsyncTask bool
 	SkipCache     bool
-	SkipOtel      bool
 }
 
 var (
@@ -77,7 +76,6 @@ func main() {
 	}
 	cmdNew.Flags().StringVar(&projConfig.Name, "name", "", "specific project name")
 	cmdNew.Flags().BoolVar(&projConfig.SkipSentry, "skip-sentry", false, "skip sentry")
-	cmdNew.Flags().BoolVar(&projConfig.SkipOtel, "skip-otel", false, "skip otel")
 	cmdNew.Flags().BoolVar(&projConfig.SkipCache, "skip-cache", false, "skip cache")
 	cmdNew.Flags().BoolVar(&projConfig.SkipAsyncTask, "skip-asynctask", false, "skip asynctask")
 

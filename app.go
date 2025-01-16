@@ -104,7 +104,6 @@ func (d *Application) initConfig() error {
 	config.SetDefault("grpc_listen_port", 6000)
 	config.SetDefault("openapi_listen_host", "localhost")
 	config.SetDefault("openapi_listen_port", 3000)
-	config.SetDefault("otel_service_address", "otel-collector.guardian.svc.cluster.local:4317")
 
 	d.config = config
 
@@ -112,7 +111,7 @@ func (d *Application) initConfig() error {
 }
 
 func (d *Application) setup() {
-	d.shutdown = observability.InitOtel(d.config)
+	d.shutdown = observability.Initialize()
 }
 
 func (d *Application) initExtensions() error {
@@ -137,11 +136,9 @@ func (d *Application) Close() error {
 	if err := d.closeExtensions(); err != nil {
 		return err
 	}
-	if d.shutdown != nil {
-		err := d.shutdown(context.Background())
-		if err != nil {
-			return err
-		}
+	err := d.shutdown(context.Background())
+	if err != nil {
+		return err
 	}
 	d.closed = true
 	return nil

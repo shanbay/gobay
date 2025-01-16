@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/shanbay/gobay/observability"
+
 	"github.com/redis/go-redis/extra/redisotel/v9"
 	"github.com/redis/go-redis/v9"
 	"github.com/shanbay/gobay"
@@ -24,7 +26,6 @@ type RedisExt struct {
 
 var _ gobay.Extension = (*RedisExt)(nil)
 
-// Init
 func (c *RedisExt) Init(app *gobay.Application) error {
 	if c.NS == "" {
 		return errors.New("lack of NS")
@@ -37,7 +38,7 @@ func (c *RedisExt) Init(app *gobay.Application) error {
 	}
 	c.prefix = config.GetString("prefix")
 	c.redisClient = redis.NewClient(&opt)
-	if app.Config().GetBool("otel_enable") {
+	if observability.GetOtelEnable() {
 		tp := otel.GetTracerProvider()
 		if err := redisotel.InstrumentTracing(c.redisClient, redisotel.WithTracerProvider(tp)); err != nil {
 			return err
