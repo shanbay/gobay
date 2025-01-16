@@ -30,7 +30,7 @@ require (
 	github.com/spf13/viper v1.7.1
 	github.com/streadway/amqp v1.0.0
 	github.com/stretchr/objx v0.5.2
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.10.0
 	github.com/vmihailenco/msgpack v4.0.4+incompatible
 	go.elastic.co/apm v1.15.0
 	go.elastic.co/apm/module/apmgoredis v1.15.0
