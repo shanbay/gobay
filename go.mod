@@ -1,13 +1,13 @@
 module github.com/shanbay/gobay
 
-go 1.21
+go 1.23
 
 require (
 	entgo.io/ent v0.11.7
 	github.com/RichardKnop/logging v0.0.0-20190827224416-1a693bdd4fae
 	github.com/RichardKnop/machinery v1.10.6
 	github.com/XSAM/otelsql v0.30.0
-	github.com/getsentry/sentry-go v0.13.0
+	github.com/getsentry/sentry-go v0.36.1
 	github.com/go-co-op/gocron v1.17.1
 	github.com/go-openapi/runtime v0.23.2
 	github.com/go-redis/redis v6.15.9+incompatible
