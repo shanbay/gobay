@@ -8,7 +8,7 @@ require (
 	github.com/RichardKnop/machinery v1.10.6
 	github.com/XSAM/otelsql v0.30.0
 	github.com/getsentry/sentry-go v0.13.0
-	github.com/go-co-op/gocron v1.17.1
+	github.com/go-co-op/gocron v1.37.0
 	github.com/go-openapi/runtime v0.23.2
 	github.com/go-redis/redis v6.15.9+incompatible
 	github.com/go-sql-driver/mysql v1.7.0
@@ -143,6 +143,7 @@ require (
 	go.opentelemetry.io/otel/metric v1.29.0 // indirect
 	go.opentelemetry.io/otel/sdk/metric v1.26.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.2.0 // indirect
+	go.uber.org/atomic v1.9.0 // indirect
 	golang.org/x/crypto v0.30.0 // indirect
 	golang.org/x/lint v0.0.0-20201208152925-83fdc39ff7b5 // indirect
 	golang.org/x/mod v0.17.0 // indirect
