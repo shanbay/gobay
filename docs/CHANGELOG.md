@@ -1,3 +1,8 @@
+# 1.2.7 (2026-06-16)
+
+- 移除 shanbay/go-redis fork 的 replace 指令，改用官方 `github.com/redis/go-redis/extra/redisotel/v9` v9.18.0 及 `rediscmd/v9` v9.18.0
+- 升级 go 版本至 1.24
+
 # 1.2.6 (2025-08-20)
 
 - EntExt 新增 CheckHealth 方法
