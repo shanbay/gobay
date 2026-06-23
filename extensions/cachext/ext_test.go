@@ -402,7 +402,7 @@ func TestCacheExt_Cached_Common(t *testing.T) {
 	for i := 0; i <= 3; i++ {
 		err := c_f_nil.GetResult(context.Background(), &nil_res, []string{}, []int64{})
 		if err != nil || nil_res != "" {
-			t.Errorf(err.Error())
+			t.Error(err)
 		}
 	}
 	if call_times != 4 {
@@ -414,7 +414,7 @@ func TestCacheExt_Cached_Common(t *testing.T) {
 	for i := 0; i <= 3; i++ {
 		err := cn_f_nil.GetResult(context.Background(), &nil_res, []string{}, []int64{})
 		if err != nil || nil_res != "" {
-			t.Errorf(err.Error())
+			t.Error(err)
 		}
 	}
 	if call_times != 1 {

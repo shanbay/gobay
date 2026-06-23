@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-func ExampleSentryExt_CaptureComplexError() {
+func Example_captureComplexError() {
 	var err = &CustomComplexError{
 		Message:  "This is a complex error",
 		MoreData: map[string]string{"key1": "val1", "key2": "val2"},
@@ -38,7 +38,7 @@ func Test_CaptureComplexError(t *testing.T) {
 		}
 	}()
 	if _, err := fixtureApp(); err != nil {
-		t.Errorf(err.Error())
+		t.Error(err)
 	}
 
 	var err = &CustomComplexError{

@@ -13,10 +13,12 @@ jobs:
     name: lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/setup-go@v2
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v3.1.0
+        uses: golangci/golangci-lint-action@v6
         with:
           args: --timeout=10m --skip-dirs=testdata --tests=false
 
@@ -25,7 +27,7 @@ jobs:
     runs-on: "${{ matrix.os }}"
     strategy:
       matrix:
-        go-version: ['1.21']
+        go-version: ['1.21', '1.24']
         os: [ubuntu-latest]
 
     services:
@@ -67,16 +69,16 @@ jobs:
       - name: Set up MySQL
         run: |
           mysql -e 'CREATE DATABASE ${{ env.DB_DATABASE }};' -u${{ env.DB_USER }} -p${{ env.DB_PASSWORD }} -h 127.0.0.1
-      - name: Check out code into Go module directory 
-        uses: actions/checkout@v2
+      - name: Check out code into Go module directory
+        uses: actions/checkout@v4
 
       - name: Set up golang ${{ matrix.go-version }}
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go-version }}
-      
+
       - name: Go mod package cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: $GOPATH/pkg/mod
           key: ${{ runner.os }}-go-${{ matrix.go-version }}-${{ hashFiles('**/go.sum') }}

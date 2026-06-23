@@ -26,7 +26,7 @@ func ExampleRedisExt_CheckHealth() {
 	// <nil>
 }
 
-func ExampleRedisExt_Set() {
+func ExampleRedisExt_Client() {
 	redis := &redisv9ext.RedisExt{NS: "redis_"}
 	exts := map[gobay.Key]gobay.Extension{
 		"redis": redis,
@@ -62,7 +62,7 @@ func ExampleRedisExt_AddPrefix() {
 	// Output: github-redis.testRawKey
 }
 
-func ExampleRedisExt_AddPrefixNoPrefix() {
+func ExampleRedisExt_AddPrefix_noPrefix() {
 	redis := &redisv9ext.RedisExt{NS: "redisnoprefix"}
 	exts := map[gobay.Key]gobay.Extension{
 		"redis": redis,
