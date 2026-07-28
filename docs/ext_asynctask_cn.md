@@ -116,3 +116,29 @@ func SomeAsyncTask(ctx context.Context, relatedItemIDToProcess uint64) error {
 ```
 
 ## 测试代码只需测试 SomeAsyncTask 函数本身即可
+
+## 监控指标
+
+在 config.yaml 里加一行即可开启处理耗时/QPS 埋点（默认关闭，零开销）：
+
+```yaml
+  asynctask_monitor_enable: true
+```
+
+开启后会记录 Prometheus Histogram 指标 `asynctask_task_duration_seconds`（label：`task_name`、`queue`、`status`；`status` 固定为 `"unknown"`——machinery 的全局 hook 拿不到每次任务调用的成功/失败信息，只能保证记录到耗时和 QPS）。gobay 本身**不会**自建 `/metrics` HTTP server，需要使用方应用自己起一个（如 `promhttp.Handler()`），照搬 `cachext` 的既有惯例。
+
+这个指标和 Python coast 库（`coast/celery.py`）里的 `asynctask_task_duration_seconds` 是**同一个指标**（同名、同 label、同 buckets），可以在同一个 Prometheus/Grafana 查询里合并 Go 和 Python 两边的数据，不需要额外处理。
+
+常用 PromQL：
+
+```promql
+# QPS
+sum(rate(asynctask_task_duration_seconds_count[1m])) by (task_name)
+
+# 平均耗时
+sum(rate(asynctask_task_duration_seconds_sum[5m])) by (task_name)
+  / sum(rate(asynctask_task_duration_seconds_count[5m])) by (task_name)
+
+# P95 耗时
+histogram_quantile(0.95, sum(rate(asynctask_task_duration_seconds_bucket[5m])) by (le, task_name))
+```

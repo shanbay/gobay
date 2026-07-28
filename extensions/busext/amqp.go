@@ -15,6 +15,7 @@ import (
 	"github.com/streadway/amqp"
 
 	"github.com/shanbay/gobay"
+	"github.com/shanbay/gobay/observability"
 )
 
 var (
@@ -68,6 +69,7 @@ type BusExt struct {
 	publishFunc     func(exchange, key string, mandatory, immediate bool, msg amqp.Publishing) error
 	brokerUrl       string
 	notifyChanBlock chan error
+	monitorEnabled  bool
 }
 
 func (b *BusExt) Object() interface{} {
@@ -98,6 +100,7 @@ func (b *BusExt) Init(app *gobay.Application) error {
 	b.pushTimeout = b.config.GetDuration("push_timeout")
 	b.pushFunc = b.doPush
 	b.notifyChanBlock = make(chan error)
+	b.monitorEnabled = b.config.GetBool("monitor_enable")
 
 	var tlsConfig *tls.Config
 	if b.config.GetBool("tls") {
@@ -277,26 +280,14 @@ func (b *BusExt) Consume() error {
 					b.deliveryAck(delivery)
 					log.Printf("Receive delivery: %s from queue: %v\n",
 						delivery.Headers["id"], chName)
-					var handler Handler
-					var ok bool
-					if delivery.Headers == nil {
-						b.ErrorLogger.Println("Not support v1 celery protocol yet")
-					} else if delivery.ContentType != "application/json" {
-						b.ErrorLogger.Println("Only json encoding is allowed")
-					} else if delivery.ContentEncoding != "utf-8" {
-						b.ErrorLogger.Println("Unsupported content encoding")
-					} else if handler, ok = b.consumers[delivery.RoutingKey]; !ok {
-						b.ErrorLogger.Println("Receive unregistered message")
+					if b.monitorEnabled {
+						start := time.Now()
+						status := b.dispatch(delivery)
+						observability.BusTaskDurationSeconds.WithLabelValues(
+							delivery.RoutingKey, delivery.RoutingKey, status,
+						).Observe(time.Since(start).Seconds())
 					} else {
-						var payload []json.RawMessage
-						if err := json.Unmarshal(delivery.Body, &payload); err != nil {
-							b.ErrorLogger.Printf("json decode error: %v\n", err)
-						} else if err := handler.ParsePayload(payload[0],
-							payload[1]); err != nil {
-							b.ErrorLogger.Printf("handler parse payload error: %v\n", err)
-						} else if err := handler.Run(); err != nil {
-							b.ErrorLogger.Printf("handler run task failed: %v\n", err)
-						}
+						b.dispatch(delivery)
 					}
 				}
 			}
@@ -304,6 +295,45 @@ func (b *BusExt) Consume() error {
 	}
 	wg.Wait()
 	return nil
+}
+
+// dispatch 处理一条已经 ack 过的 delivery，逻辑与改动前的 Consume() 内联
+// if/else-if 链完全一致（日志文案、分支顺序不变），额外返回一个状态字符串
+// 供 monitor_enable 开启时打 Prometheus 指标用：
+//
+//	"invalid_message" — headers 为空 / content-type 非 json / encoding 非 utf-8 / 未注册的 routing key
+//	"parse_error"      — json.Unmarshal 失败 或 handler.ParsePayload 失败
+//	"failure"          — handler.Run() 返回 error
+//	"success"          — 全部通过
+func (b *BusExt) dispatch(delivery amqp.Delivery) string {
+	var handler Handler
+	var ok bool
+	if delivery.Headers == nil {
+		b.ErrorLogger.Println("Not support v1 celery protocol yet")
+		return "invalid_message"
+	} else if delivery.ContentType != "application/json" {
+		b.ErrorLogger.Println("Only json encoding is allowed")
+		return "invalid_message"
+	} else if delivery.ContentEncoding != "utf-8" {
+		b.ErrorLogger.Println("Unsupported content encoding")
+		return "invalid_message"
+	} else if handler, ok = b.consumers[delivery.RoutingKey]; !ok {
+		b.ErrorLogger.Println("Receive unregistered message")
+		return "invalid_message"
+	}
+
+	var payload []json.RawMessage
+	if err := json.Unmarshal(delivery.Body, &payload); err != nil {
+		b.ErrorLogger.Printf("json decode error: %v\n", err)
+		return "parse_error"
+	} else if err := handler.ParsePayload(payload[0], payload[1]); err != nil {
+		b.ErrorLogger.Printf("handler parse payload error: %v\n", err)
+		return "parse_error"
+	} else if err := handler.Run(); err != nil {
+		b.ErrorLogger.Printf("handler run task failed: %v\n", err)
+		return "failure"
+	}
+	return "success"
 }
 
 func (b *BusExt) handleReconnect(brokerUrl string, tlsConfig *tls.Config) {
