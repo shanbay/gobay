@@ -208,3 +208,29 @@ func TestHelloHandler_Run(t *testing.T) {
   }
 }
 ```
+
+## 监控指标
+
+在 config.yaml 里加一行即可开启处理耗时/QPS 埋点（默认关闭，零开销）：
+
+```yaml
+  bus_monitor_enable: true
+```
+
+开启后会记录 Prometheus Histogram 指标 `bus_task_duration_seconds`（label：`task_name`、`queue`、`status`；两者都取消息的 routing key，因为 busext 目前没有独立于 routing key 的"任务名"概念）。`status` 是真实的处理结果：`success` / `failure`（`handler.Run()` 返回 error）/ `parse_error`（payload 解析失败）/ `invalid_message`（headers、content-type、encoding、未注册 routing key 等消息本身有问题）。gobay 本身**不会**自建 `/metrics` HTTP server，需要使用方应用自己起一个（如 `promhttp.Handler()`），照搬 `cachext` 的既有惯例。
+
+这个指标和 Python coast 库（`coast/celery.py`）里的 `bus_task_duration_seconds` 是**同一个指标**（同名、同 label、同 buckets），可以在同一个 Prometheus/Grafana 查询里合并 Go 和 Python 两边的数据，不需要额外处理。
+
+常用 PromQL：
+
+```promql
+# QPS
+sum(rate(bus_task_duration_seconds_count[1m])) by (task_name)
+
+# 失败率
+sum(rate(bus_task_duration_seconds_count{status="failure"}[5m])) by (task_name)
+  / sum(rate(bus_task_duration_seconds_count[5m])) by (task_name)
+
+# P95 耗时
+histogram_quantile(0.95, sum(rate(bus_task_duration_seconds_bucket[5m])) by (le, task_name))
+```

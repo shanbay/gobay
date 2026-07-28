@@ -23,6 +23,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/mitchellh/mapstructure"
 	"github.com/shanbay/gobay"
+	"github.com/shanbay/gobay/observability"
 )
 
 const (
@@ -39,6 +40,10 @@ type AsyncTaskExt struct {
 	lock                    sync.Mutex
 	healthCheckCompleteChan chan string
 	healthHandlerRegistered bool
+
+	monitorEnabled  bool
+	taskStartTimes  map[string]time.Time
+	taskStartTimesM sync.Mutex
 }
 
 func (t *AsyncTaskExt) Object() interface{} {
@@ -70,6 +75,12 @@ func (t *AsyncTaskExt) Init(app *gobay.Application) error {
 		return err
 	}
 	t.server = server
+
+	if config.GetBool("monitor_enable") {
+		t.monitorEnabled = true
+		t.taskStartTimes = make(map[string]time.Time)
+	}
+
 	return t.registerHealthCheck()
 }
 
@@ -101,6 +112,13 @@ func (t *AsyncTaskExt) StartWorker(queue string, concurrency int, enableHealthCh
 	worker := t.server.NewWorker(tag, concurrency)
 	worker.Queue = queue
 	t.workers = append(t.workers, worker)
+
+	if t.monitorEnabled {
+		worker.SetPreTaskHandler(t.recordTaskStart)
+		worker.SetPostTaskHandler(func(sig *tasks.Signature) {
+			t.recordTaskDuration(sig, queue)
+		})
+	}
 
 	// run health check http server
 	if enableHealthCheck && !t.healthHandlerRegistered {
@@ -144,6 +162,32 @@ func (t *AsyncTaskExt) genConsumerTag(queue string) string {
 		log.ERROR.Printf("get host name failed: %v", err)
 	}
 	return fmt.Sprintf("%s@%s", queue, hostName)
+}
+
+// recordTaskStart 记录任务开始处理的时间点，按 signature.UUID 索引。
+func (t *AsyncTaskExt) recordTaskStart(sig *tasks.Signature) {
+	t.taskStartTimesM.Lock()
+	defer t.taskStartTimesM.Unlock()
+	t.taskStartTimes[sig.UUID] = time.Now()
+}
+
+// recordTaskDuration 从 taskStartTimes 弹出起点算 duration，Observe 到
+// observability.AsyncTaskDurationSeconds。status 固定写死 "unknown"——machinery
+// 的 SetPostTaskHandler 全局 hook 拿不到该次调用的 error，无法在并发 worker 下
+// 精确归因到具体任务，为避免引入 reflect.MakeFunc 包装 handler 的复杂度和风险，
+// 明确放弃精确 status（详见 plan §1.3）。
+func (t *AsyncTaskExt) recordTaskDuration(sig *tasks.Signature, queue string) {
+	t.taskStartTimesM.Lock()
+	start, ok := t.taskStartTimes[sig.UUID]
+	if ok {
+		delete(t.taskStartTimes, sig.UUID)
+	}
+	t.taskStartTimesM.Unlock()
+	if !ok {
+		return
+	}
+	observability.AsyncTaskDurationSeconds.WithLabelValues(sig.Name, queue, "unknown").
+		Observe(time.Since(start).Seconds())
 }
 
 func (t *AsyncTaskExt) registerHealthCheck() error {

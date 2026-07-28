@@ -1,3 +1,7 @@
+# 1.2.8 (2026-07-27)
+
+- `asynctaskext`/`busext` 新增 Prometheus 处理耗时/QPS 埋点（`asynctask_task_duration_seconds`/`bus_task_duration_seconds`），config `<NS>monitor_enable` 开关可选开启，默认关闭零开销；与 Python coast 库同名同 label 同 buckets，可跨语言合并查询
+
 # 1.2.7 (2026-06-16)
 
 - 移除 shanbay/go-redis fork 的 replace 指令，改用官方 `github.com/redis/go-redis/extra/redisotel/v9` v9.18.0 及 `rediscmd/v9` v9.18.0
