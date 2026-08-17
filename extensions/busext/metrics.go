@@ -1,17 +1,11 @@
 package busext
 
 import (
-	"net/http"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
-
-// DefaultMetricsServerAddr 与 Python 中间件 coast 的 Bus(9809) 保持一致，
-// 方便两种语言的 worker 共用同一套 scrape 配置。
-const DefaultMetricsServerAddr = ":9809"
 
 // taskDurationBuckets 必须与 coast 的 _TASK_DURATION_BUCKETS 逐档一致，
 // 否则跨语言 histogram_quantile 合并查询会得到错误的分位数。
@@ -39,23 +33,3 @@ func observeBusTask(routingKey string, start time.Time, err error) {
 		Observe(time.Since(start).Seconds())
 }
 
-// startMetricsServer 在消费进程内暴露 /metrics（默认 :9809）。
-// 端口被占等启动失败仅记录日志，不影响消费（与 coast 行为一致）。
-func (b *BusExt) startMetricsServer() {
-	if b.metricsServerStarted {
-		return
-	}
-	b.metricsServerStarted = true
-	addr := b.MetricsServerAddr
-	if addr == "" {
-		addr = DefaultMetricsServerAddr
-	}
-	mux := http.NewServeMux()
-	mux.Handle("/metrics", promhttp.Handler())
-	srv := &http.Server{Addr: addr, Handler: mux}
-	go func() {
-		if err := srv.ListenAndServe(); err != nil {
-			b.ErrorLogger.Printf("bus metrics server not started: %v\n", err)
-		}
-	}()
-}

@@ -3,20 +3,13 @@ package asynctaskext
 import (
 	"context"
 	"errors"
-	"net/http"
 	"reflect"
 	"time"
 
-	"github.com/RichardKnop/machinery/v1/log"
 	"github.com/RichardKnop/machinery/v1/tasks"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
-
-// DefaultMetricsServerAddr 与 Python 中间件 coast 的 AsyncTask(9808) 保持一致，
-// 方便两种语言的 worker 共用同一套 scrape 配置。
-const DefaultMetricsServerAddr = ":9808"
 
 // taskDurationBuckets 必须与 coast 的 _TASK_DURATION_BUCKETS 逐档一致，
 // 否则跨语言 histogram_quantile 合并查询会得到错误的分位数。
@@ -99,24 +92,3 @@ func taskStatus(results []reflect.Value) string {
 	return "failure"
 }
 
-// startMetricsServer 在 worker 进程内暴露 /metrics（默认 :9808）。
-// 端口被占等启动失败仅记录日志，不影响 worker 消费（与 coast 行为一致）。
-// 调用方需持有 t.lock。
-func (t *AsyncTaskExt) startMetricsServer() {
-	if t.metricsServerStarted {
-		return
-	}
-	t.metricsServerStarted = true
-	addr := t.MetricsServerAddr
-	if addr == "" {
-		addr = DefaultMetricsServerAddr
-	}
-	mux := http.NewServeMux()
-	mux.Handle("/metrics", promhttp.Handler())
-	srv := &http.Server{Addr: addr, Handler: mux}
-	go func() {
-		if err := srv.ListenAndServe(); err != nil {
-			log.WARNING.Printf("asynctask metrics server not started: %v\n", err)
-		}
-	}()
-}

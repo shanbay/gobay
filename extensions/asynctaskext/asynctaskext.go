@@ -30,18 +30,15 @@ const (
 )
 
 type AsyncTaskExt struct {
-	NS string
-	// MetricsServerAddr 为 /metrics 监听地址，空值时使用 DefaultMetricsServerAddr(:9808)
-	MetricsServerAddr string
-	app               *gobay.Application
-	config            *machineryConfig.Config
-	server            *machinery.Server
-	workers           []*machinery.Worker
+	NS      string
+	app     *gobay.Application
+	config  *machineryConfig.Config
+	server  *machinery.Server
+	workers []*machinery.Worker
 
 	lock                    sync.Mutex
 	healthCheckCompleteChan chan string
 	healthHandlerRegistered bool
-	metricsServerStarted    bool
 }
 
 func (t *AsyncTaskExt) Object() interface{} {
@@ -108,9 +105,6 @@ func (t *AsyncTaskExt) StartWorker(queue string, concurrency int, enableHealthCh
 	worker := t.server.NewWorker(tag, concurrency)
 	worker.Queue = queue
 	t.workers = append(t.workers, worker)
-
-	// run prometheus metrics http server
-	t.startMetricsServer()
 
 	// run health check http server
 	if enableHealthCheck && !t.healthHandlerRegistered {
