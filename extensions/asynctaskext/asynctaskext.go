@@ -30,15 +30,18 @@ const (
 )
 
 type AsyncTaskExt struct {
-	NS      string
-	app     *gobay.Application
-	config  *machineryConfig.Config
-	server  *machinery.Server
-	workers []*machinery.Worker
+	NS string
+	// MetricsServerAddr 为 /metrics 监听地址，空值时使用 DefaultMetricsServerAddr(:9808)
+	MetricsServerAddr string
+	app               *gobay.Application
+	config            *machineryConfig.Config
+	server            *machinery.Server
+	workers           []*machinery.Worker
 
 	lock                    sync.Mutex
 	healthCheckCompleteChan chan string
 	healthHandlerRegistered bool
+	metricsServerStarted    bool
 }
 
 func (t *AsyncTaskExt) Object() interface{} {
@@ -82,12 +85,16 @@ func (t *AsyncTaskExt) Close() error {
 
 //RegisterWorkerHandler add task handler to worker to process task messages
 func (t *AsyncTaskExt) RegisterWorkerHandler(name string, handler interface{}) error {
-	return t.server.RegisterTask(name, handler)
+	return t.server.RegisterTask(name, t.wrapTaskHandler(name, handler))
 }
 
 //RegisterWorkerHandlers add task handlers to worker to process task messages
 func (t *AsyncTaskExt) RegisterWorkerHandlers(handlers map[string]interface{}) error {
-	return t.server.RegisterTasks(handlers)
+	wrapped := make(map[string]interface{}, len(handlers))
+	for name, handler := range handlers {
+		wrapped[name] = t.wrapTaskHandler(name, handler)
+	}
+	return t.server.RegisterTasks(wrapped)
 }
 
 //StartWorker start a worker that consume task messages for queue
@@ -101,6 +108,9 @@ func (t *AsyncTaskExt) StartWorker(queue string, concurrency int, enableHealthCh
 	worker := t.server.NewWorker(tag, concurrency)
 	worker.Queue = queue
 	t.workers = append(t.workers, worker)
+
+	// run prometheus metrics http server
+	t.startMetricsServer()
 
 	// run health check http server
 	if enableHealthCheck && !t.healthHandlerRegistered {

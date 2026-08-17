@@ -42,8 +42,10 @@ type customLoggerInterface interface {
 }
 
 type BusExt struct {
-	NS              string
-	app             *gobay.Application
+	NS string
+	// MetricsServerAddr 为 /metrics 监听地址，空值时使用 DefaultMetricsServerAddr(:9809)
+	MetricsServerAddr string
+	app               *gobay.Application
 	connection      *amqp.Connection
 	channel         *amqp.Channel
 	done            chan bool
@@ -68,6 +70,8 @@ type BusExt struct {
 	publishFunc     func(exchange, key string, mandatory, immediate bool, msg amqp.Publishing) error
 	brokerUrl       string
 	notifyChanBlock chan error
+
+	metricsServerStarted bool
 }
 
 func (b *BusExt) Object() interface{} {
@@ -239,6 +243,8 @@ func (b *BusExt) Consume() error {
 		b.ErrorLogger.Println("can not consume. BusExt is not ready")
 		return errNotConnected
 	}
+	// run prometheus metrics http server
+	b.startMetricsServer()
 	if err := b.channel.Qos(b.prefetch, 0, false); err != nil {
 		b.ErrorLogger.Printf("set qos failed: %v\n", err)
 	}
@@ -294,8 +300,13 @@ func (b *BusExt) Consume() error {
 						} else if err := handler.ParsePayload(payload[0],
 							payload[1]); err != nil {
 							b.ErrorLogger.Printf("handler parse payload error: %v\n", err)
-						} else if err := handler.Run(); err != nil {
-							b.ErrorLogger.Printf("handler run task failed: %v\n", err)
+						} else {
+							start := time.Now()
+							err := handler.Run()
+							observeBusTask(delivery.RoutingKey, start, err)
+							if err != nil {
+								b.ErrorLogger.Printf("handler run task failed: %v\n", err)
+							}
 						}
 					}
 				}
