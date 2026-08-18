@@ -6,9 +6,14 @@ import (
 )
 
 // taskDurationBuckets 与 Python coast 库 coast/celery.py 里的
-// _TASK_DURATION_BUCKETS 完全一致，覆盖秒级 bus 消息到分钟级 asynctask 长任务，
-// 保证跨语言 histogram_quantile 聚合不失真。
-var taskDurationBuckets = []float64{0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30, 60, 120, 300, 600}
+// _TASK_DURATION_BUCKETS 完全一致，保证跨语言 histogram_quantile 聚合不失真
+// （任何一侧单独调整都会让合并查询静默算错，必须同步改）。
+//
+// 档位依线上实测分布选定（单位：秒）：mall prod 与 learning staging 的样本中
+// 99.8% 落在 50ms 以内，故首档下移到 5ms 以分辨「空转 / 真处理」并提供劣化
+// 早期信号；中段覆盖占用 worker 的慢任务；60s 之上进 +Inf 作为告警线
+// （celery 软超时 300s 会杀任务，更长的桶无实际样本）。
+var taskDurationBuckets = []float64{0.005, 0.05, 0.1, 0.5, 1, 10, 60}
 
 // AsyncTaskDurationSeconds 与 Python coast 库的 ASYNC_TASK_DURATION_SECONDS
 // 同名同 label 同 buckets，可以在同一个 Prometheus/Grafana 查询里合并两边的数据。
