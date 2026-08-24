@@ -71,6 +71,25 @@ defaults: &defaults
   redisnoprefix_password: ""
   redisnoprefix_db: 0
   redisnoprefix_prefix: ""
+
+  # busmonoff_ is used to verify busext metrics stay silent when monitor_enable
+  # is left at its default (false/unset), sharing the "testing" env so it does
+  # not need its own config block.
+  busmonoff_broker_url: "amqp://guest:guest@127.0.0.1:5672/"
+  busmonoff_reconnect_delay: "2s"
+  busmonoff_reinit_delay: "1s"
+  busmonoff_exchanges:
+    - sbay-exchange
+  busmonoff_queues:
+    - busmonoff_test
+  busmonoff_resend_delay: "1s"
+  busmonoff_publish_retry: 5
+  busmonoff_push_timeout: "3s"
+  busmonoff_prefetch: 10
+  busmonoff_bindings:
+    - exchange: sbay-exchange
+      queue: busmonoff_test
+      binding_key: gobay.buses.busmonoff
 testing:
   <<: *defaults
   db_driver: mysql
@@ -87,6 +106,58 @@ grpcmocked:
 cachemonitored:
   <<: *defaults
   cache_monitor_enable: true
+asynctaskmonitored:
+  <<: *defaults
+  # three_asynctask_ / four_asynctask_ are dedicated NS prefixes (distinct
+  # from one_asynctask_/two_asynctask_ used by the "testing" env) so the
+  # monitor-enabled tests get their own queues and don't collide with the
+  # always-on TestPushConsume workers.
+  three_asynctask_concurrency: 10
+  three_asynctask_broker: "redis://127.0.0.1:6379/8"
+  three_asynctask_default_queue: "gobay.task.three"
+  three_asynctask_result_backend: "redis://127.0.0.1:6379/8"
+  three_asynctask_results_expire_in: 1
+  three_asynctask_redis: {}
+  three_asynctask_monitor_enable: true
+
+  four_asynctask_concurrency: 10
+  four_asynctask_broker: "redis://127.0.0.1:6379/8"
+  four_asynctask_default_queue: "gobay.task.four"
+  four_asynctask_result_backend: "redis://127.0.0.1:6379/8"
+  four_asynctask_results_expire_in: 1
+  four_asynctask_redis: {}
+  four_asynctask_monitor_enable: true
+busmonitored:
+  <<: *defaults
+  busmon_broker_url: "amqp://guest:guest@127.0.0.1:5672/"
+  busmon_reconnect_delay: "2s"
+  busmon_reinit_delay: "1s"
+  busmon_exchanges:
+    - sbay-exchange
+  busmon_queues:
+    - busmon_test
+  busmon_resend_delay: "1s"
+  busmon_publish_retry: 5
+  busmon_push_timeout: "3s"
+  busmon_prefetch: 10
+  busmon_bindings:
+    - exchange: sbay-exchange
+      queue: busmon_test
+      binding_key: gobay.buses.busmon
+    - exchange: sbay-exchange
+      queue: busmon_test
+      binding_key: gobay.buses.busmon.failure
+    - exchange: sbay-exchange
+      queue: busmon_test
+      binding_key: gobay.buses.busmon.parseerror
+    # gobay.buses.busmon.unregistered is bound to the queue but deliberately
+    # never registered as a consumer (see busmon.Register calls in
+    # amqp_test.go), so a message published with this routing key exercises
+    # the "invalid_message" (unregistered routing key) dispatch branch.
+    - exchange: sbay-exchange
+      queue: busmon_test
+      binding_key: gobay.buses.busmon.unregistered
+  busmon_monitor_enable: true
 development:
   <<: *defaults
 production:
