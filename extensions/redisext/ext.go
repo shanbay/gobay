@@ -11,6 +11,7 @@ import (
 	"github.com/go-redis/redis"
 	"github.com/shanbay/gobay"
 	"github.com/shanbay/gobay/observability"
+	"github.com/shanbay/gobay/observability/redisotelv6"
 	"go.elastic.co/apm/module/apmgoredis"
 )
 
@@ -22,6 +23,7 @@ type RedisExt struct {
 	redisclient    *redis.Client
 	apmable        bool
 	apmredisclient apmgoredis.Client
+	otelable       bool
 }
 
 var _ gobay.Extension = (*RedisExt)(nil)
@@ -42,6 +44,7 @@ func (c *RedisExt) Init(app *gobay.Application) error {
 		c.apmable = true
 		c.apmredisclient = apmgoredis.Wrap(c.redisclient)
 	}
+	c.otelable = observability.GetOtelEnable()
 	_, err := c.redisclient.Ping().Result()
 	return err
 }
@@ -96,10 +99,18 @@ func (c *RedisExt) Application() *gobay.Application {
 }
 
 func (c *RedisExt) Client(ctx context.Context) *redis.Client {
+	// apmgoredis 与 redisotelv6 都只作用于 WithContext 返回的每请求副本，
+	// 因此可以叠加：APM 与 OTel 各自产出 span，而不是二选一。
+	var client *redis.Client
 	if c.apmable {
-		return c.apmredisclient.WithContext(ctx).RedisClient()
+		client = c.apmredisclient.WithContext(ctx).RedisClient()
+	} else {
+		client = c.redisclient.WithContext(ctx)
 	}
-	return c.redisclient.WithContext(ctx)
+	if c.otelable {
+		client = redisotelv6.WrapClient(ctx, client)
+	}
+	return client
 }
 
 func (c *RedisExt) EvalLua(ctx context.Context, script string, keys []string, args ...any) (any, error) {
