@@ -306,7 +306,7 @@ func (b *BusExt) Consume() error {
 //	"failure"          — handler.Run() 返回 error
 //	"success"          — 全部通过
 func (b *BusExt) dispatch(delivery amqp.Delivery) (status string) {
-	otelDispatchEnd := otelDispatchStart(delivery)
+	ctx, otelDispatchEnd := otelDispatchStart(delivery)
 	defer func() { otelDispatchEnd(status) }()
 
 	var handler Handler
@@ -332,7 +332,7 @@ func (b *BusExt) dispatch(delivery amqp.Delivery) (status string) {
 	} else if err := handler.ParsePayload(payload[0], payload[1]); err != nil {
 		b.ErrorLogger.Printf("handler parse payload error: %v\n", err)
 		return "parse_error"
-	} else if err := handler.Run(); err != nil {
+	} else if err := runHandler(ctx, handler); err != nil {
 		b.ErrorLogger.Printf("handler run task failed: %v\n", err)
 		return "failure"
 	}

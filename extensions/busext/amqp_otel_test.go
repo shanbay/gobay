@@ -8,6 +8,9 @@
 # handler 执行结果   | 成功                            | 有效   | Run() 返回 nil                                | span 状态非 Error
 # handler 执行结果   | 失败                            | 有效   | Run() 返回 error                              | span 状态 Error，描述为 "failure"
 # 发送侧 ctx         | ctx 携带活跃 span               | 有效   | 测试内手动 Start 一个 upstream span           | Producer span 与 upstream 同 TraceID，data.Headers 注入 traceparent
+# handler 接口形态   | 实现 HandlerWithContext         | 有效   | ctxRecordingHandler                           | 走 RunWithContext（不走 Run），ctx 携带上游 TraceID
+# handler 接口形态   | 实现 HandlerWithContext+otel 关 | 边界   | env 为空 + ctxRecordingHandler                | 仍走 RunWithContext，ctx 为 Background，零 span
+# span 属性          | Consumer/Producer 语义属性      | 有效   | messaging.system/destination.name/operation   | 属性齐全，gobay.bus.status 记录结果状态
 */
 package busext
 
@@ -152,4 +155,100 @@ func TestPushWithContext_InjectsTraceparentAndProducerSpan(t *testing.T) {
 	}
 	assert.Equal(t, oteltrace.SpanKindProducer, producer.SpanKind())
 	assert.Equal(t, upstream.SpanContext().TraceID(), producer.SpanContext().TraceID())
+}
+
+type ctxRecordingHandler struct {
+	gotCtx     context.Context
+	ranWithCtx bool
+	ranPlain   bool
+}
+
+func (h *ctxRecordingHandler) ParsePayload(args, kwargs []byte) error { return nil }
+func (h *ctxRecordingHandler) Run() error                             { h.ranPlain = true; return nil }
+func (h *ctxRecordingHandler) RunWithContext(ctx context.Context) error {
+	h.ranWithCtx = true
+	h.gotCtx = ctx
+	return nil
+}
+
+func TestDispatch_HandlerWithContext_ReceivesUpstreamTraceContext(t *testing.T) {
+	t.Setenv("OTEL_ENABLE", "true")
+	newSpanRecorder(t)
+
+	upstreamTraceID := "4bf92f3577b34da6a3ce929d0e0e4736"
+	h := &ctxRecordingHandler{}
+	b := newOtelTestBusExt("buses.test.event", h)
+	delivery := newOtelTestDelivery(
+		"buses.test.event",
+		fmt.Sprintf("00-%s-00f067aa0ba902b7-01", upstreamTraceID),
+	)
+
+	assert.Equal(t, "success", b.dispatch(delivery))
+	assert.True(t, h.ranWithCtx, "should call RunWithContext instead of Run")
+	assert.False(t, h.ranPlain)
+	if !assert.NotNil(t, h.gotCtx) {
+		return
+	}
+	assert.Equal(t, upstreamTraceID,
+		oteltrace.SpanContextFromContext(h.gotCtx).TraceID().String())
+}
+
+func TestDispatch_HandlerWithContext_WorksWithOtelDisabled(t *testing.T) {
+	t.Setenv("OTEL_ENABLE", "")
+	sr := newSpanRecorder(t)
+
+	h := &ctxRecordingHandler{}
+	b := newOtelTestBusExt("buses.test.event", h)
+
+	assert.Equal(t, "success", b.dispatch(newOtelTestDelivery("buses.test.event", "")))
+	assert.True(t, h.ranWithCtx, "interface dispatch must not depend on OTEL_ENABLE")
+	assert.False(t, h.ranPlain)
+	assert.NotNil(t, h.gotCtx)
+	assert.Empty(t, sr.Ended())
+}
+
+func spanAttr(span sdktrace.ReadOnlySpan, key string) string {
+	for _, kv := range span.Attributes() {
+		if string(kv.Key) == key {
+			return kv.Value.AsString()
+		}
+	}
+	return ""
+}
+
+func TestDispatch_ConsumerSpanHasMessagingAttributes(t *testing.T) {
+	t.Setenv("OTEL_ENABLE", "true")
+	sr := newSpanRecorder(t)
+
+	b := newOtelTestBusExt("buses.test.event", &otelOKHandler{})
+	assert.Equal(t, "success", b.dispatch(newOtelTestDelivery("buses.test.event", "")))
+
+	spans := sr.Ended()
+	if !assert.Len(t, spans, 1) {
+		return
+	}
+	span := spans[0]
+	assert.Equal(t, "rabbitmq", spanAttr(span, "messaging.system"))
+	assert.Equal(t, "buses.test.event", spanAttr(span, "messaging.destination.name"))
+	assert.Equal(t, "process", spanAttr(span, "messaging.operation"))
+	assert.Equal(t, "success", spanAttr(span, "gobay.bus.status"))
+}
+
+func TestPushWithContext_ProducerSpanHasMessagingAttributes(t *testing.T) {
+	t.Setenv("OTEL_ENABLE", "true")
+	sr := newSpanRecorder(t)
+
+	b := &BusExt{mocked: true}
+	msg, err := BuildMsg("buses.test.event", []interface{}{}, map[string]interface{}{})
+	assert.Nil(t, err)
+	assert.Nil(t, b.PushWithContext(context.Background(), "sbay-exchange", "buses.test.event", *msg))
+
+	spans := sr.Ended()
+	if !assert.Len(t, spans, 1) {
+		return
+	}
+	span := spans[0]
+	assert.Equal(t, "rabbitmq", spanAttr(span, "messaging.system"))
+	assert.Equal(t, "buses.test.event", spanAttr(span, "messaging.destination.name"))
+	assert.Equal(t, "publish", spanAttr(span, "messaging.operation"))
 }
