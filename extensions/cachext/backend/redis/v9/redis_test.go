@@ -183,3 +183,49 @@ func TestInit_EndToEndFromConfigFile(t *testing.T) {
 		t.Errorf("PoolTimeout = %v, want 9s (from cache_pooltimeout)", opt.PoolTimeout)
 	}
 }
+
+// GOMAXPROCS 已经小于 NumCPU 时（Go 1.25 的 container-aware GOMAXPROCS 生效，
+// 或引入了 automaxprocs），go-redis 自算的 10*GOMAXPROCS 会随容器规格缩放，
+// 比固定值更合理，此时不该再用 gobay 的默认值覆盖它。
+func TestInit_SkipsDefaultWhenCPULimitAware(t *testing.T) {
+	if runtime.NumCPU() < 2 {
+		t.Skip("需要至少 2 个 CPU 才能制造 GOMAXPROCS < NumCPU")
+	}
+	prev := runtime.GOMAXPROCS(1)
+	defer runtime.GOMAXPROCS(prev)
+
+	b := &redisBackend{}
+	if err := b.Init(cacheConfig(map[string]interface{}{
+		"host": "127.0.0.1:6379",
+	})); err != nil {
+		t.Fatalf("Init failed: %v", err)
+	}
+	defer b.Close()
+
+	// 期望拿到 go-redis 自己算的 10*GOMAXPROCS = 10，而不是 gobay 的 20
+	if got := b.client.Options().PoolSize; got != 10 {
+		t.Errorf("PoolSize = %d, want 10 (10*GOMAXPROCS，不该被 gobay 默认值 %d 覆盖)", got, defaultPoolSize)
+	}
+}
+
+// 显式配置在任何情况下都优先，包括 GOMAXPROCS 已感知 CPU 限额时
+func TestInit_ExplicitPoolSizeWinsWhenCPULimitAware(t *testing.T) {
+	if runtime.NumCPU() < 2 {
+		t.Skip("需要至少 2 个 CPU")
+	}
+	prev := runtime.GOMAXPROCS(1)
+	defer runtime.GOMAXPROCS(prev)
+
+	b := &redisBackend{}
+	if err := b.Init(cacheConfig(map[string]interface{}{
+		"host":     "127.0.0.1:6379",
+		"poolsize": 33,
+	})); err != nil {
+		t.Fatalf("Init failed: %v", err)
+	}
+	defer b.Close()
+
+	if got := b.client.Options().PoolSize; got != 33 {
+		t.Errorf("PoolSize = %d, want 33", got)
+	}
+}

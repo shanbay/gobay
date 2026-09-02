@@ -2,6 +2,7 @@
 
 - `cachext` 的两个 redis backend（v6 / v9）的 `Init` 从硬编码 `host`/`password`/`db` 三个字段改为 `config.Unmarshal`，现在 `redis.Options` 的全部字段都能通过配置设置，与 `redisext` 一致。常用的是 `<NS>poolsize` / `<NS>pooltimeout`
 - **行为变更：`PoolSize` 默认值由 go-redis 的 `10 × NumCPU` 改为 20**。`NumCPU()` 读的是宿主机核数而非容器的 CPU limit，多核节点上的容器会拿到远超实际需要的池上限；这个上限会在 redis 变慢时变成放大器（请求堆积 → 建更多连接 → redis 更慢）。需要更大的池显式配置 `<NS>poolsize: <n>`；**要退回 go-redis 原默认值配 `<NS>poolsize: 0`**，不必回滚版本。未显式配置时启动日志会打印实际生效值与来源
+- v9 backend 在 `GOMAXPROCS < NumCPU`（Go 1.25 的 container-aware GOMAXPROCS 生效，或引入了 automaxprocs）时**不再覆盖** go-redis 的默认值——那种环境下 `10 × GOMAXPROCS` 会随容器规格缩放，比固定值更合理。判断的是运行结果而非 `runtime.Version()`，因为 `containermaxprocs` GODEBUG 的默认值取决于主模块的 go 指令，依赖库读不到。v6 backend 用的是 `runtime.NumCPU()`，不受此影响，始终用固定默认值
 - `<NS>addr` 作为 `<NS>host` 的等价键名（同时配置时 `addr` 优先）；两者都缺失时 `Init` 直接返回错误，而不是让 go-redis 静默 fallback 到 `localhost:6379`
 - cachext 的 backend 初始化错误现在带上 NS 前缀，便于定位是哪个 CacheExt
 

@@ -42,7 +42,16 @@ cache_readtimeout: 3s # ReadTimeout
 
 原因是 `NumCPU()` 读的是宿主机核数而不是容器的 CPU limit，在多核节点上跑的容器会拿到一个远超实际需要的池上限。这个上限平时看不出来，一旦 redis 变慢就会变成放大器：请求变慢 → 连接被占住 → 池继续扩容 → redis 压力更大。设一个保守的上限，等于把压力挡在服务侧而不是转身建更多连接去压垮 redis。
 
-v9 backend 用的是 `10 × GOMAXPROCS`。Go 1.25 起 GOMAXPROCS 会感知 cgroup 的 CPU limit（需要 go.mod 的 go 指令 ≥ 1.25），届时 go-redis 自己算出来的值会随容器规格缩放，比固定值更合理——那时可以考虑配 `cache_poolsize: 0` 把决定权交还给它。v6 backend 用的是 `runtime.NumCPU()`，它不受 GOMAXPROCS 影响，Go 1.25 也不会改变它。
+**v9 backend 会自动让路。** 它用的是 `10 × GOMAXPROCS`，而 Go 1.25 起 GOMAXPROCS 默认会取 `min(可用 CPU 数, cgroup 的 quota/period)`。所以 v9 backend 在启动时会比较 `GOMAXPROCS` 和 `NumCPU`：
+
+- **两者不等** → 说明确实有机制（Go 1.25 的 container-aware GOMAXPROCS，或 automaxprocs）已经把它调下来了，此时 go-redis 自己算的 `10 × GOMAXPROCS` 会随容器规格缩放，比固定值更合理，gobay **不再覆盖**它
+- **两者相等** → 说明没生效，用 gobay 的默认值 20 兜底
+
+判断的是运行结果而不是 `runtime.Version()`：Go 1.25 的这个行为由 `containermaxprocs` GODEBUG 控制，而它的默认值取决于**主模块（也就是你的项目）**go.mod 里的 `go` 指令——gobay 作为依赖库读不到那个值。工具链升到 1.25 但项目 go.mod 还写着 1.24 时，GOMAXPROCS 依然是宿主机核数，这时候放手就等于没修。
+
+启动日志会说明走了哪条路径。
+
+**v6 backend 不会**，它用的是 `runtime.NumCPU()`——那个值在进程启动时由 OS 固定，不受 GOMAXPROCS 影响，Go 1.25 和 automaxprocs 都改变不了它。v6 只能靠这里的固定默认值。
 
 需要更大的池就显式配置 `cache_poolsize: <n>`。**要退回 go-redis 的原默认值，配 `cache_poolsize: 0`**，不需要回滚 gobay 版本。没有显式配置时，启动日志里会打印一行说明实际生效的值和来源。
 
