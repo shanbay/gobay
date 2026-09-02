@@ -106,6 +106,13 @@ grpcmocked:
 cachemonitored:
   <<: *defaults
   cache_monitor_enable: true
+# cacheredis 用 redis backend（defaults 里是 memory），验证连接池参数能穿过
+# GetConfigByPrefix 的前缀 trim 真正落到 redis.Options 上
+cacheredis:
+  <<: *defaults
+  cache_backend: "redis"
+  cache_poolsize: 7
+  cache_pooltimeout: "9s"
 asynctaskmonitored:
   <<: *defaults
   # three_asynctask_ / four_asynctask_ are dedicated NS prefixes (distinct

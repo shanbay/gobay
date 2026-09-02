@@ -2,6 +2,9 @@ package redis
 
 import (
 	"context"
+	"errors"
+	"log"
+	"runtime"
 	"time"
 
 	"github.com/go-redis/redis"
@@ -11,6 +14,14 @@ import (
 	"github.com/shanbay/gobay/extensions/cachext"
 	"github.com/shanbay/gobay/observability"
 )
+
+// go-redis 默认的 PoolSize 是 10*runtime.NumCPU()。NumCPU 读的是宿主机核数，
+// 不感知容器的 CPU limit，所以在多核节点上跑的容器会拿到一个远超实际需要的池上限。
+// 这个上限平时看不出来，一旦 redis 变慢就会变成放大器：请求堆积 -> 建更多连接 ->
+// redis 更慢。收敛到一个保守的固定值，把压力挡在服务侧。
+// 注：runtime.NumCPU() 不受 GOMAXPROCS 影响，Go 1.25 的 container-aware GOMAXPROCS
+// 也不会改变它，所以 v6 这边只能靠显式默认值。
+const defaultPoolSize = 20
 
 func init() {
 	if err := cachext.RegisterBackend("redis", func() cachext.CacheBackend { return &redisBackend{} }); err != nil {
@@ -30,14 +41,29 @@ func (b *redisBackend) withContext(ctx context.Context) *redis.Client {
 }
 
 func (b *redisBackend) Init(config *viper.Viper) error {
-	host := config.GetString("host")
-	password := config.GetString("password")
-	dbNum := config.GetInt("db")
-	redisClient := redis.NewClient(&redis.Options{
-		Addr:     host,
-		Password: password,
-		DB:       dbNum,
-	})
+	// IsSet 必须在 SetDefault 之前取，否则恒为 true，日志就分不清是用户配的还是这里兜的
+	poolSizeConfigured := config.IsSet("poolsize")
+	config.SetDefault("poolsize", defaultPoolSize)
+
+	opt := redis.Options{}
+	if err := config.Unmarshal(&opt); err != nil {
+		return err
+	}
+	// redis.Options 只有 Addr 没有 Host，而 cachext 历史配置键是 <ns>host。
+	// 不兜底的话 Addr 为空，go-redis 会静默 fallback 到 localhost:6379。
+	if opt.Addr == "" {
+		opt.Addr = config.GetString("host")
+	}
+	if opt.Addr == "" {
+		return errors.New("missing config key `addr` (or legacy `host`)")
+	}
+	if !poolSizeConfigured {
+		log.Printf("[gobay/cachext] redis %s: poolsize 未配置，使用 gobay 默认值 %d"+
+			"（go-redis 默认为 10*NumCPU=%d）；如需恢复 go-redis 默认值，显式配置 <ns>poolsize: 0",
+			opt.Addr, defaultPoolSize, 10*runtime.NumCPU())
+	}
+
+	redisClient := redis.NewClient(&opt)
 	b.client = redisClient
 	_, err := redisClient.Ping().Result()
 	return err

@@ -77,8 +77,10 @@ func (c *CacheExt) Init(app *gobay.Application) error {
 	backendConfig := config.GetString("backend")
 	if backendFunc, exist := backendMap[backendConfig]; exist {
 		c.backend = backendFunc()
+		// 带上 NS：一个服务可能有多个 CacheExt（如 cache_ 与 no_prefix_cache_），
+		// 不带前缀的话报错信息定位不到是哪一个
 		if err := c.backend.Init(config); err != nil {
-			return err
+			return fmt.Errorf("cachext %s: %w", c.NS, err)
 		}
 	} else {
 		return errors.New("No backend found for cache_backend:" + backendConfig)

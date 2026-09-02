@@ -1,3 +1,12 @@
+# 1.2.9 (2026-09-02)
+
+- `cachext` 的两个 redis backend（v6 / v9）的 `Init` 从硬编码 `host`/`password`/`db` 三个字段改为 `config.Unmarshal`，现在 `redis.Options` 的全部字段都能通过配置设置，与 `redisext` 一致。常用的是 `<NS>poolsize` / `<NS>pooltimeout`
+- **行为变更：`PoolSize` 默认值由 go-redis 的 `10 × NumCPU` 改为 20**。`NumCPU()` 读的是宿主机核数而非容器的 CPU limit，多核节点上的容器会拿到远超实际需要的池上限；这个上限会在 redis 变慢时变成放大器（请求堆积 → 建更多连接 → redis 更慢）。需要更大的池显式配置 `<NS>poolsize: <n>`；**要退回 go-redis 原默认值配 `<NS>poolsize: 0`**，不必回滚版本。未显式配置时启动日志会打印实际生效值与来源
+- `<NS>addr` 作为 `<NS>host` 的等价键名（同时配置时 `addr` 优先）；两者都缺失时 `Init` 直接返回错误，而不是让 go-redis 静默 fallback 到 `localhost:6379`
+- cachext 的 backend 初始化错误现在带上 NS 前缀，便于定位是哪个 CacheExt
+
+⚠️ 配置键名**不能带下划线**：`cache_poolsize` 生效，`cache_pool_size` 会被静默忽略（mapstructure 只做大小写折叠，不做下划线归一化）。时间类参数必须带单位，`500ms` 正确，`500` 会被当成 500 纳秒。
+
 # 1.2.8 (2026-07-27)
 
 - `asynctaskext`/`busext` 新增 Prometheus 处理耗时/QPS 埋点（`asynctask_task_duration_seconds`/`bus_task_duration_seconds`），config `<NS>monitor_enable` 开关可选开启，默认关闭零开销；与 Python coast 库同名同 label 同 buckets，可跨语言合并查询
