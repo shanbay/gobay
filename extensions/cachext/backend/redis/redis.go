@@ -13,6 +13,7 @@ import (
 
 	"github.com/shanbay/gobay/extensions/cachext"
 	"github.com/shanbay/gobay/observability"
+	"github.com/shanbay/gobay/observability/redisotelv6"
 )
 
 // go-redis 默认的 PoolSize 是 10*runtime.NumCPU()。NumCPU 读的是宿主机核数，
@@ -34,10 +35,18 @@ type redisBackend struct {
 }
 
 func (b *redisBackend) withContext(ctx context.Context) *redis.Client {
+	// apmgoredis 与 redisotelv6 都只作用于 WithContext 返回的每请求副本，
+	// 因此可以叠加：APM 与 OTel 各自产出 span，而不是二选一。
+	var client *redis.Client
 	if observability.GetApmEnable() {
-		return apmgoredis.Wrap(b.client).WithContext(ctx).RedisClient()
+		client = apmgoredis.Wrap(b.client).WithContext(ctx).RedisClient()
+	} else {
+		client = b.client.WithContext(ctx)
 	}
-	return b.client.WithContext(ctx)
+	if observability.GetOtelEnable() {
+		client = redisotelv6.WrapClient(ctx, client)
+	}
+	return client
 }
 
 func (b *redisBackend) Init(config *viper.Viper) error {
