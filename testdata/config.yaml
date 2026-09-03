@@ -113,6 +113,25 @@ cacheredis:
   cache_backend: "redis"
   cache_poolsize: 7
   cache_pooltimeout: "9s"
+# redispool 验证 redisext 的连接池默认值：redis_ 段不配任何池参数走默认值，
+# redisexplicit_ 段显式配置以验证优先级，redisescape_ 段验证 poolsize: 0 逃生门。
+# 注意用 addr 而非 host —— redisext 的 host 键不生效（见文档说明）
+redispool:
+  <<: *defaults
+  redisexplicit_addr: "127.0.0.1:6379"
+  redisexplicit_poolsize: 33
+  redisexplicit_readtimeout: "120ms"
+  redisexplicit_pooltimeout: "60ms"
+  redisexplicit_idletimeout: "30s"
+  redisexplicit_connmaxidletime: "30s"
+  redisescape_addr: "127.0.0.1:6379"
+  redisescape_poolsize: 0
+  redisunderscore_addr: "127.0.0.1:6379"
+  redisunderscore_pool_size: 50
+  redisunderscore_read_timeout: "150ms"
+  redisboth_addr: "127.0.0.1:6379"
+  redisboth_poolsize: 50
+  redisboth_pool_size: 77
 asynctaskmonitored:
   <<: *defaults
   # three_asynctask_ / four_asynctask_ are dedicated NS prefixes (distinct

@@ -23,29 +23,31 @@ cache_db: 0
 从 v1.2.9 起，`cache_` 段支持 [`redis.Options`](https://pkg.go.dev/github.com/go-redis/redis#Options) 的全部字段，键名是「字段名去掉大小写」，前面加 NS 前缀：
 
 ```yaml
-cache_poolsize: 20 # PoolSize
-cache_pooltimeout: 500ms # PoolTimeout
+cache_poolsize: 100 # PoolSize
+cache_pooltimeout: 100ms # PoolTimeout
 cache_minidleconns: 2 # MinIdleConns
-cache_readtimeout: 3s # ReadTimeout
+cache_readtimeout: 200ms # ReadTimeout
 ```
+
+上面只是键名写法的示意。`poolsize` / `pooltimeout` / `readtimeout` 以及空闲回收这四项 gobay 已有默认值（见下），**通常不需要写进 config.yaml**；只有需要偏离默认值时才显式配置。
 
 **两个容易静默踩错的地方：**
 
-- **键名不能带下划线。** `cache_poolsize` 生效，`cache_pool_size` 会被静默忽略，既不生效也不报错。配置解析走的是 mapstructure 的大小写不敏感匹配，它不会把下划线归一化掉。
+- **键名两种写法都支持。** `cache_poolsize` 与 `cache_pool_size` 等价。配置解析走 mapstructure 的大小写不敏感匹配，它本身不会把下划线归一化掉（1.2.10 之前 `cache_pool_size` 会被静默忽略），现在由 gobay 在 `Unmarshal` 前补齐。两种写法同时出现时以**不带下划线的**为准。
 - **时间类参数必须带单位。** `500ms` / `3s` 正确；写成 `500` 会被解析成 500 **纳秒**。
 
 `cache_host` 是历史键名，等价于 `cache_addr`，两者都支持（同时配置时 `cache_addr` 优先）。两个都没配会直接启动失败，而不是静默连到 `localhost:6379`。
 
 ### PoolSize 的默认值
 
-**gobay 从 v1.2.9 起把 `PoolSize` 默认为 20**，而不是 go-redis 自己的 `10 × NumCPU`。
+**gobay 从 v1.2.10 起把 `PoolSize` 默认为 100**，而不是 go-redis 自己的 `10 × NumCPU`。
 
 原因是 `NumCPU()` 读的是宿主机核数而不是容器的 CPU limit，在多核节点上跑的容器会拿到一个远超实际需要的池上限。这个上限平时看不出来，一旦 redis 变慢就会变成放大器：请求变慢 → 连接被占住 → 池继续扩容 → redis 压力更大。设一个保守的上限，等于把压力挡在服务侧而不是转身建更多连接去压垮 redis。
 
 **v9 backend 会自动让路。** 它用的是 `10 × GOMAXPROCS`，而 Go 1.25 起 GOMAXPROCS 默认会取 `min(可用 CPU 数, cgroup 的 quota/period)`。所以 v9 backend 在启动时会比较 `GOMAXPROCS` 和 `NumCPU`：
 
 - **两者不等** → 说明确实有机制（Go 1.25 的 container-aware GOMAXPROCS，或 automaxprocs）已经把它调下来了，此时 go-redis 自己算的 `10 × GOMAXPROCS` 会随容器规格缩放，比固定值更合理，gobay **不再覆盖**它
-- **两者相等** → 说明没生效，用 gobay 的默认值 20 兜底
+- **两者相等** → 说明没生效，用 gobay 的默认值 100 兜底
 
 判断的是运行结果而不是 `runtime.Version()`：Go 1.25 的这个行为由 `containermaxprocs` GODEBUG 控制，而它的默认值取决于**主模块（也就是你的项目）**go.mod 里的 `go` 指令——gobay 作为依赖库读不到那个值。工具链升到 1.25 但项目 go.mod 还写着 1.24 时，GOMAXPROCS 依然是宿主机核数，这时候放手就等于没修。
 
@@ -55,7 +57,15 @@ cache_readtimeout: 3s # ReadTimeout
 
 需要更大的池就显式配置 `cache_poolsize: <n>`。**要退回 go-redis 的原默认值，配 `cache_poolsize: 0`**，不需要回滚 gobay 版本。没有显式配置时，启动日志里会打印一行说明实际生效的值和来源。
 
-`PoolTimeout` 保持 go-redis 的默认值（`ReadTimeout + 1s` = 4s），gobay 不替业务决定。这个值决定的是「等不到连接时多久放弃」，属于失败语义而不是资源上限——4 秒往往比上游的超时还长，等于把请求堆积留在自己进程里，建议按自己的 SLO 显式配置成 `300ms`–`500ms`。
+除 `PoolSize` 外，从 1.2.10 起还有三项默认值：
+
+| 配置键                                                 | 默认值  | 说明                                                                    |
+| ------------------------------------------------------ | ------- | ----------------------------------------------------------------------- |
+| `<NS>readtimeout`                                      | `200ms` | 单次读操作的超时。go-redis 原默认 3 秒，长于典型在线链路的上游预算      |
+| `<NS>pooltimeout`                                      | `100ms` | 池满时等待可用连接的超时。取 ReadTimeout 的一半，排队不应比执行更久     |
+| `<NS>idletimeout`（v6）<br>`<NS>connmaxidletime`（v9） | `2m`    | 空闲连接的回收时间。v9 原默认 30 分钟，会让连接池在流量回落后迟迟不收缩 |
+
+两个大版本的 backend 取值一致，只有空闲回收的配置键名不同（go-redis 在 v9 里重命名了这个字段）。
 
 ## 设置加载时用的 extension
 

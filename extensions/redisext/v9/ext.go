@@ -26,12 +26,34 @@ type RedisExt struct {
 
 var _ gobay.Extension = (*RedisExt)(nil)
 
+// go-redis 默认的 PoolSize 是 10*runtime.GOMAXPROCS(0)，当 GOMAXPROCS 仍等于宿主机
+// 核数时，多核节点上的容器会拿到远超实际需要的池上限；redis 一变慢就会变成放大器。
+//
+// v9 的 deadline 取 min(ctx.Deadline(), now+ReadTimeout)，与 ReadTimeout 是互补关系：
+// 后者是静态上界，兜住没有 deadline 的调用（离线任务、cronjob），不设的话它们会落在
+// 3 秒的默认值上；ctx 则是动态剩余预算。
+//
+// 取值与 cachext 的 redis backend 保持一致。需要放宽的服务显式配置对应键覆盖，
+// <NS>poolsize 配 0 则回到 go-redis 自己的默认值。
+const (
+	defaultPoolSize        = 100
+	defaultReadTimeout     = 200 * time.Millisecond
+	defaultPoolTimeout     = 100 * time.Millisecond
+	defaultConnMaxIdleTime = 2 * time.Minute
+)
+
 func (c *RedisExt) Init(app *gobay.Application) error {
 	if c.NS == "" {
 		return errors.New("lack of NS")
 	}
 	c.app = app
 	config := gobay.GetConfigByPrefix(app.Config(), c.NS, true)
+	// 先补齐下划线写法（<NS>pool_size），否则会被 mapstructure 静默忽略
+	gobay.NormalizeUnderscoreKeys(config)
+	config.SetDefault("poolsize", defaultPoolSize)
+	config.SetDefault("readtimeout", defaultReadTimeout)
+	config.SetDefault("pooltimeout", defaultPoolTimeout)
+	config.SetDefault("connmaxidletime", defaultConnMaxIdleTime)
 	opt := redis.Options{}
 	if err := config.Unmarshal(&opt); err != nil {
 		return err

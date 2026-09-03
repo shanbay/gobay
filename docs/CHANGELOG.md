@@ -1,3 +1,26 @@
+# 1.2.10 (2026-09-03)
+
+- **行为变更：四个 redis 扩展入口（`cachext` 的 v6/v9 backend、`redisext` 的 v6/v9）现在都带连接池与超时默认值**，业务项目无需任何配置即可生效：
+
+  | 参数           | 默认值 | 配置键（v6 / v9）                         | go-redis 原默认值                 |
+  | -------------- | ------ | ----------------------------------------- | --------------------------------- |
+  | 连接池上限     | 100    | `<NS>poolsize`                            | `10 × NumCPU` / `10 × GOMAXPROCS` |
+  | 读超时         | 200ms  | `<NS>readtimeout`                         | 3s                                |
+  | 取连接排队超时 | 100ms  | `<NS>pooltimeout`                         | ReadTimeout + 1s                  |
+  | 空闲回收       | 2m     | `<NS>idletimeout` / `<NS>connmaxidletime` | 5m / 30m                          |
+
+- `PoolSize` 默认值由 1.2.9 的 20 提高到 **100**。20 过于保守，会限制正常流量下的连接需求；100 是按实测单池峰值取的兜底上限
+- **新增三项超时默认值。** go-redis 的原默认值（读 3 秒、排队 4 秒）长于典型在线链路的上游预算，等于把请求堆积留在自己进程里。v6 尤其需要：它的连接读写与排队都不接受 `context`，上游超时管不到 redis 调用，这三项是唯一能限制单连接占用时长的闸。v9 虽然 `deadline` 取 `min(ctx.Deadline(), now+ReadTimeout)`，但 ReadTimeout 作为静态上界仍然必要——没有 deadline 的调用（离线任务、cronjob）否则会落在 3 秒上
+- **空闲回收收敛到 2 分钟。** v9 的 `ConnMaxIdleTime` 默认 30 分钟，一次瞬时并发建出来的连接会被留到半小时后才回收，池子只涨不落
+- 需要放宽的服务显式配置对应键即可覆盖；`<NS>poolsize: 0` 仍然回到 go-redis 自己的默认值
+- `redisext` 补上首批带断言的测试（此前只有无断言的 Example 测试）
+
+- **配置键名现在支持下划线写法**：`redis_poolsize` 与 `redis_pool_size` 都生效。mapstructure 只做大小写折叠、不做下划线归一化，此前后者会被静默忽略；新增的 `gobay.NormalizeUnderscoreKeys` 在 `Unmarshal` 前补齐。两种写法并存时以**不带下划线的**为准——交给 mapstructure 自行处理的话，哪个生效取决于 map 迭代顺序，是不确定的。
+
+⚠️ 时间类参数必须带单位：`200ms` 正确，`200` 会被当成 200 纳秒。
+
+⚠️ `redisext` 的 `<NS>host` 键**不生效**（`redis.Options` 只有 `Addr` 没有 `Host`，mapstructure 找不到字段会静默跳过，go-redis 随后 fallback 到 `localhost:6379`）。本版本未改动这一行为，请显式使用 `<NS>addr`。**`cachext` 不受影响**——它的 redis backend 有 `Addr` 为空时回落到 `<NS>host` 的兼容代码，`cache_host` 照常生效。
+
 # 1.2.9 (2026-09-02)
 
 - `cachext` 的两个 redis backend（v6 / v9）的 `Init` 从硬编码 `host`/`password`/`db` 三个字段改为 `config.Unmarshal`，现在 `redis.Options` 的全部字段都能通过配置设置，与 `redisext` 一致。常用的是 `<NS>poolsize` / `<NS>pooltimeout`
@@ -6,7 +29,7 @@
 - `<NS>addr` 作为 `<NS>host` 的等价键名（同时配置时 `addr` 优先）；两者都缺失时 `Init` 直接返回错误，而不是让 go-redis 静默 fallback 到 `localhost:6379`
 - cachext 的 backend 初始化错误现在带上 NS 前缀，便于定位是哪个 CacheExt
 
-⚠️ 配置键名**不能带下划线**：`cache_poolsize` 生效，`cache_pool_size` 会被静默忽略（mapstructure 只做大小写折叠，不做下划线归一化）。时间类参数必须带单位，`500ms` 正确，`500` 会被当成 500 纳秒。
+⚠️ 配置键名**不能带下划线**：`cache_poolsize` 生效，`cache_pool_size` 会被静默忽略（mapstructure 只做大小写折叠，不做下划线归一化）。时间类参数必须带单位，`500ms` 正确，`500` 会被当成 500 纳秒。（下划线写法自 1.2.10 起已支持）
 
 # 1.2.8 (2026-07-27)
 

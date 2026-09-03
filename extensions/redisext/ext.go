@@ -26,12 +26,35 @@ type RedisExt struct {
 
 var _ gobay.Extension = (*RedisExt)(nil)
 
+// go-redis 默认的 PoolSize 是 10*runtime.NumCPU()，NumCPU 读的是宿主机核数、不感知
+// 容器的 CPU limit，多核节点上的容器会拿到远超实际需要的池上限；redis 一变慢就会变成
+// 放大器：请求堆积 -> 建更多连接 -> redis 更慢。
+//
+// 三个超时同样重要：go-redis v6 的连接读写和排队都不接受 context，上游 ctx 到期之后
+// 连接仍会等满 ReadTimeout 才归还，排队中的再叠加 PoolTimeout。按 Little's Law，连接
+// 数需求等于请求速率乘以单请求耗时，压缩耗时比限制连接数更接近问题本源。
+//
+// 取值与 cachext 的 redis backend 保持一致。需要放宽的服务显式配置对应键覆盖，
+// <NS>poolsize 配 0 则回到 go-redis 自己的默认值。
+const (
+	defaultPoolSize    = 100
+	defaultReadTimeout = 200 * time.Millisecond
+	defaultPoolTimeout = 100 * time.Millisecond
+	defaultIdleTimeout = 2 * time.Minute
+)
+
 func (c *RedisExt) Init(app *gobay.Application) error {
 	if c.NS == "" {
 		return errors.New("lack of NS")
 	}
 	c.app = app
 	config := gobay.GetConfigByPrefix(app.Config(), c.NS, true)
+	// 先补齐下划线写法（<NS>pool_size），否则会被 mapstructure 静默忽略
+	gobay.NormalizeUnderscoreKeys(config)
+	config.SetDefault("poolsize", defaultPoolSize)
+	config.SetDefault("readtimeout", defaultReadTimeout)
+	config.SetDefault("pooltimeout", defaultPoolTimeout)
+	config.SetDefault("idletimeout", defaultIdleTimeout)
 	opt := redis.Options{}
 	if err := config.Unmarshal(&opt); err != nil {
 		return err
