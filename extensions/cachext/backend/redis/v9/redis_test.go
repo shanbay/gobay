@@ -138,18 +138,43 @@ func TestInit_PoolTimeout(t *testing.T) {
 
 // mapstructure 只做大小写折叠、不做下划线归一化，所以 pool_size 匹配不上 PoolSize，
 // 会被静默忽略。这条测试把这个行为钉住，免得有人以为支持 snake_case 而写出静默失效的配置。
-func TestInit_SnakeCaseIgnored(t *testing.T) {
+// 带下划线的写法也要生效。mapstructure 只做大小写折叠、不做下划线归一化，
+// 历史上 pool_size 会被静默忽略；现在由 gobay.NormalizeUnderscoreKeys 补齐。
+func TestInit_SnakeCaseAccepted(t *testing.T) {
 	b := &redisBackend{}
 	if err := b.Init(cacheConfig(map[string]interface{}{
-		"host":      "127.0.0.1:6379",
-		"pool_size": 50,
+		"host":         "127.0.0.1:6379",
+		"pool_size":    50,
+		"read_timeout": "150ms",
 	})); err != nil {
 		t.Fatalf("Init failed: %v", err)
 	}
 	defer b.Close()
 
-	if got := b.client.Options().PoolSize; got != defaultPoolSize {
-		t.Errorf("PoolSize = %d, want %d — pool_size (snake_case) must not take effect", got, defaultPoolSize)
+	o := b.client.Options()
+	if o.PoolSize != 50 {
+		t.Errorf("PoolSize = %d, want 50 — pool_size 应当生效", o.PoolSize)
+	}
+	if o.ReadTimeout != 150*time.Millisecond {
+		t.Errorf("ReadTimeout = %v, want 150ms — read_timeout 应当生效", o.ReadTimeout)
+	}
+}
+
+// 两种写法并存时以不带下划线的为准。交给 mapstructure 自行处理的话，两个键都会
+// 匹配同一个字段，最终哪个生效取决于 map 迭代顺序——实测过，是不确定的。
+func TestInit_FlatKeyWinsOverSnakeCase(t *testing.T) {
+	b := &redisBackend{}
+	if err := b.Init(cacheConfig(map[string]interface{}{
+		"host":      "127.0.0.1:6379",
+		"poolsize":  50,
+		"pool_size": 77,
+	})); err != nil {
+		t.Fatalf("Init failed: %v", err)
+	}
+	defer b.Close()
+
+	if got := b.client.Options().PoolSize; got != 50 {
+		t.Errorf("PoolSize = %d, want 50 — 并存时应以 poolsize 为准，结果必须确定", got)
 	}
 }
 
@@ -227,5 +252,95 @@ func TestInit_ExplicitPoolSizeWinsWhenCPULimitAware(t *testing.T) {
 
 	if got := b.client.Options().PoolSize; got != 33 {
 		t.Errorf("PoolSize = %d, want 33", got)
+	}
+}
+
+// 取值是决策结果而非实现细节，显式钉住，改动时必须连带改测试
+func TestDefaults_Values(t *testing.T) {
+	if defaultPoolSize != 100 {
+		t.Errorf("defaultPoolSize = %d, want 100", defaultPoolSize)
+	}
+	if defaultReadTimeout != 200*time.Millisecond {
+		t.Errorf("defaultReadTimeout = %v, want 200ms", defaultReadTimeout)
+	}
+	if defaultPoolTimeout != 100*time.Millisecond {
+		t.Errorf("defaultPoolTimeout = %v, want 100ms", defaultPoolTimeout)
+	}
+	if defaultConnMaxIdleTime != 2*time.Minute {
+		t.Errorf("defaultConnMaxIdleTime = %v, want 2m", defaultConnMaxIdleTime)
+	}
+}
+
+// v9 的 deadline 取 min(ctx.Deadline(), now+ReadTimeout)：ReadTimeout 是静态上界，
+// 兜住没有 deadline 的离线调用；ctx 是动态剩余预算。两者互补，所以 v9 同样要设。
+func TestInit_DefaultTimeouts(t *testing.T) {
+	b := &redisBackend{}
+	if err := b.Init(cacheConfig(map[string]interface{}{
+		"host": "127.0.0.1:6379",
+	})); err != nil {
+		t.Fatalf("Init failed: %v", err)
+	}
+	defer b.Close()
+
+	o := b.client.Options()
+	if o.ReadTimeout != defaultReadTimeout {
+		t.Errorf("ReadTimeout = %v, want %v", o.ReadTimeout, defaultReadTimeout)
+	}
+	if o.PoolTimeout != defaultPoolTimeout {
+		t.Errorf("PoolTimeout = %v, want %v", o.PoolTimeout, defaultPoolTimeout)
+	}
+	if o.ConnMaxIdleTime != defaultConnMaxIdleTime {
+		t.Errorf("ConnMaxIdleTime = %v, want %v", o.ConnMaxIdleTime, defaultConnMaxIdleTime)
+	}
+}
+
+func TestInit_ExplicitTimeoutsWin(t *testing.T) {
+	b := &redisBackend{}
+	if err := b.Init(cacheConfig(map[string]interface{}{
+		"host":            "127.0.0.1:6379",
+		"readtimeout":     "120ms",
+		"pooltimeout":     "60ms",
+		"connmaxidletime": "30s",
+	})); err != nil {
+		t.Fatalf("Init failed: %v", err)
+	}
+	defer b.Close()
+
+	o := b.client.Options()
+	if o.ReadTimeout != 120*time.Millisecond {
+		t.Errorf("ReadTimeout = %v, want 120ms", o.ReadTimeout)
+	}
+	if o.PoolTimeout != 60*time.Millisecond {
+		t.Errorf("PoolTimeout = %v, want 60ms", o.PoolTimeout)
+	}
+	if o.ConnMaxIdleTime != 30*time.Second {
+		t.Errorf("ConnMaxIdleTime = %v, want 30s", o.ConnMaxIdleTime)
+	}
+}
+
+// 超时默认值与 CPU 核数无关，即使 GOMAXPROCS 已感知容器限额（PoolSize 交还给
+// go-redis 自己算）也必须照常生效
+func TestInit_TimeoutsApplyWhenCPULimitAware(t *testing.T) {
+	if runtime.NumCPU() < 2 {
+		t.Skip("需要至少 2 个 CPU")
+	}
+	prev := runtime.GOMAXPROCS(1)
+	defer runtime.GOMAXPROCS(prev)
+
+	b := &redisBackend{}
+	if err := b.Init(cacheConfig(map[string]interface{}{
+		"host": "127.0.0.1:6379",
+	})); err != nil {
+		t.Fatalf("Init failed: %v", err)
+	}
+	defer b.Close()
+
+	o := b.client.Options()
+	if o.PoolSize != 10 {
+		t.Errorf("PoolSize = %d, want 10 (10*GOMAXPROCS，不该被 gobay 默认值覆盖)", o.PoolSize)
+	}
+	if o.ReadTimeout != defaultReadTimeout {
+		t.Errorf("ReadTimeout = %v, want %v（超时与 CPU 核数无关，必须照常生效）",
+			o.ReadTimeout, defaultReadTimeout)
 	}
 }
