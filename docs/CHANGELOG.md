@@ -1,3 +1,19 @@
+# 1.2.12 (2026-09-11)
+
+- **行为变更：`redisext` v9 与 `cachext` 的 redis v9 backend 的 OTel 插桩，只在 ctx 里带有「有效且已采样」的父级 span 时才产生 span**。此前 go-redis 官方 `redisotel` 没有 SpanFilter，ctx 没有父级（k8s 探针里的 `CheckHealth`、没有提取 traceparent 的 gRPC handler）时照样开根 span，被全局 provider 默认的 `ParentBased(AlwaysSample)` 100% 记录并发送——每条 Redis 命令都成了一条独立的孤儿 trace，完全绕过 istio 的头采样。线上 permission / lune 各约 5~8 万条/天，其中约 2/3 来自探针
+- 新增 `observability.ChildOnlyTracerProvider()`：ctx 无有效已采样父级 → 返回 non-recording span；有 → 转交全局 provider（每次 `Start` 时取，扩展 `Init` 早于 `otel.SetTracerProvider` 也不受影响）。语义与 `entext` 的 otelsql SpanFilter、`observability/redisotelv6` 一致，v9 是此前唯一漏掉的
+- 全局 sampler 不变：请求的根 span 仍由 istio sidecar 产生，beat / cron 里用 `ContextWithOtel` 自建的根 span 也不受影响
+- 线上验证（#757 合并前已用其 head 上线）：permission / lune 孤儿 span 归零；quest（gRPC 入口装了 traceparent 提取拦截器）每天约 5.7 万条挂在请求下的 Redis span 原样保留
+
+⚠️ 升级后，**gRPC 入口没有把 traceparent 提取进 ctx 的服务，handler 里的 Redis 命令会从「孤儿 span」变成「无 span」**——那些孤儿本来就不挂在任何请求上，无法用于排查。要在 trace 里看到它们，在 gRPC server 的拦截器链首加 gordon 的 `stubutils.NewUnaryServerTracingInterceptor()`（quest、learning 已这么做）。探针路径本来就不该有 span，无需处理。
+
+# 1.2.11 (2026-09-08)
+
+- **行为变更：`APM_ENABLE` 与 `OTEL_ENABLE` 同时为 true 时，DB 与 Redis 的插桩两者并存**，OTel 侧从此能看到 `sql.conn.query` 等 DB span 与 Redis span。此前 `entext` 是 `if / else if`，APM 优先直接短路了 otelsql；go-redis v6 的 `redisext` 与 `cachext` redis backend 只 import 了 apmgoredis，零 otel 代码。线上 828 个 Deployment 两个开关同时打开，OTel 里应用 span 一直是没有子 span 的叶子节点。业务服务零代码改动，升级即生效
+- `entext`：双开时把 apmsql 与 otelsql 叠在同一个 driver 上。⚠️ **包装顺序必须是 apmsql 在外、otelsql 在内**——database/sql 只对最外层 conn 做 `driver.Validator` 断言，otelsql 未实现该接口，顺序反了会导致连接健康检查被跳过、事务 ctx 取消后连接被销毁而非归还连接池（实测 30 次「事务 + 查询 + ctx 取消」：正确顺序新建 0~1 条连接，错误顺序 30 条）。已有测试锁定该顺序
+- 新增 `observability/redisotelv6`：给 go-redis v6 补 OTel 追踪，与 apmgoredis 并存，接入 `redisext.Client(ctx)` 与 cachext redis backend 的 `withContext(ctx)` 两处。只在 ctx 有已采样父级时产生 span；`db.statement` 带命令与参数，每个参数截断到 64 字节
+- 不走「迁 go-redis v9」：Elastic APM 没有 v9 模块，迁过去等于用 Redis 的 APM 数据换 OTel 数据
+
 # 1.2.10 (2026-09-03)
 
 - **行为变更：四个 redis 扩展入口（`cachext` 的 v6/v9 backend、`redisext` 的 v6/v9）现在都带连接池与超时默认值**，业务项目无需任何配置即可生效：
