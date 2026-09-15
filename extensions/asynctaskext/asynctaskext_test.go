@@ -20,12 +20,14 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
+	machinery "github.com/RichardKnop/machinery/v1"
 	"github.com/RichardKnop/machinery/v1/backends/result"
 	"github.com/RichardKnop/machinery/v1/tasks"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -399,5 +401,261 @@ func TestAsyncTaskExt_Monitor(t *testing.T) {
 		data := fetchAsyncTaskMetrics(t)
 		labels := `queue="gobay.task.three",status="unknown",task_name="failThree"`
 		assert.Contains(t, data, `asynctask_task_duration_seconds_count{`+labels+`} 1`)
+	})
+}
+
+/*
+# Partition table (ECP + BVA) — step 01-watchdog-health-check
+#
+# 参数/状态                                    | 等价类                                 | 类型              | 代表值/场景                                                        | 期望输出 | 对应契约条目
+# timeout query 参数                           | 缺失                                    | 有效（新契约）    | GET /health?queue=gobay.task.one（无 timeout）                     | 200      | MUST "timeout 缺失时不再返回 400"
+# timeout query 参数                           | 存在但取值应被忽略（下边界 0）          | 有效（新契约）    | GET /health?queue=gobay.task.one&timeout=0                         | 200      | MUST "timeout/queue 保留接收但忽略"
+# 心跳(lastTick) × 负载(inFlight vs concurrency)| 心跳新鲜 + 满载且队列有积压             | 有效              | concurrency=2，5 个阻塞任务（2 in-flight + 3 backlog）             | 200      | 判定式第 1 行"心跳新鲜→健康"
+# 心跳(lastTick) × 负载                        | 心跳停止 + 满载（显式 concurrency）     | 有效·边界         | concurrency=2，恰好 2 个阻塞任务，worker.Quit() 后等待 > X          | 200      | 判定式第 2 行"心跳停止+满载→健康"
+# 心跳(lastTick) × 负载 × concurrency 兜底      | 心跳停止 + 满载（concurrency<1 兜底）   | 有效·边界(BVA: concurrency=0) | concurrency=0 → 兜底 runtime.NumCPU()*2，恰好兜底数量个阻塞任务，Quit() 后等待 > X | 200 | MUST "concurrency<1 时必须按 runtime.NumCPU()*2 记录"
+# 心跳(lastTick) × 负载                        | 心跳停止 + 有空闲槽                     | 无效（不健康路径）| concurrency=2，仅 1 个阻塞任务，worker.Quit() 后等待 > X            | 400      | 判定式第 3 行"心跳停止+有空闲槽→不健康"
+#
+# 说明：
+# 1. X（心跳新鲜度阈值）契约固定为 60s，且与任务耗时无关。当前实现未把 X 暴露为
+#    可在测试里覆盖的包级变量，为了不引用任何尚不存在的标识符（那样会导致本文件
+#    无法编译，违反"今天必须能编译通过"的硬约束），本文件里凡是需要"心跳停止超过
+#    X"的用例，一律真实 sleep > 60s 去触碰边界，三个相关子场景共享同一次等待。
+#    可测试性建议见本次任务回复中的 testability_constraints 字段：若实现把 X 做
+#    成包级 var（而非 const），未来可以在测试里临时调小 X 并 defer 还原，从而
+#    避免这个 60s+ 的真实等待。
+# 2. 由于全局 `:5000` 端口只允许一次 http.Handle("/health", ...) 注册
+#    （healthHandlerRegistered 语义），本组新测试全部复用 TestPushConsume 里已经
+#    对 taskOne 启动过 healthcheck 的那个 HTTP server，通过 StartWorker 的 queue
+#    参数开新的队列/worker，而不是新建一个 AsyncTaskExt 实例。
+*/
+
+// getHealthStatus issues a GET against the shared :5000 /health endpoint and
+// returns only the observable status code, closing the response body.
+func getHealthStatus(t *testing.T, url string) int {
+	resp, err := http.Get(url)
+	if err != nil {
+		t.Fatalf("health request to %s failed: %v", url, err)
+	}
+	defer resp.Body.Close()
+	return resp.StatusCode
+}
+
+// TestAsyncTaskHealth_TimeoutParamIgnored covers the "timeout query参数缺失/取值
+// 无关" equivalence classes: MUST "timeout 缺失时不再返回 400" and MUST
+// "timeout/queue 保留接收但忽略".
+func TestAsyncTaskHealth_TimeoutParamIgnored(t *testing.T) {
+	t.Run("missing timeout no longer 400", func(t *testing.T) {
+		status := getHealthStatus(t, "http://127.0.0.1:5000/health?queue=gobay.task.one")
+		assert.Equal(t, http.StatusOK, status,
+			"missing timeout must not fail the health check under the new watchdog contract")
+	})
+
+	t.Run("timeout value is accepted but irrelevant (=0)", func(t *testing.T) {
+		status := getHealthStatus(t, "http://127.0.0.1:5000/health?queue=gobay.task.one&timeout=0")
+		assert.Equal(t, http.StatusOK, status,
+			"timeout value must be accepted-but-ignored per contract, not used to bound a real task round-trip")
+	})
+}
+
+// TestAsyncTaskHealth_FullLoadWithBacklog_Healthy covers 判定式第 1 行
+// ("心跳新鲜→健康" regardless of load): a fully-loaded worker pool with a
+// queued backlog must still report healthy as long as the heartbeat is
+// fresh. The pre-existing implementation instead dispatches a real
+// health-check task that has to wait behind the backlog for a free worker
+// slot, so it times out and reports unhealthy under this exact scenario.
+var blockFiveCh = make(chan struct{})
+
+func TaskBlockFive(id int64) (int64, error) {
+	<-blockFiveCh
+	return id, nil
+}
+
+func TestAsyncTaskHealth_FullLoadWithBacklog_Healthy(t *testing.T) {
+	if err := taskOne.RegisterWorkerHandler("blockFive", TaskBlockFive); err != nil {
+		t.Fatal(err)
+	}
+	go func() {
+		if err := taskOne.StartWorker("gobay.task_five", 2, true); err != nil {
+			t.Error(err)
+		}
+	}()
+	time.Sleep(500 * time.Millisecond) // make sure the worker is started
+
+	t.Cleanup(func() { close(blockFiveCh) })
+
+	// concurrency=2: send 5 tasks so 2 become in-flight (fill the pool) and
+	// 3 remain queued as backlog.
+	for i := 0; i < 5; i++ {
+		sign := &tasks.Signature{
+			Name:       "blockFive",
+			RoutingKey: "gobay.task_five",
+			Args:       []tasks.Arg{{Type: "int64", Value: int64(i)}},
+		}
+		if _, err := taskOne.SendTask(sign); err != nil {
+			t.Fatal(err)
+		}
+	}
+	time.Sleep(800 * time.Millisecond) // let 2 in-flight + 3 backlog settle
+
+	status := getHealthStatus(t, "http://127.0.0.1:5000/health?queue=gobay.task_five&timeout=5")
+	assert.Equal(t, http.StatusOK, status,
+		"full worker pool with a queued backlog but a fresh heartbeat must be healthy per watchdog contract row 1")
+}
+
+// TestAsyncTaskHealth_HeartbeatStopped_Group covers 判定式第 2/3 行 (heartbeat
+// stopped): all three sub-scenarios share a single real sleep past X (60s)
+// since X is not exposed as an overridable package-level var today (see the
+// partition-table comment above), avoiding paying the 60s+ wait three times.
+var (
+	blockSevenCh = make(chan struct{})
+	blockEightCh = make(chan struct{})
+	blockNineCh  = make(chan struct{})
+)
+
+func TaskBlockSeven(id int64) (int64, error) {
+	<-blockSevenCh
+	return id, nil
+}
+
+func TaskBlockEight(id int64) (int64, error) {
+	<-blockEightCh
+	return id, nil
+}
+
+func TaskBlockNine(id int64) (int64, error) {
+	<-blockNineCh
+	return id, nil
+}
+
+func TestAsyncTaskHealth_HeartbeatStopped_Group(t *testing.T) {
+	t.Cleanup(func() {
+		close(blockSevenCh)
+		close(blockEightCh)
+		close(blockNineCh)
+	})
+
+	if err := taskOne.RegisterWorkerHandlers(map[string]interface{}{
+		"blockSeven": TaskBlockSeven,
+		"blockEight": TaskBlockEight,
+		"blockNine":  TaskBlockNine,
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	// StartWorker 在 taskOne.lock 保护下 append 到 workers；测试在另一个
+	// goroutine 里读同一个切片，必须走同一把锁，否则 -race 会报数据竞争。
+	workerCount := func() int {
+		taskOne.lock.Lock()
+		defer taskOne.lock.Unlock()
+		return len(taskOne.workers)
+	}
+	workerAt := func(i int) *machinery.Worker {
+		taskOne.lock.Lock()
+		defer taskOne.lock.Unlock()
+		return taskOne.workers[i]
+	}
+
+	startIdx := workerCount()
+
+	go func() {
+		if err := taskOne.StartWorker("gobay.task_seven", 2, true); err != nil {
+			t.Error(err)
+		}
+	}()
+	time.Sleep(300 * time.Millisecond)
+
+	go func() {
+		// concurrency < 1 must be recorded as runtime.NumCPU()*2 per contract
+		if err := taskOne.StartWorker("gobay.task_eight", 0, true); err != nil {
+			t.Error(err)
+		}
+	}()
+	time.Sleep(300 * time.Millisecond)
+
+	go func() {
+		if err := taskOne.StartWorker("gobay.task_nine", 2, true); err != nil {
+			t.Error(err)
+		}
+	}()
+	time.Sleep(300 * time.Millisecond)
+
+	if n := workerCount(); n != startIdx+3 {
+		t.Fatalf("expected 3 new workers to be registered on taskOne, got %d new", n-startIdx)
+	}
+	// All three workers below are spawned from the same taskOne AsyncTaskExt
+	// instance and therefore share a single underlying broker/stop-channel
+	// (see github.com/RichardKnop/machinery/v1/common.Broker.stopChan): only
+	// one of them needs to be told to Quit() to freeze the heartbeat for all
+	// of taskOne's active queues at once — calling Quit() on more than one
+	// panics with "close of closed channel".
+	workerSeven := workerAt(startIdx)
+
+	// queue seven: fill exactly to the explicit concurrency (2) -> full, no backlog
+	for i := 0; i < 2; i++ {
+		sign := &tasks.Signature{Name: "blockSeven", RoutingKey: "gobay.task_seven",
+			Args: []tasks.Arg{{Type: "int64", Value: int64(i)}}}
+		if _, err := taskOne.SendTask(sign); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// queue eight: concurrency<1 must fall back to runtime.NumCPU()*2; send
+	// exactly that many blocking tasks so inFlight == the fallback value,
+	// not the literal 0 that was passed in.
+	fallbackConcurrency := runtime.NumCPU() * 2
+	for i := 0; i < fallbackConcurrency; i++ {
+		sign := &tasks.Signature{Name: "blockEight", RoutingKey: "gobay.task_eight",
+			Args: []tasks.Arg{{Type: "int64", Value: int64(i)}}}
+		if _, err := taskOne.SendTask(sign); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// queue nine: only 1 of the 2 slots is busy -> 1 idle slot remains
+	sign := &tasks.Signature{Name: "blockNine", RoutingKey: "gobay.task_nine",
+		Args: []tasks.Arg{{Type: "int64", Value: int64(0)}}}
+	if _, err := taskOne.SendTask(sign); err != nil {
+		t.Fatal(err)
+	}
+
+	// give machinery time to actually dispatch every blocking task into a
+	// worker goroutine before we freeze each worker's heartbeat via Quit()
+	time.Sleep(1500 * time.Millisecond)
+
+	// Quit() internally calls the broker's StopConsuming(), which blocks on
+	// processingWG.Wait() until every in-flight task handler returns; since
+	// our blocking handlers never return until the test's Cleanup closes
+	// their channels, calling Quit() synchronously here would deadlock the
+	// test goroutine forever. The stop signal that halts the
+	// PreConsumeHandler-driven fetch loop (and therefore freezes the
+	// heartbeat) is delivered essentially immediately once StopConsuming is
+	// invoked, so firing Quit() in a detached goroutine is sufficient to
+	// freeze the heartbeat without waiting for it to fully drain.
+	go workerSeven.Quit()
+
+	// X（心跳新鲜度阈值）在生产上是 60s，但它的语义是「多久没 tick 算卡死」，
+	// 与阈值绝对值无关；实现把它声明为包级 var 正是为了让测试能压缩这段等待。
+	// 覆盖成毫秒级后，三个子场景的判定路径与生产完全一致，但不必真睡 61 秒。
+	restoreThreshold := healthStaleThreshold
+	healthStaleThreshold = 300 * time.Millisecond
+	defer func() { healthStaleThreshold = restoreThreshold }()
+	time.Sleep(600 * time.Millisecond)
+
+	t.Run("heartbeat stopped + full via explicit concurrency -> healthy", func(t *testing.T) {
+		status := getHealthStatus(t, "http://127.0.0.1:5000/health?queue=gobay.task_seven&timeout=5")
+		assert.Equal(t, http.StatusOK, status,
+			"stale heartbeat but inFlight == explicit concurrency must be healthy per watchdog contract row 2")
+	})
+
+	t.Run("heartbeat stopped + full via concurrency<1 fallback -> healthy", func(t *testing.T) {
+		status := getHealthStatus(t, "http://127.0.0.1:5000/health?queue=gobay.task_eight&timeout=5")
+		assert.Equal(t, http.StatusOK, status,
+			"concurrency<1 must be recorded as runtime.NumCPU()*2 so a fully-loaded pool at that size is healthy")
+	})
+
+	t.Run("heartbeat stopped + idle slot -> unhealthy", func(t *testing.T) {
+		status := getHealthStatus(t, "http://127.0.0.1:5000/health?queue=gobay.task_nine&timeout=5")
+		assert.Equal(t, http.StatusBadRequest, status,
+			"stale heartbeat with an idle worker slot (inFlight < concurrency) must be unhealthy per watchdog contract row 3")
 	})
 }

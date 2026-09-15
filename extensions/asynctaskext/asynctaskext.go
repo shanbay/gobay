@@ -1,7 +1,13 @@
 /*
-How can I check that a running asynctask worker can otherwise process a new message within 5 seconds (health check)?
-- `curl 127.0.0.1:5000/health?timeout=5&queue=gobay.task_sub`
-- `curl 127.0.0.1:5000/health?timeout=5` **default queue**
+健康检查（watchdog 式存活探针）：
+
+- `curl 127.0.0.1:5000/health?queue=gobay.task_sub`
+- `curl 127.0.0.1:5000/health` **default queue**
+
+判定的是「消费循环还在不在转」，不是「任务跑得快不快」：心跳新鲜即健康；
+心跳停止但满载说明拉取循环因 deliveries 填满而正常阻塞，同样不判死；只有
+心跳停止且仍有空闲槽位，才说明消费循环卡死、只能靠重启恢复。
+timeout / queue 两个 URL 参数仍被接收，timeout 已不参与判定。
 */
 package asynctaskext
 
@@ -11,8 +17,9 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"strconv"
+	"runtime"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/RichardKnop/machinery/v1"
@@ -20,14 +27,9 @@ import (
 	machineryConfig "github.com/RichardKnop/machinery/v1/config"
 	"github.com/RichardKnop/machinery/v1/log"
 	"github.com/RichardKnop/machinery/v1/tasks"
-	"github.com/google/uuid"
 	"github.com/mitchellh/mapstructure"
 	"github.com/shanbay/gobay"
 	"github.com/shanbay/gobay/observability"
-)
-
-const (
-	healthCheckTaskName = "gobay-asynctask-health-check"
 )
 
 type AsyncTaskExt struct {
@@ -38,12 +40,37 @@ type AsyncTaskExt struct {
 	workers []*machinery.Worker
 
 	lock                    sync.Mutex
-	healthCheckCompleteChan chan string
 	healthHandlerRegistered bool
 
 	monitorEnabled  bool
 	taskStartTimes  map[string]time.Time
 	taskStartTimesM sync.Mutex
+
+	healthMu     sync.RWMutex
+	workerHealth map[string]*workerHealthStat
+}
+
+// healthStaleThreshold 是心跳新鲜度阈值 X。量纲取自 machinery redis broker 的
+// BLPOP 轮询周期（NormalTasksPollPeriod，默认 1s）——拉取循环空闲时约每秒 tick
+// 一次，60s 即 60 倍余量。它与业务任务时长无关，因此无需各服务校准。
+// 声明为 var 而非 const，以便测试临时覆盖后还原。
+var healthStaleThreshold = 60 * time.Second
+
+// workerHealthStat 保存单个 worker 的 watchdog 判定状态。
+type workerHealthStat struct {
+	lastTick    int64 // atomic, UnixNano: 拉取循环最近一次迭代的时间
+	inFlight    int64 // atomic: 正在执行的任务数
+	concurrency int64 // 并发上限（创建后只读），已按 machinery 的 concurrency < 1 规则归一
+}
+
+// healthy 实现 watchdog 判定：心跳新鲜即健康；心跳停止时，满载说明拉取循环是
+// 因 deliveries 缓冲填满而正常阻塞（在忙），此时主动选择不杀。只有「心跳停止
+// 且仍有空闲槽位」才能确证消费循环卡死。
+func (s *workerHealthStat) healthy(now time.Time) bool {
+	if now.Sub(time.Unix(0, atomic.LoadInt64(&s.lastTick))) < healthStaleThreshold {
+		return true
+	}
+	return atomic.LoadInt64(&s.inFlight) >= s.concurrency
 }
 
 func (t *AsyncTaskExt) Object() interface{} {
@@ -59,7 +86,6 @@ func (t *AsyncTaskExt) Init(app *gobay.Application) error {
 		return errors.New("lack of NS")
 	}
 	t.app = app
-	t.healthCheckCompleteChan = make(chan string, 1)
 	config := app.Config()
 	config = gobay.GetConfigByPrefix(config, t.NS, true)
 	t.config = &machineryConfig.Config{}
@@ -81,7 +107,7 @@ func (t *AsyncTaskExt) Init(app *gobay.Application) error {
 		t.taskStartTimes = make(map[string]time.Time)
 	}
 
-	return t.registerHealthCheck()
+	return nil
 }
 
 func (t *AsyncTaskExt) Close() error {
@@ -91,17 +117,17 @@ func (t *AsyncTaskExt) Close() error {
 	return nil
 }
 
-//RegisterWorkerHandler add task handler to worker to process task messages
+// RegisterWorkerHandler add task handler to worker to process task messages
 func (t *AsyncTaskExt) RegisterWorkerHandler(name string, handler interface{}) error {
 	return t.server.RegisterTask(name, handler)
 }
 
-//RegisterWorkerHandlers add task handlers to worker to process task messages
+// RegisterWorkerHandlers add task handlers to worker to process task messages
 func (t *AsyncTaskExt) RegisterWorkerHandlers(handlers map[string]interface{}) error {
 	return t.server.RegisterTasks(handlers)
 }
 
-//StartWorker start a worker that consume task messages for queue
+// StartWorker start a worker that consume task messages for queue
 func (t *AsyncTaskExt) StartWorker(queue string, concurrency int, enableHealthCheck bool) error {
 	t.lock.Lock()
 
@@ -113,12 +139,41 @@ func (t *AsyncTaskExt) StartWorker(queue string, concurrency int, enableHealthCh
 	worker.Queue = queue
 	t.workers = append(t.workers, worker)
 
-	if t.monitorEnabled {
-		worker.SetPreTaskHandler(t.recordTaskStart)
-		worker.SetPostTaskHandler(func(sig *tasks.Signature) {
-			t.recordTaskDuration(sig, queue)
-		})
+	// 并发数按 machinery broker 内部规则归一：它在 concurrency < 1 时会用
+	// runtime.NumCPU()*2，此处不复制同一兜底的话，满载判定将永不成立。
+	effectiveConcurrency := concurrency
+	if effectiveConcurrency < 1 {
+		effectiveConcurrency = runtime.NumCPU() * 2
 	}
+	stat := &workerHealthStat{concurrency: int64(effectiveConcurrency)}
+	// 启动期初始化：零值等同「心跳停止」，叠加 inFlight == 0 会让探针在拉取
+	// 循环转起来之前就把容器判为不健康。
+	atomic.StoreInt64(&stat.lastTick, time.Now().UnixNano())
+	t.healthMu.Lock()
+	if t.workerHealth == nil {
+		t.workerHealth = make(map[string]*workerHealthStat)
+	}
+	t.workerHealth[tag] = stat
+	t.healthMu.Unlock()
+
+	// 心跳挂载点：machinery 的拉取循环每轮迭代都会调用 PreConsumeHandler。
+	// 必须返回 true，否则会跳过取任务。
+	worker.SetPreConsumeHandler(func(*machinery.Worker) bool {
+		atomic.StoreInt64(&stat.lastTick, time.Now().UnixNano())
+		return true
+	})
+	worker.SetPreTaskHandler(func(sig *tasks.Signature) {
+		atomic.AddInt64(&stat.inFlight, 1)
+		if t.monitorEnabled {
+			t.recordTaskStart(sig)
+		}
+	})
+	worker.SetPostTaskHandler(func(sig *tasks.Signature) {
+		if t.monitorEnabled {
+			t.recordTaskDuration(sig, queue)
+		}
+		atomic.AddInt64(&stat.inFlight, -1)
+	})
 
 	// run health check http server
 	if enableHealthCheck && !t.healthHandlerRegistered {
@@ -136,7 +191,7 @@ func (t *AsyncTaskExt) StartWorker(queue string, concurrency int, enableHealthCh
 	return worker.Launch()
 }
 
-//SendTask publish task messages to broker
+// SendTask publish task messages to broker
 func (t *AsyncTaskExt) SendTask(sign *tasks.Signature) (*result.AsyncResult, error) {
 	asyncResult, err := t.server.SendTask(sign)
 	if err != nil {
@@ -146,7 +201,7 @@ func (t *AsyncTaskExt) SendTask(sign *tasks.Signature) (*result.AsyncResult, err
 	return asyncResult, nil
 }
 
-//SendTask publish task messages with context to broker
+// SendTask publish task messages with context to broker
 func (t *AsyncTaskExt) SendTaskWithContext(ctx context.Context, sign *tasks.Signature) (*result.AsyncResult, error) {
 	asyncResult, err := t.server.SendTaskWithContext(ctx, sign)
 	if err != nil {
@@ -190,86 +245,34 @@ func (t *AsyncTaskExt) recordTaskDuration(sig *tasks.Signature, queue string) {
 		Observe(time.Since(start).Seconds())
 }
 
-func (t *AsyncTaskExt) registerHealthCheck() error {
-	return t.server.RegisterTask(healthCheckTaskName, func(healthCheckUUID string) error {
-		select {
-		case t.healthCheckCompleteChan <- healthCheckUUID: // success and send uuid
-			return nil
-		case <-time.After(5 * time.Second):
-			return fmt.Errorf("send health check result error: %v", healthCheckUUID)
-		}
-	})
-}
-
-// Send a health check. Expect it to be processed within taskExecutionTimeout, otherwise it is considered unhealthy and return err
-func (t *AsyncTaskExt) checkHealth(consumerTag string, taskExecutionTimeout time.Duration) error {
-	// clear channel
-	select {
-	case <-t.healthCheckCompleteChan:
-	default:
-	}
-
-	broker := t.server.GetBroker()
-	healthCheckUUID, err := uuid.NewUUID()
-	if err != nil {
-		return err
-	}
-	if err := broker.PublishToLocal(consumerTag, &tasks.Signature{
-		UUID: healthCheckUUID.String(),
-		Name: healthCheckTaskName,
-		Args: []tasks.Arg{
-			{Type: "string", Value: healthCheckUUID.String()},
-		},
-	}, 5*time.Second); err != nil {
-		return err
-	}
-
-	// wait for task execution success
-	select {
-	case successUUID := <-t.healthCheckCompleteChan:
-		if successUUID == healthCheckUUID.String() {
-			return nil
-		}
-	case <-time.After(taskExecutionTimeout):
-	}
-	return fmt.Errorf("health check execution fail: %v", healthCheckUUID.String())
-}
-
 // HTTP handler that triggers the health check
 func (t *AsyncTaskExt) healthHttpHandler(w http.ResponseWriter, r *http.Request) {
-	// get params
-	params := r.URL.Query()
-	if len(params["timeout"]) != 1 {
-		w.WriteHeader(http.StatusBadRequest)
-		if _, err := w.Write([]byte("no timeout")); err != nil {
-			panic(err)
-		}
-		return
-	}
-	timeoutInSeconds, err := strconv.Atoi(params["timeout"][0])
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		if _, err = w.Write([]byte(err.Error())); err != nil {
-			panic(err)
-		}
-		return
-	}
+	// timeout 参数保留接收但忽略：判定不再涉及任何排队等待，缺失也不再视为错误。
+	// queue 的作用域语义保持不变：传了且非空则判定该队列的 worker，否则判定默认队列。
 	queue := t.config.DefaultQueue
-	if len(params["queue"]) == 1 && params["queue"][0] != "" {
+	if params := r.URL.Query(); len(params["queue"]) == 1 && params["queue"][0] != "" {
 		queue = params["queue"][0]
 	}
-	consumerTag := t.genConsumerTag(queue)
+	tag := t.genConsumerTag(queue)
 
-	// send health check
-	if err := t.checkHealth(consumerTag, time.Duration(timeoutInSeconds)*time.Second); err != nil {
+	t.healthMu.RLock()
+	stat, ok := t.workerHealth[tag]
+	t.healthMu.RUnlock()
+
+	if !ok {
 		w.WriteHeader(http.StatusBadRequest)
-		if _, err = w.Write([]byte(err.Error())); err != nil {
-			panic(err)
-		}
+		_, _ = fmt.Fprintf(w, "no worker for consumer tag: %v", tag)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
-	if _, err = w.Write([]byte("OK")); err != nil {
-		panic(err)
+	if !stat.healthy(time.Now()) {
+		w.WriteHeader(http.StatusBadRequest)
+		_, _ = fmt.Fprintf(w,
+			"consume loop stuck: no tick within %v, %v/%v slots busy (tag: %v)",
+			healthStaleThreshold,
+			atomic.LoadInt64(&stat.inFlight), stat.concurrency, tag)
+		return
 	}
+
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write([]byte("OK"))
 }
