@@ -1,3 +1,21 @@
+# 1.2.13 (2026-09-15)
+
+- **行为变更：`asynctaskext` 的 `/health` 从「投递一条任务、等它被执行完」改为「读消费循环的心跳」**。旧实现的健康检查是一次端到端任务往返，要和真实任务抢同一个 worker 池——槽位耗尽时派发循环阻塞在 `<-pool`，健康检查任务被饿死，于是**队列一积压 worker 就被 liveness 探针杀掉，恰好在它最忙的时候**；杀掉又让在途任务重新入队，下一轮积压更重。**积压越重、被杀得越频繁**：线上有服务因此在 30 天内重启 215 次，重启窗口与队列长度逐点同步，而同期内存仅占 limit 的 10%、CPU 0.4%，与资源无关
+- 新判定：**心跳新鲜 → 健康；心跳停止但已满载 → 健康；心跳停止且仍有空闲槽位 → 不健康**。心跳由 `SetPreConsumeHandler` 在 machinery 拉取循环每轮迭代写入，空闲时约 1 次/秒。阈值 60s 的量纲是 BLPOP 轮询周期（中间件常量），与业务任务时长无关，**无需各服务校准，也不会因为任务跑得久而杀 worker**
+- 探针路径与返回码不变（`/health`，200 / 400），`timeout` 与 `queue` 两个 query 参数仍被接收（`timeout` 不再参与判定，`queue` 的作用域语义不变），**helm values 零改动，业务方只需升版本**。此前为绕过该缺陷而设置 `disableHealthCheck: true` 的服务（最早可追溯到 2023 年）可以重新打开探针
+- 删除 unexported 的 `checkHealth` / `registerHealthCheck` / `healthCheckCompleteChan` 及健康检查任务注册，业务方无感知
+- **新旧行为对比**（实测）：
+
+  | 场景 | 旧版 | 新版 |
+  | --- | --- | --- |
+  | 空闲 | 200 | 200 |
+  | **worker 正常忙（槽位占满）** | **400，被杀** | **200** |
+  | 槽位被死锁任务占满 | 400 | 200（与「忙」不可区分，选择不杀） |
+  | **broker 挂住** | **400，被杀** | **200** |
+  | 拉取循环退出但进程存活 | panic / 连接重置 | 400 |
+
+⚠️ 旧版只要「槽位占满」或「broker 不可达」就判不健康，**无法区分 worker 是在忙还是真卡死**，前者即为误杀来源。新版有意放弃对这两类的检出：死锁判为满载不杀，broker 故障不杀（重启 worker 救不了 broker）。**这两类应由「队列积压且该 worker 零产出」的告警覆盖。** 另：仅适用 redis broker，amqp broker 不调用 `PreConsumeHandler`。
+
 # 1.2.12 (2026-09-11)
 
 - **行为变更：`redisext` v9 与 `cachext` 的 redis v9 backend 的 OTel 插桩，只在 ctx 里带有「有效且已采样」的父级 span 时才产生 span**。此前 go-redis 官方 `redisotel` 没有 SpanFilter，ctx 没有父级（k8s 探针里的 `CheckHealth`、没有提取 traceparent 的 gRPC handler）时照样开根 span，被全局 provider 默认的 `ParentBased(AlwaysSample)` 100% 记录并发送——每条 Redis 命令都成了一条独立的孤儿 trace，完全绕过 istio 的头采样。线上 permission / lune 各约 5~8 万条/天，其中约 2/3 来自探针
