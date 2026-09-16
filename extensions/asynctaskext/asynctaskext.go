@@ -28,6 +28,8 @@ import (
 	"github.com/RichardKnop/machinery/v1/log"
 	"github.com/RichardKnop/machinery/v1/tasks"
 	"github.com/mitchellh/mapstructure"
+	oteltrace "go.opentelemetry.io/otel/trace"
+
 	"github.com/shanbay/gobay"
 	"github.com/shanbay/gobay/observability"
 )
@@ -45,6 +47,9 @@ type AsyncTaskExt struct {
 	monitorEnabled  bool
 	taskStartTimes  map[string]time.Time
 	taskStartTimesM sync.Mutex
+
+	taskSpans  map[string]oteltrace.Span
+	taskSpansM sync.Mutex
 
 	healthMu     sync.RWMutex
 	workerHealth map[string]*workerHealthStat
@@ -167,8 +172,10 @@ func (t *AsyncTaskExt) StartWorker(queue string, concurrency int, enableHealthCh
 		if t.monitorEnabled {
 			t.recordTaskStart(sig)
 		}
+		t.otelTaskStart(sig)
 	})
 	worker.SetPostTaskHandler(func(sig *tasks.Signature) {
+		t.otelTaskEnd(sig)
 		if t.monitorEnabled {
 			t.recordTaskDuration(sig, queue)
 		}
@@ -203,7 +210,9 @@ func (t *AsyncTaskExt) SendTask(sign *tasks.Signature) (*result.AsyncResult, err
 
 // SendTask publish task messages with context to broker
 func (t *AsyncTaskExt) SendTaskWithContext(ctx context.Context, sign *tasks.Signature) (*result.AsyncResult, error) {
+	ctx, otelSendEnd := otelSendStart(ctx, sign)
 	asyncResult, err := t.server.SendTaskWithContext(ctx, sign)
+	otelSendEnd(err)
 	if err != nil {
 		log.ERROR.Printf("send task with context failed: %v", err)
 		return nil, err

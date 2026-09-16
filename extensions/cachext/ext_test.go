@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"net"
 	"net/http"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -585,7 +586,7 @@ func TestCacheExt_Cached_Monitor(t *testing.T) {
 	fetchMetricData := func() string {
 		resp, err := http.Get("http://localhost:2112/metrics")
 		if err != nil {
-			t.Error(err)
+			t.Fatal(err)
 		}
 		defer resp.Body.Close()
 		rawData, err := io.ReadAll(resp.Body)
@@ -601,6 +602,16 @@ func TestCacheExt_Cached_Monitor(t *testing.T) {
 			log.Fatalf("error when start prometheus server: %v\n", err)
 		}
 	}()
+	// ListenAndServe 在 goroutine 里异步启动，必须等端口可连接后才能发请求，
+	// 否则 Get 会 connection refused（此前 t.Error 不中止，随后 resp.Body nil 解引用直接 SIGSEGV）
+	for i := 0; i < 50; i++ {
+		conn, err := net.Dial("tcp", "localhost:2112")
+		if err == nil {
+			conn.Close()
+			break
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
 
 	// Cache method
 	f_str := func(_ context.Context, keys []string, args []int64) (interface{}, error) {
